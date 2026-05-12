@@ -2,6 +2,7 @@
 // Makale ID'si ile API'den tam içeriği çeker ve gösterir.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
 
@@ -119,9 +120,21 @@ class _ArticleScreenState extends State<ArticleScreen> {
           ),
           const Divider(height: 32),
           // Makale içeriği
-          Text(
-            _icerik!.yazi,
-            style: const TextStyle(fontSize: 16, height: 1.7),
+          Html(
+            data: _icerik!.yazi,
+            style: {
+              'body': Style(
+                fontSize: FontSize(16),
+                lineHeight: LineHeight(1.7),
+                color: Colors.white,
+              ),
+              'h1': Style(fontSize: FontSize(22), fontWeight: FontWeight.bold, color: Colors.white),
+              'h2': Style(fontSize: FontSize(20), fontWeight: FontWeight.bold, color: Colors.white),
+              'h3': Style(fontSize: FontSize(18), fontWeight: FontWeight.bold, color: Colors.white),
+              'p':  Style(color: Colors.white),
+              'li': Style(color: Colors.white),
+              'a':  Style(color: Color(0xFFF5A623)),
+            },
           ),
         ],
       ),
