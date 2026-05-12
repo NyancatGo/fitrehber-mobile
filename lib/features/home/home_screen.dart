@@ -2,6 +2,7 @@
 // Seçilen sekmeye göre ilgili ekran gösterilir.
 
 import 'package:flutter/material.dart';
+import '../ai_assistant/ai_assistant_screen.dart';
 import '../categories/categories_screen.dart';
 import '../forum/forum_screen.dart';
 import '../profile/profile_screen.dart';
@@ -20,10 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Her sekmeye karşılık gelen ekranlar
   final List<Widget> _ekranlar = const [
-    HomeContent(),      // Ana sayfa içeriği
-    CategoriesScreen(), // Kategoriler
-    ForumScreen(),      // Forum
-    ProfileScreen(),    // Profil
+    HomeContent(),
+    CategoriesScreen(),
+    AiAssistantScreen(),
+    ForumScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -48,6 +50,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.grid_view_outlined),
             selectedIcon: Icon(Icons.grid_view),
             label: 'Kategoriler',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.smart_toy_outlined),
+            selectedIcon: Icon(Icons.smart_toy),
+            label: 'AI Asistan',
           ),
           NavigationDestination(
             icon: Icon(Icons.forum_outlined),
