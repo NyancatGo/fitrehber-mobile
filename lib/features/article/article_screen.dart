@@ -123,128 +123,149 @@ class _ArticleScreenState extends State<ArticleScreen> {
             ],
           ),
           const Divider(height: 32),
-          Html(
-            data: _icerik!.yaziTemiz,
-            style: {
-              'html': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-              ),
-              'body': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-                fontSize: FontSize(16),
-                lineHeight: LineHeight(1.7),
-                color: Colors.white,
-                whiteSpace: WhiteSpace.normal,
-              ),
-              'div': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-              ),
-              'main': Style(width: Width(100, Unit.percent)),
-              'article': Style(width: Width(100, Unit.percent)),
-              'section': Style(width: Width(100, Unit.percent)),
-              'figure': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.symmetric(vertical: 16),
-                padding: HtmlPaddings.zero,
-              ),
-              'figcaption': Style(
-                margin: Margins.only(top: 8),
-                fontSize: FontSize(13),
-                lineHeight: LineHeight(1.4),
-                color: Colors.grey,
-                textAlign: TextAlign.center,
-              ),
-              'img': Style(
-                display: Display.block,
-                width: Width(100, Unit.percent),
-                height: Height.auto(),
-                margin: Margins.symmetric(vertical: 12),
-              ),
-              'h1': Style(
-                fontSize: FontSize(22),
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                lineHeight: LineHeight(1.25),
-                margin: Margins.only(top: 18, bottom: 10),
-              ),
-              'h2': Style(
-                fontSize: FontSize(20),
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                lineHeight: LineHeight(1.3),
-                margin: Margins.only(top: 18, bottom: 10),
-              ),
-              'h3': Style(
-                fontSize: FontSize(18),
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                lineHeight: LineHeight(1.35),
-                margin: Margins.only(top: 16, bottom: 8),
-              ),
-              'h4': Style(
-                fontSize: FontSize(17),
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                lineHeight: LineHeight(1.35),
-                margin: Margins.only(top: 14, bottom: 8),
-              ),
-              'p': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.symmetric(vertical: 8),
-                color: Colors.white,
-              ),
-              'ul': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.symmetric(vertical: 8),
-                padding: HtmlPaddings.only(left: 20),
-              ),
-              'ol': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.symmetric(vertical: 8),
-                padding: HtmlPaddings.only(left: 20),
-              ),
-              'li': Style(
-                color: Colors.white,
-                lineHeight: LineHeight(1.6),
-                margin: Margins.only(bottom: 8),
-                display: Display.listItem,
-              ),
-              'blockquote': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.symmetric(vertical: 12),
-                padding: HtmlPaddings.only(left: 14, top: 8, bottom: 8),
-                color: Colors.white70,
-                border: const Border(
-                  left: BorderSide(color: Color(0xFFF5A623), width: 3),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final contentWidth = constraints.maxWidth.isFinite
+                  ? constraints.maxWidth
+                  : MediaQuery.sizeOf(context).width - 40;
+
+              return SizedBox(
+                width: double.infinity,
+                child: Html(
+                  data: _icerik!.yaziTemiz,
+                  style: {
+                    'html': Style(
+                      display: Display.block,
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                    ),
+                    'body': Style(
+                      display: Display.block,
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                      fontSize: FontSize(16),
+                      lineHeight: LineHeight(1.7),
+                      color: Colors.white,
+                      whiteSpace: WhiteSpace.normal,
+                    ),
+                    'div': Style(
+                      display: Display.block,
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                    ),
+                    'main': Style(display: Display.block),
+                    'article': Style(display: Display.block),
+                    'section': Style(display: Display.block),
+                    'figure': Style(
+                      display: Display.block,
+                      width: Width(contentWidth),
+                      margin: Margins.symmetric(vertical: 16),
+                      padding: HtmlPaddings.zero,
+                    ),
+                    'figcaption': Style(
+                      margin: Margins.only(top: 8),
+                      fontSize: FontSize(13),
+                      lineHeight: LineHeight(1.4),
+                      color: Colors.grey,
+                      textAlign: TextAlign.center,
+                    ),
+                    'img': Style(
+                      display: Display.block,
+                      width: Width(contentWidth),
+                      height: Height.auto(),
+                      margin: Margins.symmetric(vertical: 12),
+                    ),
+                    'h1': Style(
+                      fontSize: FontSize(22),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      lineHeight: LineHeight(1.25),
+                      margin: Margins.only(top: 18, bottom: 10),
+                    ),
+                    'h2': Style(
+                      fontSize: FontSize(20),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      lineHeight: LineHeight(1.3),
+                      margin: Margins.only(top: 18, bottom: 10),
+                    ),
+                    'h3': Style(
+                      fontSize: FontSize(18),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      lineHeight: LineHeight(1.35),
+                      margin: Margins.only(top: 16, bottom: 8),
+                    ),
+                    'h4': Style(
+                      fontSize: FontSize(17),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      lineHeight: LineHeight(1.35),
+                      margin: Margins.only(top: 14, bottom: 8),
+                    ),
+                    'p': Style(
+                      display: Display.block,
+                      margin: Margins.symmetric(vertical: 8),
+                      color: Colors.white,
+                    ),
+                    'ul': Style(
+                      display: Display.block,
+                      margin: Margins.symmetric(vertical: 8),
+                      padding: HtmlPaddings.only(left: 20),
+                    ),
+                    'ol': Style(
+                      display: Display.block,
+                      margin: Margins.symmetric(vertical: 8),
+                      padding: HtmlPaddings.only(left: 20),
+                    ),
+                    'li': Style(
+                      color: Colors.white,
+                      lineHeight: LineHeight(1.6),
+                      margin: Margins.only(bottom: 8),
+                      display: Display.listItem,
+                    ),
+                    'blockquote': Style(
+                      display: Display.block,
+                      margin: Margins.symmetric(vertical: 12),
+                      padding: HtmlPaddings.only(left: 14, top: 8, bottom: 8),
+                      color: Colors.white70,
+                      border: const Border(
+                        left: BorderSide(color: Color(0xFFF5A623), width: 3),
+                      ),
+                    ),
+                    'pre': Style(
+                      display: Display.block,
+                      margin: Margins.symmetric(vertical: 12),
+                      padding: HtmlPaddings.all(12),
+                      fontSize: FontSize(14),
+                      lineHeight: LineHeight(1.5),
+                      whiteSpace: WhiteSpace.normal,
+                      backgroundColor: const Color(0xFF1A1D27),
+                    ),
+                    'code': Style(
+                      fontSize: FontSize(14),
+                      whiteSpace: WhiteSpace.normal,
+                      backgroundColor: const Color(0xFF1A1D27),
+                    ),
+                    'table': Style(
+                      display: Display.block,
+                      margin: Margins.symmetric(vertical: 12),
+                    ),
+                    'th': Style(
+                      padding: HtmlPaddings.all(8),
+                      color: Colors.white,
+                    ),
+                    'td': Style(
+                      padding: HtmlPaddings.all(8),
+                      color: Colors.white,
+                    ),
+                    'a': Style(
+                      color: Color(0xFFF5A623),
+                      display: Display.inline,
+                    ),
+                  },
                 ),
-              ),
-              'pre': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.symmetric(vertical: 12),
-                padding: HtmlPaddings.all(12),
-                fontSize: FontSize(14),
-                lineHeight: LineHeight(1.5),
-                whiteSpace: WhiteSpace.normal,
-                backgroundColor: const Color(0xFF1A1D27),
-              ),
-              'code': Style(
-                fontSize: FontSize(14),
-                whiteSpace: WhiteSpace.normal,
-                backgroundColor: const Color(0xFF1A1D27),
-              ),
-              'table': Style(
-                width: Width(100, Unit.percent),
-                margin: Margins.symmetric(vertical: 12),
-              ),
-              'th': Style(padding: HtmlPaddings.all(8), color: Colors.white),
-              'td': Style(padding: HtmlPaddings.all(8), color: Colors.white),
-              'a': Style(color: Color(0xFFF5A623), display: Display.inline),
+              );
             },
           ),
         ],
