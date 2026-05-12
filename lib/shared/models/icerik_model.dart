@@ -1,6 +1,85 @@
 // Makale/içerik verisini temsil eden model.
 // API'den gelen JSON bu modele dönüştürülür.
 
+import 'package:html/parser.dart' as html_parser;
+
+const _siteBaseUrl = 'https://fitrehber.com.tr';
+const _mediaBaseUrl = '$_siteBaseUrl/media/';
+const _mediaPrefixes = ['ckeditor_resimleri/', 'icerik_resimleri/'];
+
+String _asString(Object? value) => value?.toString() ?? '';
+
+String? _normalizeMediaUrl(Object? value) {
+  final raw = _asString(value).trim();
+  if (raw.isEmpty) return null;
+
+  final uri = Uri.tryParse(raw);
+  if (uri != null && uri.hasScheme) return raw;
+  if (raw.startsWith('//')) return 'https:$raw';
+  if (raw.startsWith('/media/')) return '$_siteBaseUrl$raw';
+  if (raw.startsWith('media/')) return '$_siteBaseUrl/$raw';
+
+  return '$_mediaBaseUrl${raw.replaceFirst(RegExp(r'^/+'), '')}';
+}
+
+String _normalizeContentUrl(String value) {
+  final raw = value.trim();
+  if (raw.isEmpty) return value;
+
+  final uri = Uri.tryParse(raw);
+  if (uri != null && uri.hasScheme) return raw;
+  if (raw.startsWith('//')) return 'https:$raw';
+
+  final withoutSlash = raw.replaceFirst(RegExp(r'^/+'), '');
+  final isMediaPath =
+      raw.startsWith('/media/') ||
+      raw.startsWith('media/') ||
+      _mediaPrefixes.any(withoutSlash.startsWith);
+
+  return isMediaPath ? _normalizeMediaUrl(raw)! : raw;
+}
+
+String _normalizeArticleHtml(Object? value) {
+  final raw = _asString(value);
+  if (raw.trim().isEmpty) return '';
+
+  final document = html_parser.parse(raw);
+  for (final selector in ['script', 'style', 'head', 'meta', 'link']) {
+    document.querySelectorAll(selector).forEach((element) => element.remove());
+  }
+
+  final content =
+      document.querySelector('article') ??
+      document.querySelector('main') ??
+      document.body;
+
+  if (content == null) return raw;
+
+  for (final element in content.querySelectorAll('[src]')) {
+    final src = element.attributes['src'];
+    if (src != null) {
+      element.attributes['src'] = _normalizeContentUrl(src);
+    }
+  }
+
+  for (final element in content.querySelectorAll('[srcset]')) {
+    final srcset = element.attributes['srcset'];
+    if (srcset != null) {
+      element.attributes['srcset'] = srcset
+          .split(',')
+          .map((candidate) {
+            final parts = candidate.trim().split(RegExp(r'\s+'));
+            if (parts.isEmpty || parts.first.isEmpty) return candidate;
+            parts[0] = _normalizeContentUrl(parts.first);
+            return parts.join(' ');
+          })
+          .join(', ');
+    }
+  }
+
+  return content.innerHtml;
+}
+
 class IcerikModel {
   final int id;
   final String baslik;
@@ -27,12 +106,15 @@ class IcerikModel {
   });
 
   factory IcerikModel.fromJson(Map<String, dynamic> json) {
-    final yazi = json['yazi'] ?? '';
+    final yazi = _asString(json['yazi']);
+    final apiYaziTemiz = _asString(json['yazi_temiz']);
+    final yaziTemiz = apiYaziTemiz.isNotEmpty ? apiYaziTemiz : yazi;
+
     return IcerikModel(
       id: json['id'],
       baslik: json['baslik'],
       resim: json['resim'],
-      resimUrl: json['resim_url'],
+      resimUrl: _normalizeMediaUrl(json['resim_url'] ?? json['resim']),
       tur: json['tur'],
       tarih: json['tarih'],
       yazar: Map<String, dynamic>.from(json['yazar'] ?? {}),
@@ -40,7 +122,7 @@ class IcerikModel {
           ? Map<String, dynamic>.from(json['kategori'])
           : null,
       yazi: yazi,
-      yaziTemiz: json['yazi_temiz'] ?? yazi,
+      yaziTemiz: _normalizeArticleHtml(yaziTemiz),
     );
   }
 
