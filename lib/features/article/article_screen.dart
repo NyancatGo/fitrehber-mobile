@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
@@ -152,6 +151,7 @@ class _ArticleScreenState extends State<ArticleScreen> {
                     width: double.infinity,
                     child: Html(
                       data: _icerik!.yaziTemiz,
+                      extensions: [_articleImageExtension(contentWidth)],
                       style: {
                         'html': Style(
                           display: Display.block,
@@ -302,23 +302,60 @@ class _ArticleScreenState extends State<ArticleScreen> {
   }
 
   Widget _kapakResmi(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      imageBuilder: (context, imageProvider) => AspectRatio(
-        aspectRatio: 16 / 9,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image(image: imageProvider, fit: BoxFit.cover),
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: const Color(0xFF1A1D27),
+            alignment: Alignment.center,
+            child: const Icon(Icons.image_not_supported_outlined),
+          ),
         ),
       ),
-      placeholder: (context, url) => AspectRatio(
-        aspectRatio: 16 / 9,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Container(color: const Color(0xFF1A1D27)),
-        ),
-      ),
-      errorWidget: (context, url, error) => const SizedBox.shrink(),
+    );
+  }
+
+  ImageExtension _articleImageExtension(double contentWidth) {
+    return ImageExtension(
+      builder: (extensionContext) {
+        final src = extensionContext.attributes['src'];
+        final alt = extensionContext.attributes['alt'] ?? '';
+
+        if (src == null || src.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              src,
+              width: contentWidth,
+              fit: BoxFit.contain,
+              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: contentWidth,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1D27),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  alt.isNotEmpty ? alt : 'Görsel yüklenemedi',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
