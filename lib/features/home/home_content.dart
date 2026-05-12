@@ -3,6 +3,7 @@
 // Veriler API'den çekilir; yüklenirken shimmer, hata olursa hata mesajı gösterilir.
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
@@ -33,12 +34,13 @@ class _HomeContentState extends State<HomeContent> {
 
   // API'den kategori ve makale listesini çeker
   Future<void> _verileriYukle() async {
-    setState(() { _yukleniyor = true; _hata = null; });
+    setState(() {
+      _yukleniyor = true;
+      _hata = null;
+    });
     try {
       final kategoriler = await _api.getKategoriler();
-      final icerikler = await _api.getIcerikler(
-        kategoriId: _secilenKategoriId,
-      );
+      final icerikler = await _api.getIcerikler(kategoriId: _secilenKategoriId);
       setState(() {
         _kategoriler = kategoriler;
         _icerikler = icerikler;
@@ -60,13 +62,11 @@ class _HomeContentState extends State<HomeContent> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FitRehber', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
-        ],
+        title: const Text(
+          'FitRehber',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [IconButton(icon: const Icon(Icons.search), onPressed: () {})],
       ),
       body: Column(
         children: [
@@ -113,7 +113,9 @@ class _HomeContentState extends State<HomeContent> {
   Widget _icerikAlani() {
     if (_yukleniyor) return _shimmerListe();
     if (_hata != null) return _hataWidget();
-    if (_icerikler.isEmpty) return const Center(child: Text('Henüz içerik yok.'));
+    if (_icerikler.isEmpty) {
+      return const Center(child: Text('Henüz içerik yok.'));
+    }
     return _makaleListe();
   }
 
@@ -125,7 +127,7 @@ class _HomeContentState extends State<HomeContent> {
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 5,
-        itemBuilder: (_, __) => Container(
+        itemBuilder: (context, index) => Container(
           height: 100,
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
@@ -176,9 +178,7 @@ class _HomeContentState extends State<HomeContent> {
           // Makale detay ekranına git
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => ArticleScreen(id: icerik.id),
-            ),
+            MaterialPageRoute(builder: (_) => ArticleScreen(id: icerik.id)),
           );
         },
         child: Padding(
@@ -186,6 +186,9 @@ class _HomeContentState extends State<HomeContent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (icerik.resimUrl != null && icerik.resimUrl!.isNotEmpty) ...[
+                _kapakResmi(icerik.resimUrl!),
+              ],
               // Kategori etiketi
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -215,19 +218,64 @@ class _HomeContentState extends State<HomeContent> {
               // Yazar ve tarih
               Row(
                 children: [
-                  const Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                  const Icon(
+                    Icons.person_outline,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 4),
-                  Text(icerik.yazarAdi, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    icerik.yazarAdi,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                   const Spacer(),
-                  const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 4),
-                  Text(icerik.tarihFormatli, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    icerik.tarihFormatli,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _kapakResmi(String url) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      imageBuilder: (context, imageProvider) => Column(
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image(image: imageProvider, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+      placeholder: (context, url) => Column(
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(color: const Color(0xFF2A2D37)),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+      errorWidget: (context, url, error) => const SizedBox.shrink(),
     );
   }
 }

@@ -5,35 +5,42 @@ class IcerikModel {
   final int id;
   final String baslik;
   final String? resim;
+  final String? resimUrl;
   final String tur;
   final String tarih;
   final Map<String, dynamic> yazar;
   final Map<String, dynamic>? kategori;
   final String yazi;
+  final String yaziTemiz;
 
   IcerikModel({
     required this.id,
     required this.baslik,
     this.resim,
+    this.resimUrl,
     required this.tur,
     required this.tarih,
     required this.yazar,
     this.kategori,
     required this.yazi,
+    required this.yaziTemiz,
   });
 
   factory IcerikModel.fromJson(Map<String, dynamic> json) {
+    final yazi = json['yazi'] ?? '';
     return IcerikModel(
-      id:       json['id'],
-      baslik:   json['baslik'],
-      resim:    json['resim'],
-      tur:      json['tur'],
-      tarih:    json['tarih'],
-      yazar:    Map<String, dynamic>.from(json['yazar'] ?? {}),
+      id: json['id'],
+      baslik: json['baslik'],
+      resim: json['resim'],
+      resimUrl: json['resim_url'],
+      tur: json['tur'],
+      tarih: json['tarih'],
+      yazar: Map<String, dynamic>.from(json['yazar'] ?? {}),
       kategori: json['kategori'] != null
           ? Map<String, dynamic>.from(json['kategori'])
           : null,
-      yazi: json['yazi'] ?? '',
+      yazi: yazi,
+      yaziTemiz: json['yazi_temiz'] ?? yazi,
     );
   }
 
@@ -47,7 +54,20 @@ class IcerikModel {
   String get tarihFormatli {
     try {
       final dt = DateTime.parse(tarih);
-      const aylar = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+      const aylar = [
+        'Oca',
+        'Şub',
+        'Mar',
+        'Nis',
+        'May',
+        'Haz',
+        'Tem',
+        'Ağu',
+        'Eyl',
+        'Eki',
+        'Kas',
+        'Ara',
+      ];
       return '${dt.day} ${aylar[dt.month - 1]} ${dt.year}';
     } catch (_) {
       return tarih;
