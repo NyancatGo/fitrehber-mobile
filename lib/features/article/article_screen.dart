@@ -210,9 +210,10 @@ class _ArticleScreenState extends State<ArticleScreen> {
                 padding: HtmlPaddings.only(left: 20),
               ),
               'li': Style(
-                margin: Margins.only(bottom: 6),
                 color: Colors.white,
                 lineHeight: LineHeight(1.6),
+                margin: Margins.only(bottom: 8),
+                display: Display.listItem,
               ),
               'blockquote': Style(
                 width: Width(100, Unit.percent),
@@ -243,7 +244,7 @@ class _ArticleScreenState extends State<ArticleScreen> {
               ),
               'th': Style(padding: HtmlPaddings.all(8), color: Colors.white),
               'td': Style(padding: HtmlPaddings.all(8), color: Colors.white),
-              'a': Style(color: Color(0xFFF5A623)),
+              'a': Style(color: Color(0xFFF5A623), display: Display.inline),
             },
           ),
         ],
