@@ -9,6 +9,7 @@ class IcerikModel {
   final String tarih;
   final Map<String, dynamic> yazar;
   final Map<String, dynamic>? kategori;
+  final String yazi;
 
   IcerikModel({
     required this.id,
@@ -18,6 +19,7 @@ class IcerikModel {
     required this.tarih,
     required this.yazar,
     this.kategori,
+    required this.yazi,
   });
 
   factory IcerikModel.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,7 @@ class IcerikModel {
       kategori: json['kategori'] != null
           ? Map<String, dynamic>.from(json['kategori'])
           : null,
+      yazi: json['yazi'] ?? '',
     );
   }
 
