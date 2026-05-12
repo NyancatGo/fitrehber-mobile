@@ -121,7 +121,8 @@ class _ArticleScreenState extends State<ArticleScreen> {
           const Divider(height: 32),
           // Makale içeriği
           Html(
-            data: _icerik!.yazi,
+            // Tam HTML sayfasından sadece <body> içindeki makale içeriğini çıkar
+            data: _icerikTemizle(_icerik!.yazi),
             style: {
               'body': Style(
                 fontSize: FontSize(16),
@@ -139,5 +140,26 @@ class _ArticleScreenState extends State<ArticleScreen> {
         ],
       ),
     );
+  }
+
+  // Tam HTML sayfasından sadece içerik kısmını ayıklar.
+  // <body> ve </body> etiketleri arasındaki kısmı alır.
+  // Script ve style etiketlerini temizler.
+  String _icerikTemizle(String html) {
+    // <body> ile </body> arasındaki kısmı al
+    final bodyBaslangic = html.indexOf('<body');
+    final bodyBitis = html.lastIndexOf('</body>');
+    
+    if (bodyBaslangic == -1 || bodyBitis == -1) return html;
+    
+    String icerik = html.substring(bodyBaslangic, bodyBitis + 7);
+    
+    // Script etiketlerini kaldır
+    icerik = icerik.replaceAll(RegExp(r'<script[^>]*>.*?</script>', dotAll: true), '');
+    
+    // Style etiketlerini kaldır  
+    icerik = icerik.replaceAll(RegExp(r'<style[^>]*>.*?</style>', dotAll: true), '');
+    
+    return icerik;
   }
 }
