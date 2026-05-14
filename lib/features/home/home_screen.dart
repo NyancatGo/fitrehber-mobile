@@ -3,8 +3,8 @@
 
 import 'package:flutter/material.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
-import '../categories/categories_screen.dart';
 import '../forum/forum_screen.dart';
+import '../nutrition/nutrition_screen.dart';
 import '../profile/profile_screen.dart';
 import 'home_content.dart';
 
@@ -22,9 +22,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // Her sekmeye karşılık gelen ekranlar
   final List<Widget> _ekranlar = const [
     HomeContent(),
-    CategoriesScreen(),
-    AiAssistantScreen(),
     ForumScreen(),
+    AiAssistantScreen(),
+    NutritionScreen(),
     ProfileScreen(),
   ];
 
@@ -47,9 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Ana Sayfa',
           ),
           NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view),
-            label: 'Kategoriler',
+            icon: Icon(Icons.forum_outlined),
+            selectedIcon: Icon(Icons.forum),
+            label: 'Forum',
           ),
           NavigationDestination(
             icon: Icon(Icons.smart_toy_outlined),
@@ -57,9 +57,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'AI Asistan',
           ),
           NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum),
-            label: 'Forum',
+            icon: Icon(Icons.restaurant_menu_outlined),
+            selectedIcon: Icon(Icons.restaurant_menu),
+            label: 'Beslenme',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

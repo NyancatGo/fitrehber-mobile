@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
+
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
+import 'widgets/article_content_renderer.dart';
 
 class ArticleScreen extends StatefulWidget {
   final int id;
@@ -149,147 +150,9 @@ class _ArticleScreenState extends State<ArticleScreen> {
 
                   return SizedBox(
                     width: double.infinity,
-                    child: Html(
-                      data: _icerik!.yaziTemiz,
-                      extensions: [_articleImageExtension(contentWidth)],
-                      style: {
-                        'html': Style(
-                          display: Display.block,
-                          margin: Margins.zero,
-                          padding: HtmlPaddings.zero,
-                        ),
-                        'body': Style(
-                          display: Display.block,
-                          margin: Margins.zero,
-                          padding: HtmlPaddings.zero,
-                          fontSize: FontSize(16),
-                          lineHeight: LineHeight(1.7),
-                          color: Colors.white,
-                          whiteSpace: WhiteSpace.normal,
-                        ),
-                        'div': Style(
-                          display: Display.block,
-                          margin: Margins.zero,
-                          padding: HtmlPaddings.zero,
-                        ),
-                        'main': Style(display: Display.block),
-                        'article': Style(display: Display.block),
-                        'section': Style(display: Display.block),
-                        'figure': Style(
-                          display: Display.block,
-                          width: Width(contentWidth),
-                          margin: Margins.symmetric(vertical: 16),
-                          padding: HtmlPaddings.zero,
-                        ),
-                        'figcaption': Style(
-                          margin: Margins.only(top: 8),
-                          fontSize: FontSize(13),
-                          lineHeight: LineHeight(1.4),
-                          color: Colors.grey,
-                          textAlign: TextAlign.center,
-                        ),
-                        'img': Style(
-                          display: Display.block,
-                          width: Width(contentWidth),
-                          height: Height.auto(),
-                          margin: Margins.symmetric(vertical: 12),
-                        ),
-                        'h1': Style(
-                          fontSize: FontSize(22),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          lineHeight: LineHeight(1.25),
-                          margin: Margins.only(top: 18, bottom: 10),
-                        ),
-                        'h2': Style(
-                          fontSize: FontSize(20),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          lineHeight: LineHeight(1.3),
-                          margin: Margins.only(top: 18, bottom: 10),
-                        ),
-                        'h3': Style(
-                          fontSize: FontSize(18),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          lineHeight: LineHeight(1.35),
-                          margin: Margins.only(top: 16, bottom: 8),
-                        ),
-                        'h4': Style(
-                          fontSize: FontSize(17),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          lineHeight: LineHeight(1.35),
-                          margin: Margins.only(top: 14, bottom: 8),
-                        ),
-                        'p': Style(
-                          display: Display.block,
-                          margin: Margins.symmetric(vertical: 8),
-                          color: Colors.white,
-                        ),
-                        'ul': Style(
-                          display: Display.block,
-                          margin: Margins.symmetric(vertical: 8),
-                          padding: HtmlPaddings.only(left: 20),
-                        ),
-                        'ol': Style(
-                          display: Display.block,
-                          margin: Margins.symmetric(vertical: 8),
-                          padding: HtmlPaddings.only(left: 20),
-                        ),
-                        'li': Style(
-                          color: Colors.white,
-                          lineHeight: LineHeight(1.6),
-                          margin: Margins.only(bottom: 8),
-                          display: Display.listItem,
-                        ),
-                        'blockquote': Style(
-                          display: Display.block,
-                          margin: Margins.symmetric(vertical: 12),
-                          padding: HtmlPaddings.only(
-                            left: 14,
-                            top: 8,
-                            bottom: 8,
-                          ),
-                          color: Colors.white70,
-                          border: const Border(
-                            left: BorderSide(
-                              color: Color(0xFFF5A623),
-                              width: 3,
-                            ),
-                          ),
-                        ),
-                        'pre': Style(
-                          display: Display.block,
-                          margin: Margins.symmetric(vertical: 12),
-                          padding: HtmlPaddings.all(12),
-                          fontSize: FontSize(14),
-                          lineHeight: LineHeight(1.5),
-                          whiteSpace: WhiteSpace.normal,
-                          backgroundColor: const Color(0xFF1A1D27),
-                        ),
-                        'code': Style(
-                          fontSize: FontSize(14),
-                          whiteSpace: WhiteSpace.normal,
-                          backgroundColor: const Color(0xFF1A1D27),
-                        ),
-                        'table': Style(
-                          display: Display.block,
-                          margin: Margins.symmetric(vertical: 12),
-                        ),
-                        'th': Style(
-                          padding: HtmlPaddings.all(8),
-                          color: Colors.white,
-                        ),
-                        'td': Style(
-                          padding: HtmlPaddings.all(8),
-                          color: Colors.white,
-                        ),
-                        'a': Style(
-                          color: Color(0xFFF5A623),
-                          display: Display.inline,
-                        ),
-                      },
+                    child: ArticleContentRenderer(
+                      html: _icerik!.yaziTemiz,
+                      contentWidth: contentWidth,
                     ),
                   );
                 },
@@ -317,45 +180,6 @@ class _ArticleScreenState extends State<ArticleScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  ImageExtension _articleImageExtension(double contentWidth) {
-    return ImageExtension(
-      builder: (extensionContext) {
-        final src = extensionContext.attributes['src'];
-        final alt = extensionContext.attributes['alt'] ?? '';
-
-        if (src == null || src.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              src,
-              width: contentWidth,
-              fit: BoxFit.contain,
-              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: contentWidth,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1D27),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  alt.isNotEmpty ? alt : 'Görsel yüklenemedi',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

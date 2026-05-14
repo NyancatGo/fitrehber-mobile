@@ -40,7 +40,10 @@ class _HomeContentState extends State<HomeContent> {
     });
     try {
       final kategoriler = await _api.getKategoriler();
-      final icerikler = await _api.getIcerikler(kategoriId: _secilenKategoriId);
+      final icerikler = await _api.getIcerikler(
+        kategoriId: _secilenKategoriId,
+        tur: 'haber',
+      );
       setState(() {
         _kategoriler = kategoriler;
         _icerikler = icerikler;
