@@ -7,10 +7,13 @@ class ApiConstants {
 
   // İçerik endpoint'leri
   static const String kategoriler = '$baseUrl/kategoriler/';
-  static const String icerikler   = '$baseUrl/icerikler/';
-  static const String profil      = '$baseUrl/profil/';
+  static const String icerikler = '$baseUrl/icerikler/';
+  static const String profil = '$baseUrl/profil/';
 
   // Kimlik doğrulama endpoint'leri
-  static const String login    = '$baseUrl/auth/login/';
+  static const String login = '$baseUrl/auth/login/';
   static const String register = '$baseUrl/auth/register/';
+
+  // AI Asistan endpoint'i
+  static const String aiChat = '$baseUrl/ai/chat/';
 }
