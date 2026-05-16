@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/ai_assistant_provider.dart';
+import 'widgets/ai_thinking_indicator.dart';
 import 'widgets/chat_bubble.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -69,40 +70,16 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.only(top: 16, bottom: 8),
-              itemCount: messages.length,
+              itemCount: messages.length + (aiState.isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == messages.length) {
+                  return const AiThinkingIndicator();
+                }
+
                 return ChatBubble(message: messages[index]);
               },
             ),
           ),
-
-          // Yükleme Animasyonu (AI düşünürken)
-          if (aiState.isLoading)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'AI düşünüyor...',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
           // Giriş Alanı
           _buildInputArea(aiState.isLoading),
