@@ -1,12 +1,13 @@
-// API servis katmanı — tüm veri çekme işlemleri burada.
-// Her fonksiyon ilgili endpoint'e istek atar ve modele dönüştürür.
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../core/constants/api_constants.dart';
 import 'models/chat_message_model.dart';
 import 'models/icerik_model.dart';
 import 'models/kategori_model.dart';
+import 'models/profil_model.dart';
 
 class ApiService {
   final Dio _dio = Dio(
@@ -18,7 +19,6 @@ class ApiService {
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  // Tüm kategorileri çeker
   Future<List<KategoriModel>> getKategoriler() async {
     final response = await _dio.get(ApiConstants.kategoriler);
     if (response.statusCode == 200) {
@@ -29,7 +29,6 @@ class ApiService {
     throw 'Kategoriler yüklenemedi.';
   }
 
-  // Makaleleri çeker — opsiyonel kategori ve tür filtresi destekler
   Future<List<IcerikModel>> getIcerikler({
     int? kategoriId,
     String? tur,
@@ -39,7 +38,7 @@ class ApiService {
       ApiConstants.icerikler,
       queryParameters: {
         'kategori': ?kategoriId,
-        'tur': ?tur,
+        if (tur != null && tur.isNotEmpty) 'tur': tur,
         if (arama != null && arama.isNotEmpty) 'search': arama,
       },
     );
@@ -51,7 +50,6 @@ class ApiService {
     throw 'Makaleler yüklenemedi.';
   }
 
-  // Tek bir makalenin detayını çeker
   Future<IcerikModel> getIcerikDetay(int id) async {
     final response = await _dio.get('${ApiConstants.icerikler}$id/');
     if (response.statusCode == 200) {
@@ -60,15 +58,81 @@ class ApiService {
     throw 'Makale yüklenemedi.';
   }
 
-  // AI Asistan'a soru sorar (JWT token ile)
+  Future<ProfilModel> getProfil() async {
+    final token = await _accessTokenOrThrow(
+      'Profilini görmek için giriş yapmalısın.',
+    );
+    final cachedProfile = await _readCachedProfile();
+    final userId = cachedProfile?.id ?? _readUserIdFromToken(token);
+
+    if (userId == null || userId <= 0) {
+      throw 'Profil bilgisi için kullanıcı id alınamadı. Lütfen çıkış yapıp tekrar giriş yap.';
+    }
+
+    final response = await _dio.get(
+      ApiConstants.profilDetay(userId),
+      options: _authOptions(token),
+    );
+
+    if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+      final profile = ProfilModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      return profile.copyWith(
+        email: profile.email.isEmpty ? cachedProfile?.email : null,
+        firstName: profile.firstName.isEmpty ? cachedProfile?.firstName : null,
+        lastName: profile.lastName.isEmpty ? cachedProfile?.lastName : null,
+      );
+    }
+
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Profil bilgileri alınamadı.',
+    );
+  }
+
+  Future<ProfilModel> updateProfil(Map<String, dynamic> data) async {
+    final token = await _accessTokenOrThrow(
+      'Profilini güncellemek için giriş yapmalısın.',
+    );
+    final cachedProfile = await _readCachedProfile();
+    final userId = cachedProfile?.id ?? _readUserIdFromToken(token);
+
+    if (userId == null || userId <= 0) {
+      throw 'Profil güncellemesi için kullanıcı id alınamadı. Lütfen çıkış yapıp tekrar giriş yap.';
+    }
+
+    final cleanedData = Map<String, dynamic>.from(data)
+      ..removeWhere((key, value) => value == null);
+
+    final response = await _dio.patch(
+      ApiConstants.profilDetay(userId),
+      data: cleanedData,
+      options: _authOptions(token),
+    );
+
+    if ((response.statusCode == 200 || response.statusCode == 202) &&
+        response.data is Map<String, dynamic>) {
+      return ProfilModel.fromJson(response.data as Map<String, dynamic>);
+    }
+
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Profil güncellenemedi.',
+    );
+  }
+
   Future<String> askAi({
     required String message,
     required List<ChatMessageModel> history,
   }) async {
-    final token = await _storage.read(key: 'access_token');
-    if (token == null || token.isEmpty) {
-      throw 'AI Asistan için giriş yapmalısın.';
-    }
+    final token = await _accessTokenOrThrow(
+      'AI Asistan için giriş yapmalısın.',
+    );
 
     final response = await _dio.post(
       ApiConstants.aiChat,
@@ -76,12 +140,7 @@ class ApiService {
         'message': message,
         'history': history.map((message) => message.toApiJson()).toList(),
       },
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      ),
+      options: _authOptions(token),
     );
 
     if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
@@ -90,22 +149,95 @@ class ApiService {
       throw 'Backend boş cevap döndü.';
     }
 
-    throw _hataAyikla(response.data, response.statusCode);
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'AI Asistan için giriş yapmalısın.',
+      rateLimitMessage:
+          'Çok kısa sürede fazla soru sordun. Lütfen biraz bekleyip tekrar dene.',
+      defaultMessage: 'AI cevabı alınamadı.',
+    );
   }
 
-  String _hataAyikla(dynamic data, int? statusCode) {
-    if (statusCode == 401) return 'AI Asistan için giriş yapmalısın.';
-    if (statusCode == 429) {
-      return 'Çok kısa sürede fazla soru sordun. Lütfen biraz bekleyip tekrar dene.';
+  Future<ProfilModel?> _readCachedProfile() async {
+    final rawUser = await _storage.read(key: 'current_user');
+    if (rawUser == null || rawUser.trim().isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(rawUser);
+      if (decoded is Map<String, dynamic>) {
+        return ProfilModel.fromJson(decoded);
+      }
+      if (decoded is Map) {
+        return ProfilModel.fromJson(Map<String, dynamic>.from(decoded));
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
+  int? _readUserIdFromToken(String token) {
+    final parts = token.split('.');
+    if (parts.length < 2) return null;
+
+    try {
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      final decoded = jsonDecode(payload);
+      if (decoded is Map<String, dynamic>) {
+        final rawId = decoded['user_id'] ?? decoded['id'] ?? decoded['sub'];
+        if (rawId is int) return rawId;
+        return int.tryParse(rawId?.toString() ?? '');
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
+  Future<String> _accessTokenOrThrow(String message) async {
+    final token = await _storage.read(key: 'access_token');
+    if (token == null || token.isEmpty) throw message;
+    return token;
+  }
+
+  Options _authOptions(String token) {
+    return Options(
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+  }
+
+  String _hataAyikla(
+    dynamic data,
+    int? statusCode, {
+    required String unauthorizedMessage,
+    required String defaultMessage,
+    String? rateLimitMessage,
+  }) {
+    if (statusCode == 401) return unauthorizedMessage;
+    if (statusCode == 429 && rateLimitMessage != null) {
+      return rateLimitMessage;
     }
 
     if (data is Map<String, dynamic>) {
-      final detail = data['detail'] ?? data['hata'] ?? data['message'];
+      final detail =
+          data['detail'] ??
+          data['hata'] ??
+          data['message'] ??
+          data['error'] ??
+          data['non_field_errors'];
       if (detail != null && detail.toString().trim().isNotEmpty) {
         return detail.toString();
       }
     }
 
-    return 'AI cevabı alınamadı. (Hata: $statusCode)';
+    return '$defaultMessage (Hata: $statusCode)';
   }
 }

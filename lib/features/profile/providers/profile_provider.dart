@@ -1,0 +1,34 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../shared/api_service.dart';
+import '../../../shared/models/profil_model.dart';
+
+final profileApiProvider = Provider<ApiService>((ref) => ApiService());
+
+final profileProvider =
+    StateNotifierProvider.autoDispose<ProfileNotifier, AsyncValue<ProfilModel>>(
+      (ref) {
+        final notifier = ProfileNotifier(ref.watch(profileApiProvider));
+        notifier.loadProfile();
+        return notifier;
+      },
+    );
+
+class ProfileNotifier extends StateNotifier<AsyncValue<ProfilModel>> {
+  final ApiService _api;
+
+  ProfileNotifier(this._api) : super(const AsyncValue.loading());
+
+  Future<void> loadProfile() async {
+    state = const AsyncValue.loading();
+    final result = await AsyncValue.guard(_api.getProfil);
+    if (mounted) state = result;
+  }
+
+  Future<void> refresh() => loadProfile();
+
+  Future<void> updateProfile(Map<String, dynamic> data) async {
+    final updatedProfile = await _api.updateProfil(data);
+    if (mounted) state = AsyncValue.data(updatedProfile);
+  }
+}

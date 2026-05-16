@@ -1,0 +1,77 @@
+import 'package:fitrehber_mobile/shared/models/profil_model.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('parses flat and nested profile payload values', () {
+    final profile = ProfilModel.fromJson({
+      'id': '7',
+      'user': {
+        'username': 'baran',
+        'email': 'baran@example.com',
+        'first_name': 'Baran',
+        'last_name': 'Fit',
+        'date_joined': '2026-05-01T10:00:00Z',
+        'is_staff': true,
+        'is_superuser': true,
+      },
+      'hakkinda': 'Training consistently.',
+      'foto': '/media/avatars/baran.png',
+      'boy': '180',
+      'kilo': '81.5',
+      'hedef_kilo': '76',
+      'fitness_hedefi': 'Fat loss',
+      'dogum_tarihi': '1998-03-12',
+      'post_count': 8,
+    });
+
+    expect(profile.id, 7);
+    expect(profile.displayName, 'Baran Fit');
+    expect(profile.email, 'baran@example.com');
+    expect(
+      profile.avatarUrl,
+      'https://fitrehber.com.tr/media/avatars/baran.png',
+    );
+    expect(profile.height, 180);
+    expect(profile.weight, 81.5);
+    expect(profile.targetWeight, 76);
+    expect(profile.goal, 'Fat loss');
+    expect(profile.birthDate, DateTime(1998, 3, 12));
+    expect(profile.joinDate, DateTime.parse('2026-05-01T10:00:00Z'));
+    expect(profile.isAdmin, isTrue);
+    expect(profile.isSuperuser, isTrue);
+    expect(profile.isStaff, isTrue);
+    expect(profile.postCount, 8);
+    expect(profile.bmi, closeTo(25.15, 0.01));
+    expect(profile.roleName, 'Admin');
+  });
+
+  test('parses deployed profile api payload', () {
+    final profile = ProfilModel.fromJson({
+      'id': 3,
+      'user': {
+        'id': 3,
+        'username': 'Nyancat',
+        'first_name': '',
+        'last_name': '',
+        'is_staff': true,
+        'is_superuser': true,
+      },
+      'hakkinda': 'Merhaba, ben spor tutkunuyum!',
+      'is_banned': 0,
+      'foto': 'profil_fotograflari/avatar.webp',
+      'post_count': 8,
+      'date_joined': '2026-02-21T10:00:00Z',
+    });
+
+    expect(profile.id, 3);
+    expect(profile.username, 'Nyancat');
+    expect(
+      profile.avatarUrl,
+      'https://fitrehber.com.tr/media/profil_fotograflari/avatar.webp',
+    );
+    expect(profile.bio, 'Merhaba, ben spor tutkunuyum!');
+    expect(profile.isAdmin, isTrue);
+    expect(profile.postCount, 8);
+    expect(profile.roleName, 'Admin');
+  });
+}
