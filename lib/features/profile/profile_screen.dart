@@ -711,6 +711,7 @@ class _ActivityHeatmapSection extends StatelessWidget {
             children: activity.days.map((day) {
               return Tooltip(
                 message: '${day.label}: ${day.minutes} dk',
+                triggerMode: TooltipTriggerMode.tap,
                 child: Container(
                   width: 16,
                   height: 16,
