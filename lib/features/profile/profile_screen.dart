@@ -11,19 +11,36 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/models/profil_model.dart';
 import '../../shared/session_controller.dart';
 import 'providers/profile_provider.dart';
+import 'widgets/profile_content_tabs.dart';
 
 class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({super.key});
+  /// null ise oturum sahibinin kendi profili; doluysa o kullanıcının profili.
+  final int? userId;
+
+  const ProfileScreen({super.key, this.userId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileState = ref.watch(profileProvider);
+    final session = ref.watch(sessionControllerProvider);
+    final ownId = session.profile?.id;
+    final isOwn = userId == null || (ownId != null && ownId == userId);
+
+    final AsyncValue<ProfilModel> profileState = isOwn
+        ? ref.watch(profileProvider)
+        : ref.watch(profileByIdProvider(userId!));
 
     return Scaffold(
       body: profileState.when(
-        data: (profile) => _ProfileContent(profile: profile),
+        data: (profile) => _ProfileContent(
+          profile: profile,
+          isOwnProfile: isOwn,
+        ),
         loading: () => const _ProfileSkeleton(),
-        error: (error, stackTrace) => _ProfileError(message: error.toString()),
+        error: (error, stackTrace) => _ProfileError(
+          message: error.toString(),
+          isOwnProfile: isOwn,
+          viewedUserId: userId,
+        ),
       ),
     );
   }
@@ -31,19 +48,31 @@ class ProfileScreen extends ConsumerWidget {
 
 class _ProfileContent extends ConsumerWidget {
   final ProfilModel profile;
+  final bool isOwnProfile;
 
-  const _ProfileContent({required this.profile});
+  const _ProfileContent({required this.profile, required this.isOwnProfile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return RefreshIndicator(
       color: AppTheme.primary,
       backgroundColor: AppTheme.surface,
-      onRefresh: () => ref.read(profileProvider.notifier).refresh(),
+      onRefresh: () async {
+        if (isOwnProfile) {
+          await ref.read(profileProvider.notifier).refresh();
+        } else {
+          ref.invalidate(profileByIdProvider(profile.id));
+        }
+      },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(child: _ProfileHeader(profile: profile)),
+          SliverToBoxAdapter(
+            child: _ProfileHeader(
+              profile: profile,
+              isOwnProfile: isOwnProfile,
+            ),
+          ),
           SliverToBoxAdapter(child: _StatsRow(profile: profile)),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
@@ -69,7 +98,14 @@ class _ProfileContent extends ConsumerWidget {
                 ],
                 _InfoSection(profile: profile),
                 const SizedBox(height: 14),
-                _ActionSection(profile: profile),
+                ProfileContentTabs(
+                  userId: profile.id,
+                  isOwnProfile: isOwnProfile,
+                ),
+                if (isOwnProfile) ...[
+                  const SizedBox(height: 14),
+                  _ActionSection(profile: profile),
+                ],
               ],
             ),
           ),
@@ -81,8 +117,9 @@ class _ProfileContent extends ConsumerWidget {
 
 class _ProfileHeader extends ConsumerWidget {
   final ProfilModel profile;
+  final bool isOwnProfile;
 
-  const _ProfileHeader({required this.profile});
+  const _ProfileHeader({required this.profile, required this.isOwnProfile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -103,16 +140,28 @@ class _ProfileHeader extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Text(
-                'Profil',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              if (!isOwnProfile)
+                IconButton.filledTonal(
+                  tooltip: 'Geri',
+                  onPressed: () => context.pop(),
+                  icon: const Icon(Icons.arrow_back),
+                ),
+              if (!isOwnProfile) const SizedBox(width: 8),
+              Text(
+                isOwnProfile ? 'Profil' : 'Kullanıcı Profili',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const Spacer(),
-              IconButton.filledTonal(
-                tooltip: 'Profili yenile',
-                onPressed: () => ref.read(profileProvider.notifier).refresh(),
-                icon: const Icon(Icons.refresh),
-              ),
+              if (isOwnProfile)
+                IconButton.filledTonal(
+                  tooltip: 'Profili yenile',
+                  onPressed: () =>
+                      ref.read(profileProvider.notifier).refresh(),
+                  icon: const Icon(Icons.refresh),
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1144,8 +1193,14 @@ class _SkeletonBox extends StatelessWidget {
 
 class _ProfileError extends ConsumerWidget {
   final String message;
+  final bool isOwnProfile;
+  final int? viewedUserId;
 
-  const _ProfileError({required this.message});
+  const _ProfileError({
+    required this.message,
+    required this.isOwnProfile,
+    required this.viewedUserId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1184,15 +1239,23 @@ class _ProfileError extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: () => ref.read(profileProvider.notifier).refresh(),
+                onPressed: () {
+                  if (isOwnProfile) {
+                    ref.read(profileProvider.notifier).refresh();
+                  } else if (viewedUserId != null) {
+                    ref.invalidate(profileByIdProvider(viewedUserId!));
+                  }
+                },
                 icon: const Icon(Icons.refresh),
                 label: const Text('Tekrar Dene'),
               ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () => context.go('/giris'),
-                child: const Text('Giriş Ekranına Dön'),
-              ),
+              if (isOwnProfile) ...[
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => context.go('/giris'),
+                  child: const Text('Giriş Ekranına Dön'),
+                ),
+              ],
             ],
           ),
         ),

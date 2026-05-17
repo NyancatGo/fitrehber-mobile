@@ -91,6 +91,7 @@ class IcerikModel {
   final Map<String, dynamic>? kategori;
   final String yazi;
   final String yaziTemiz;
+  final int yorumSayisi;
 
   IcerikModel({
     required this.id,
@@ -103,6 +104,7 @@ class IcerikModel {
     this.kategori,
     required this.yazi,
     required this.yaziTemiz,
+    this.yorumSayisi = 0,
   });
 
   factory IcerikModel.fromJson(Map<String, dynamic> json) {
@@ -123,6 +125,9 @@ class IcerikModel {
           : null,
       yazi: yazi,
       yaziTemiz: _normalizeArticleHtml(yaziTemiz),
+      yorumSayisi: json['yorum_sayisi'] is int
+          ? json['yorum_sayisi'] as int
+          : int.tryParse(json['yorum_sayisi']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -131,6 +136,13 @@ class IcerikModel {
 
   // Yazar adını kolayca almak için yardımcı getter
   String get yazarAdi => yazar['username'] ?? 'Anonim';
+
+  // Yazarın kullanıcı id'si (profil ekranına geçiş için)
+  int? get yazarId {
+    final raw = yazar['id'];
+    if (raw is int) return raw;
+    return int.tryParse(raw?.toString() ?? '');
+  }
 
   // Tarihi okunabilir formata çevirir (2026-03-15 → 15 Mar 2026)
   String get tarihFormatli {

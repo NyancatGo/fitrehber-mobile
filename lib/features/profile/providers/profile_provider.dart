@@ -5,6 +5,12 @@ import '../../../shared/models/profil_model.dart';
 
 final profileApiProvider = Provider<ApiService>((ref) => ApiService());
 
+/// Başka bir kullanıcının profilini id ile yükler (salt-okunur görünüm).
+final profileByIdProvider = FutureProvider.autoDispose
+    .family<ProfilModel, int>((ref, userId) {
+      return ref.watch(profileApiProvider).getProfilById(userId);
+    });
+
 final profileProvider =
     StateNotifierProvider.autoDispose<ProfileNotifier, AsyncValue<ProfilModel>>(
       (ref) {

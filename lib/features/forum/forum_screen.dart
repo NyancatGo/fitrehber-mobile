@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../core/constants/api_constants.dart';
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/kategori_model.dart';
-import '../article/article_screen.dart';
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -16,17 +17,35 @@ class ForumScreen extends StatefulWidget {
 
 class _ForumScreenState extends State<ForumScreen> {
   final ApiService _api = ApiService();
+  final ScrollController _scrollController = ScrollController();
 
   List<KategoriModel> _kategoriler = [];
   List<IcerikModel> _sorular = [];
   int? _secilenKategoriId;
   bool _yukleniyor = true;
+  bool _dahaYukleniyor = false;
+  bool _dahaVar = true;
+  int _page = 1;
   String? _hata;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _verileriYukle();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 280) {
+      _dahaYukle();
+    }
   }
 
   Future<void> _verileriYukle() async {
@@ -40,16 +59,43 @@ class _ForumScreenState extends State<ForumScreen> {
       final sorular = await _api.getIcerikler(
         kategoriId: _secilenKategoriId,
         tur: 'soru',
+        page: 1,
       );
 
+      if (!mounted) return;
       setState(() {
         _kategoriler = kategoriler;
         _sorular = sorular;
+        _page = 1;
+        _dahaVar = sorular.length >= ApiConstants.pageSize;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _hata = e.toString());
     } finally {
-      setState(() => _yukleniyor = false);
+      if (mounted) setState(() => _yukleniyor = false);
+    }
+  }
+
+  Future<void> _dahaYukle() async {
+    if (_dahaYukleniyor || !_dahaVar || _yukleniyor) return;
+    setState(() => _dahaYukleniyor = true);
+    try {
+      final batch = await _api.getIcerikler(
+        kategoriId: _secilenKategoriId,
+        tur: 'soru',
+        page: _page + 1,
+      );
+      if (!mounted) return;
+      setState(() {
+        _page += 1;
+        _sorular.addAll(batch);
+        _dahaVar = batch.length >= ApiConstants.pageSize;
+      });
+    } catch (_) {
+      // Sonraki sayfa hatası sessiz geçilir.
+    } finally {
+      if (mounted) setState(() => _dahaYukleniyor = false);
     }
   }
 
@@ -104,15 +150,40 @@ class _ForumScreenState extends State<ForumScreen> {
     if (_yukleniyor) return _shimmerListe();
     if (_hata != null) return _hataWidget();
     if (_sorular.isEmpty) {
-      return const Center(child: Text('Henüz forum sorusu yok.'));
+      return RefreshIndicator(
+        onRefresh: _verileriYukle,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(child: Text('Henüz forum sorusu yok.')),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
       onRefresh: _verileriYukle,
       child: ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
-        itemCount: _sorular.length,
-        itemBuilder: (context, index) => _soruKarti(_sorular[index]),
+        itemCount: _sorular.length + (_dahaVar ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _sorular.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+          return _soruKarti(_sorular[index]);
+        },
       ),
     );
   }
@@ -163,12 +234,7 @@ class _ForumScreenState extends State<ForumScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ArticleScreen(id: soru.id)),
-          );
-        },
+        onTap: () => context.push('/makale/${soru.id}'),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -200,9 +266,36 @@ class _ForumScreenState extends State<ForumScreen> {
                     color: Colors.grey,
                   ),
                   const SizedBox(width: 4),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: soru.yazarId == null
+                          ? null
+                          : () => context.push('/profil/${soru.yazarId}'),
+                      child: Text(
+                        soru.yazarAdi,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF22D3EE),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(
+                    Icons.chat_bubble_outline,
+                    size: 14,
+                    color: Color(0xFF22D3EE),
+                  ),
+                  const SizedBox(width: 4),
                   Text(
-                    soru.yazarAdi,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    '${soru.yorumSayisi} cevap',
+                    style: const TextStyle(
+                      color: Color(0xFF22D3EE),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const Spacer(),
                   const Icon(

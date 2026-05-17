@@ -1,6 +1,9 @@
 class ApiConstants {
   static const String baseUrl = 'https://api.fitrehber.com.tr/api';
 
+  /// API sayfalama varsayılan sayfa boyutu (OptionalPageNumberPagination).
+  static const int pageSize = 20;
+
   static const String kategoriler = '$baseUrl/kategoriler/';
   static const String icerikler = '$baseUrl/icerikler/';
   static const String profil = '$baseUrl/profil/';
@@ -12,4 +15,11 @@ class ApiConstants {
   static const String aiChat = '$baseUrl/ai/chat/';
 
   static String profilDetay(int userId) => '$profil$userId/';
+  static String profilIcerikleri(int userId) => '$profil$userId/icerikler/';
+  static String profilKaydedilenler(int userId) =>
+      '$profil$userId/kaydedilenler/';
+  static String profilBegeniler(int userId) => '$profil$userId/begeniler/';
+
+  static String yorumlar(int icerikId) => '$icerikler$icerikId/yorumlar/';
+  static String yorumBegen(int yorumId) => '$baseUrl/yorumlar/$yorumId/begen/';
 }

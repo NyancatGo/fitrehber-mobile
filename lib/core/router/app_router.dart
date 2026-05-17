@@ -66,6 +66,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
+        path: '/profil/:id',
+        builder: (context, state) => ProfileScreen(
+          userId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
         path: '/arama',
         builder: (context, state) => const SearchScreen(),
       ),

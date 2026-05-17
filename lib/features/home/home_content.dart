@@ -1,14 +1,15 @@
 // Ana sayfa içeriği.
-// Üstte kategori filtreleri, altta makale listesi gösterilir.
-// Veriler API'den çekilir; yüklenirken shimmer, hata olursa hata mesajı gösterilir.
+// Üstte kategori filtreleri, altta makale listesi (sayfalı / infinite scroll).
+// Yüklenirken shimmer, hata olursa hata mesajı gösterilir.
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../core/constants/api_constants.dart';
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/kategori_model.dart';
-import '../article/article_screen.dart';
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -19,20 +20,38 @@ class HomeContent extends StatefulWidget {
 
 class _HomeContentState extends State<HomeContent> {
   final ApiService _api = ApiService();
+  final ScrollController _scrollController = ScrollController();
 
   List<KategoriModel> _kategoriler = [];
   List<IcerikModel> _icerikler = [];
   int? _secilenKategoriId; // null = tümü
   bool _yukleniyor = true;
+  bool _dahaYukleniyor = false;
+  bool _dahaVar = true;
+  int _page = 1;
   String? _hata;
 
   @override
   void initState() {
     super.initState();
-    _verileriYukle(); // Ekran açılınca verileri çek
+    _scrollController.addListener(_onScroll);
+    _verileriYukle();
   }
 
-  // API'den kategori ve makale listesini çeker
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 280) {
+      _dahaYukle();
+    }
+  }
+
+  // API'den kategori ve makale listesini (ilk sayfa) çeker
   Future<void> _verileriYukle() async {
     setState(() {
       _yukleniyor = true;
@@ -43,15 +62,42 @@ class _HomeContentState extends State<HomeContent> {
       final icerikler = await _api.getIcerikler(
         kategoriId: _secilenKategoriId,
         tur: 'haber',
+        page: 1,
       );
+      if (!mounted) return;
       setState(() {
         _kategoriler = kategoriler;
         _icerikler = icerikler;
+        _page = 1;
+        _dahaVar = icerikler.length >= ApiConstants.pageSize;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _hata = e.toString());
     } finally {
-      setState(() => _yukleniyor = false);
+      if (mounted) setState(() => _yukleniyor = false);
+    }
+  }
+
+  Future<void> _dahaYukle() async {
+    if (_dahaYukleniyor || !_dahaVar || _yukleniyor) return;
+    setState(() => _dahaYukleniyor = true);
+    try {
+      final batch = await _api.getIcerikler(
+        kategoriId: _secilenKategoriId,
+        tur: 'haber',
+        page: _page + 1,
+      );
+      if (!mounted) return;
+      setState(() {
+        _page += 1;
+        _icerikler.addAll(batch);
+        _dahaVar = batch.length >= ApiConstants.pageSize;
+      });
+    } catch (_) {
+      // Sonraki sayfa hatası sessiz geçilir.
+    } finally {
+      if (mounted) setState(() => _dahaYukleniyor = false);
     }
   }
 
@@ -69,7 +115,12 @@ class _HomeContentState extends State<HomeContent> {
           'FitRehber',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [IconButton(icon: const Icon(Icons.search), onPressed: () {})],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/arama'),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -117,7 +168,16 @@ class _HomeContentState extends State<HomeContent> {
     if (_yukleniyor) return _shimmerListe();
     if (_hata != null) return _hataWidget();
     if (_icerikler.isEmpty) {
-      return const Center(child: Text('Henüz içerik yok.'));
+      return RefreshIndicator(
+        onRefresh: _verileriYukle,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(child: Text('Henüz içerik yok.')),
+          ],
+        ),
+      );
     }
     return _makaleListe();
   }
@@ -163,10 +223,29 @@ class _HomeContentState extends State<HomeContent> {
 
   // Makale listesi
   Widget _makaleListe() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _icerikler.length,
-      itemBuilder: (context, index) => _makaleKarti(_icerikler[index]),
+    return RefreshIndicator(
+      onRefresh: _verileriYukle,
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: _icerikler.length + (_dahaVar ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _icerikler.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+          return _makaleKarti(_icerikler[index]);
+        },
+      ),
     );
   }
 
@@ -177,13 +256,7 @@ class _HomeContentState extends State<HomeContent> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          // Makale detay ekranına git
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ArticleScreen(id: icerik.id)),
-          );
-        },
+        onTap: () => context.push('/makale/${icerik.id}'),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -227,9 +300,21 @@ class _HomeContentState extends State<HomeContent> {
                     color: Colors.grey,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    icerik.yazarAdi,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: icerik.yazarId == null
+                          ? null
+                          : () => context.push('/profil/${icerik.yazarId}'),
+                      child: Text(
+                        icerik.yazarAdi,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF22D3EE),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                   const Spacer(),
                   const Icon(

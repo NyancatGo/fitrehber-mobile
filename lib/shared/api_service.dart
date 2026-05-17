@@ -8,6 +8,7 @@ import 'models/chat_message_model.dart';
 import 'models/icerik_model.dart';
 import 'models/kategori_model.dart';
 import 'models/profil_model.dart';
+import 'models/yorum_model.dart';
 
 class ApiService {
   final Dio _dio = Dio(
@@ -33,22 +34,33 @@ class ApiService {
     int? kategoriId,
     String? tur,
     String? arama,
+    int? page,
   }) async {
     final response = await _dio.get(
       ApiConstants.icerikler,
       queryParameters: {
-        // ignore: use_null_aware_elements
-        if (kategoriId != null) 'kategori': kategoriId,
+        'kategori': ?kategoriId,
         if (tur != null && tur.isNotEmpty) 'tur': tur,
         if (arama != null && arama.isNotEmpty) 'search': arama,
+        'page': ?page,
       },
     );
     if (response.statusCode == 200) {
-      return (response.data as List)
-          .map((e) => IcerikModel.fromJson(e))
-          .toList();
+      return _listeyeCevir(
+        response.data,
+      ).map((e) => IcerikModel.fromJson(Map<String, dynamic>.from(e))).toList();
     }
     throw 'Makaleler yüklenemedi.';
+  }
+
+  /// API yanıtı düz liste ([...]) veya sayfalı ({results: [...]}) olabilir;
+  /// her iki şekli de tek listeye indirger.
+  List<dynamic> _listeyeCevir(dynamic data) {
+    if (data is List) return data;
+    if (data is Map && data['results'] is List) {
+      return data['results'] as List;
+    }
+    return const [];
   }
 
   Future<IcerikModel> getIcerikDetay(int id) async {
@@ -57,6 +69,129 @@ class ApiService {
       return IcerikModel.fromJson(response.data);
     }
     throw 'Makale yüklenemedi.';
+  }
+
+  Future<List<YorumModel>> getYorumlar(int icerikId) async {
+    final token = await _storage.read(key: 'access_token');
+    final response = await _dio.get(
+      ApiConstants.yorumlar(icerikId),
+      options: (token != null && token.isNotEmpty)
+          ? _authOptions(token)
+          : null,
+    );
+    if (response.statusCode == 200) {
+      return _listeyeCevir(
+        response.data,
+      ).map((e) => YorumModel.fromJson(Map<String, dynamic>.from(e))).toList();
+    }
+    throw 'Yorumlar yüklenemedi.';
+  }
+
+  /// Yorum beğenisini açar/kapatır. Dönen map: {begendim, begeni_sayisi}.
+  Future<Map<String, dynamic>> toggleYorumBegeni(int yorumId) async {
+    final token = await _accessTokenOrThrow(
+      'Beğenmek için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiConstants.yorumBegen(yorumId),
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200 && response.data is Map) {
+      return Map<String, dynamic>.from(response.data as Map);
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Beğenmek için giriş yapmalısın.',
+      defaultMessage: 'Beğeni işlemi başarısız.',
+    );
+  }
+
+  Future<ProfilModel> getProfilById(int userId) async {
+    final token = await _storage.read(key: 'access_token');
+    final response = await _dio.get(
+      ApiConstants.profilDetay(userId),
+      options: (token != null && token.isNotEmpty)
+          ? _authOptions(token)
+          : null,
+    );
+    if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+      return ProfilModel.fromJson(response.data as Map<String, dynamic>);
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Profil bilgileri alınamadı.',
+    );
+  }
+
+  Future<List<IcerikModel>> getProfilIcerikleri(
+    int userId, {
+    int? page,
+  }) async {
+    final response = await _dio.get(
+      ApiConstants.profilIcerikleri(userId),
+      queryParameters: {'page': ?page},
+    );
+    if (response.statusCode == 200) {
+      return _listeyeCevir(
+        response.data,
+      ).map((e) => IcerikModel.fromJson(Map<String, dynamic>.from(e))).toList();
+    }
+    throw 'Paylaşımlar yüklenemedi.';
+  }
+
+  Future<List<IcerikModel>> getProfilKaydedilenler(
+    int userId, {
+    int? page,
+  }) async {
+    final token = await _accessTokenOrThrow(
+      'Kaydedilenleri görmek için giriş yapmalısın.',
+    );
+    final response = await _dio.get(
+      ApiConstants.profilKaydedilenler(userId),
+      queryParameters: {'page': ?page},
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200) {
+      return _listeyeCevir(
+        response.data,
+      ).map((e) => IcerikModel.fromJson(Map<String, dynamic>.from(e))).toList();
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Kaydedilenler yüklenemedi.',
+    );
+  }
+
+  Future<List<YorumOzetModel>> getProfilBegeniler(
+    int userId, {
+    int? page,
+  }) async {
+    final token = await _accessTokenOrThrow(
+      'Beğenilenleri görmek için giriş yapmalısın.',
+    );
+    final response = await _dio.get(
+      ApiConstants.profilBegeniler(userId),
+      queryParameters: {'page': ?page},
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200) {
+      return _listeyeCevir(
+        response.data,
+      ).map(
+        (e) => YorumOzetModel.fromJson(Map<String, dynamic>.from(e)),
+      ).toList();
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Beğenilenler yüklenemedi.',
+    );
   }
 
   Future<ProfilModel> getProfil() async {
