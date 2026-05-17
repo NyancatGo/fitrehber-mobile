@@ -8,6 +8,7 @@ import '../core/constants/api_constants.dart';
 import 'models/chat_message_model.dart';
 import 'models/icerik_model.dart';
 import 'models/kategori_model.dart';
+import 'models/paginated_response.dart';
 import 'models/profil_model.dart';
 import 'models/yorum_model.dart';
 
@@ -15,6 +16,8 @@ class ApiService {
   final Dio _dio = Dio(
     BaseOptions(
       validateStatus: (status) => true,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
       headers: {'Accept': 'application/json'},
     ),
   );
@@ -31,11 +34,12 @@ class ApiService {
     throw 'Kategoriler yüklenemedi.';
   }
 
-  Future<List<IcerikModel>> getIcerikler({
+  Future<PaginatedResponse<IcerikModel>> getIcerikler({
     int? kategoriId,
     String? tur,
     String? arama,
     int? page,
+    int pageSize = ApiConstants.pageSize,
   }) async {
     final response = await _dio.get(
       ApiConstants.icerikler,
@@ -44,24 +48,22 @@ class ApiService {
         if (tur != null && tur.isNotEmpty) 'tur': tur,
         if (arama != null && arama.isNotEmpty) 'search': arama,
         'page': ?page,
+        'page_size': pageSize,
       },
     );
     if (response.statusCode == 200) {
-      return _listeyeCevir(
-        response.data,
-      ).map((e) => IcerikModel.fromJson(Map<String, dynamic>.from(e))).toList();
+      return _sayfaliYanitaCevir(response.data, IcerikModel.fromJson);
     }
     throw 'Makaleler yüklenemedi.';
   }
 
   /// API yanıtı düz liste ([...]) veya sayfalı ({results: [...]}) olabilir;
-  /// her iki şekli de tek listeye indirger.
-  List<dynamic> _listeyeCevir(dynamic data) {
-    if (data is List) return data;
-    if (data is Map && data['results'] is List) {
-      return data['results'] as List;
-    }
-    return const [];
+  /// sayfalama bilgisini kaybetmeden tek modele indirger.
+  PaginatedResponse<T> _sayfaliYanitaCevir<T>(
+    dynamic data,
+    T Function(Map<String, dynamic> json) fromJson,
+  ) {
+    return PaginatedResponse<T>.fromJson(data, fromJson);
   }
 
   Future<IcerikModel> getIcerikDetay(int id) async {
@@ -79,9 +81,7 @@ class ApiService {
       options: (token != null && token.isNotEmpty) ? _authOptions(token) : null,
     );
     if (response.statusCode == 200) {
-      return _listeyeCevir(
-        response.data,
-      ).map((e) => YorumModel.fromJson(Map<String, dynamic>.from(e))).toList();
+      return _sayfaliYanitaCevir(response.data, YorumModel.fromJson).results;
     }
     throw 'Yorumlar yüklenemedi.';
   }
@@ -244,35 +244,36 @@ class ApiService {
     );
   }
 
-  Future<List<IcerikModel>> getProfilIcerikleri(int userId, {int? page}) async {
+  Future<PaginatedResponse<IcerikModel>> getProfilIcerikleri(
+    int userId, {
+    int? page,
+    int pageSize = ApiConstants.pageSize,
+  }) async {
     final response = await _dio.get(
       ApiConstants.profilIcerikleri(userId),
-      queryParameters: {'page': ?page},
+      queryParameters: {'page': ?page, 'page_size': pageSize},
     );
     if (response.statusCode == 200) {
-      return _listeyeCevir(
-        response.data,
-      ).map((e) => IcerikModel.fromJson(Map<String, dynamic>.from(e))).toList();
+      return _sayfaliYanitaCevir(response.data, IcerikModel.fromJson);
     }
     throw 'Paylaşımlar yüklenemedi.';
   }
 
-  Future<List<IcerikModel>> getProfilKaydedilenler(
+  Future<PaginatedResponse<IcerikModel>> getProfilKaydedilenler(
     int userId, {
     int? page,
+    int pageSize = ApiConstants.pageSize,
   }) async {
     final token = await _accessTokenOrThrow(
       'Kaydedilenleri görmek için giriş yapmalısın.',
     );
     final response = await _dio.get(
       ApiConstants.profilKaydedilenler(userId),
-      queryParameters: {'page': ?page},
+      queryParameters: {'page': ?page, 'page_size': pageSize},
       options: _authOptions(token),
     );
     if (response.statusCode == 200) {
-      return _listeyeCevir(
-        response.data,
-      ).map((e) => IcerikModel.fromJson(Map<String, dynamic>.from(e))).toList();
+      return _sayfaliYanitaCevir(response.data, IcerikModel.fromJson);
     }
     throw _hataAyikla(
       response.data,
@@ -282,22 +283,21 @@ class ApiService {
     );
   }
 
-  Future<List<YorumOzetModel>> getProfilBegeniler(
+  Future<PaginatedResponse<YorumOzetModel>> getProfilBegeniler(
     int userId, {
     int? page,
+    int pageSize = ApiConstants.pageSize,
   }) async {
     final token = await _accessTokenOrThrow(
       'Beğenilenleri görmek için giriş yapmalısın.',
     );
     final response = await _dio.get(
       ApiConstants.profilBegeniler(userId),
-      queryParameters: {'page': ?page},
+      queryParameters: {'page': ?page, 'page_size': pageSize},
       options: _authOptions(token),
     );
     if (response.statusCode == 200) {
-      return _listeyeCevir(response.data)
-          .map((e) => YorumOzetModel.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
+      return _sayfaliYanitaCevir(response.data, YorumOzetModel.fromJson);
     }
     throw _hataAyikla(
       response.data,

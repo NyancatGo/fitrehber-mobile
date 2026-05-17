@@ -57,9 +57,9 @@ class _SearchScreenState extends State<SearchScreen> {
       _sonAranan = sorgu;
     });
     try {
-      final sonuclar = await _api.getIcerikler(arama: sorgu);
+      final response = await _api.getIcerikler(arama: sorgu);
       if (!mounted) return;
-      setState(() => _sonuclar = sonuclar);
+      setState(() => _sonuclar = response.results);
     } catch (e) {
       if (!mounted) return;
       setState(() => _hata = e.toString());

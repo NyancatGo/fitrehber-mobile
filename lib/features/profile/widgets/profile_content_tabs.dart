@@ -6,11 +6,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/api_service.dart';
 import '../../../shared/models/icerik_model.dart';
+import '../../../shared/models/paginated_response.dart';
 import '../../../shared/models/yorum_model.dart';
+import '../../../shared/pagination/pagination_helpers.dart';
 
 class ProfileContentTabs extends StatefulWidget {
   final int userId;
@@ -65,7 +66,9 @@ class _ProfileContentTabsState extends State<ProfileContentTabs>
           TabBar(
             controller: _tabController,
             isScrollable: tabs.length > 2,
-            tabAlignment: tabs.length > 2 ? TabAlignment.start : TabAlignment.fill,
+            tabAlignment: tabs.length > 2
+                ? TabAlignment.start
+                : TabAlignment.fill,
             labelColor: AppTheme.primary,
             indicatorColor: AppTheme.primary,
             unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
@@ -89,16 +92,14 @@ class _ProfileContentTabsState extends State<ProfileContentTabs>
                     loader: (page) =>
                         _api.getProfilKaydedilenler(widget.userId, page: page),
                     emptyText: 'Henüz içerik kaydetmedin.',
-                    itemBuilder: (context, item) =>
-                        _IcerikSatiri(icerik: item),
+                    itemBuilder: (context, item) => _IcerikSatiri(icerik: item),
                   ),
                 if (widget.isOwnProfile)
                   _PaginatedListView<YorumOzetModel>(
                     loader: (page) =>
                         _api.getProfilBegeniler(widget.userId, page: page),
                     emptyText: 'Henüz yorum beğenmedin.',
-                    itemBuilder: (context, item) =>
-                        _BegeniSatiri(yorum: item),
+                    itemBuilder: (context, item) => _BegeniSatiri(yorum: item),
                   ),
               ],
             ),
@@ -110,7 +111,7 @@ class _ProfileContentTabsState extends State<ProfileContentTabs>
 }
 
 class _PaginatedListView<T> extends StatefulWidget {
-  final Future<List<T>> Function(int page) loader;
+  final Future<PaginatedResponse<T>> Function(int page) loader;
   final Widget Function(BuildContext, T) itemBuilder;
   final String emptyText;
 
@@ -126,6 +127,7 @@ class _PaginatedListView<T> extends StatefulWidget {
 
 class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
   final ScrollController _scrollController = ScrollController();
+  final PaginationTrigger _paginationTrigger = PaginationTrigger();
   final List<T> _items = [];
 
   int _page = 1;
@@ -148,8 +150,7 @@ class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 240) {
+    if (_paginationTrigger.shouldLoad(_scrollController, threshold: 240)) {
       _dahaYukle();
     }
   }
@@ -160,14 +161,14 @@ class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
       _hata = null;
     });
     try {
-      final batch = await widget.loader(1);
+      final response = await widget.loader(1);
       if (!mounted) return;
       setState(() {
         _items
           ..clear()
-          ..addAll(batch);
+          ..addAll(response.results);
         _page = 1;
-        _dahaVar = batch.length >= ApiConstants.pageSize;
+        _dahaVar = response.hasNext;
       });
     } catch (e) {
       if (!mounted) return;
@@ -181,15 +182,15 @@ class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
     if (_dahaYukleniyor || !_dahaVar || _ilkYukleniyor) return;
     setState(() => _dahaYukleniyor = true);
     try {
-      final batch = await widget.loader(_page + 1);
+      final response = await widget.loader(_page + 1);
       if (!mounted) return;
       setState(() {
         _page += 1;
-        _items.addAll(batch);
-        _dahaVar = batch.length >= ApiConstants.pageSize;
+        _items.addAll(response.results);
+        _dahaVar = response.hasNext;
       });
     } catch (_) {
-      // Sonraki sayfa hatası sessiz; kullanıcı tekrar kaydırarak deneyebilir.
+      if (mounted) showPaginationLoadErrorSnack(context);
     } finally {
       if (mounted) setState(() => _dahaYukleniyor = false);
     }

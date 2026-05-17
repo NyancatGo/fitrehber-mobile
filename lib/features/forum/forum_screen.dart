@@ -10,6 +10,7 @@ import '../../core/constants/api_constants.dart';
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/kategori_model.dart';
+import '../../shared/pagination/pagination_helpers.dart';
 import '../../shared/session_controller.dart';
 
 class ForumScreen extends ConsumerStatefulWidget {
@@ -23,6 +24,7 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
   final ApiService _api = ApiService();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _aramaController = TextEditingController();
+  final PaginationTrigger _paginationTrigger = PaginationTrigger();
 
   List<KategoriModel> _kategoriler = [];
   List<IcerikModel> _sorular = [];
@@ -31,6 +33,7 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
   bool _dahaYukleniyor = false;
   bool _dahaVar = true;
   int _page = 1;
+  int _totalCount = 0;
   String? _hata;
   Timer? _aramaDebounce;
 
@@ -39,7 +42,7 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _aramaController.addListener(_aramaDegisti);
-    _verileriYukle();
+    _verileriYukle(kategorileriYenile: true);
   }
 
   @override
@@ -51,38 +54,44 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 280) {
+    if (_paginationTrigger.shouldLoad(_scrollController)) {
       _dahaYukle();
     }
   }
 
   void _aramaDegisti() {
     _aramaDebounce?.cancel();
-    _aramaDebounce = Timer(const Duration(milliseconds: 360), _verileriYukle);
+    _aramaDebounce = Timer(
+      const Duration(milliseconds: 360),
+      () => _verileriYukle(),
+    );
   }
 
-  Future<void> _verileriYukle() async {
+  Future<void> _verileriYukle({bool kategorileriYenile = false}) async {
     setState(() {
       _yukleniyor = true;
       _hata = null;
     });
 
     try {
-      final kategoriler = await _api.getKategoriler();
-      final sorular = await _api.getIcerikler(
+      final kategoriler = kategorileriYenile || _kategoriler.isEmpty
+          ? await _api.getKategoriler()
+          : _kategoriler;
+      final response = await _api.getIcerikler(
         kategoriId: _secilenKategoriId,
         tur: 'soru',
         arama: _aramaController.text.trim(),
         page: 1,
+        pageSize: ApiConstants.pageSize,
       );
 
       if (!mounted) return;
       setState(() {
         _kategoriler = kategoriler;
-        _sorular = sorular;
+        _sorular = response.results;
         _page = 1;
-        _dahaVar = sorular.length >= ApiConstants.pageSize;
+        _totalCount = response.count;
+        _dahaVar = response.hasNext;
       });
     } catch (e) {
       if (!mounted) return;
@@ -96,20 +105,22 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
     if (_dahaYukleniyor || !_dahaVar || _yukleniyor) return;
     setState(() => _dahaYukleniyor = true);
     try {
-      final batch = await _api.getIcerikler(
+      final response = await _api.getIcerikler(
         kategoriId: _secilenKategoriId,
         tur: 'soru',
         arama: _aramaController.text.trim(),
         page: _page + 1,
+        pageSize: ApiConstants.pageSize,
       );
       if (!mounted) return;
       setState(() {
         _page += 1;
-        _sorular.addAll(batch);
-        _dahaVar = batch.length >= ApiConstants.pageSize;
+        _sorular.addAll(response.results);
+        _totalCount = response.count;
+        _dahaVar = response.hasNext;
       });
     } catch (_) {
-      // Sonraki sayfa hatasi sessiz gecilir.
+      if (mounted) showPaginationLoadErrorSnack(context);
     } finally {
       if (mounted) setState(() => _dahaYukleniyor = false);
     }
@@ -119,6 +130,8 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
     setState(() => _secilenKategoriId = id);
     _verileriYukle();
   }
+
+  Future<void> _yenile() => _verileriYukle(kategorileriYenile: true);
 
   Future<void> _soruSor() async {
     final yeniSoru = await context.push<IcerikModel>('/forum/soru-sor');
@@ -277,17 +290,20 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
   }
 
   Widget _kategoriCubugu() {
-    return SizedBox(
-      height: 56,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: [
-          _kategoriButon(null, 'Tumu'),
-          ..._kategoriler.map((kategori) {
-            return _kategoriButon(kategori.id, kategori.isim);
-          }),
-        ],
+    return Semantics(
+      label: 'Toplam forum sorusu sayısı $_totalCount',
+      child: SizedBox(
+        height: 56,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          children: [
+            _kategoriButon(null, 'Tumu'),
+            ..._kategoriler.map((kategori) {
+              return _kategoriButon(kategori.id, kategori.isim);
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -335,7 +351,7 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
     if (_hata != null) return _hataWidget();
     if (_sorular.isEmpty) {
       return RefreshIndicator(
-        onRefresh: _verileriYukle,
+        onRefresh: _yenile,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: const [
@@ -347,7 +363,7 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _verileriYukle,
+      onRefresh: _yenile,
       child: ListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
@@ -403,7 +419,7 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
             Text(_hata!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _verileriYukle,
+              onPressed: () => _verileriYukle(),
               child: const Text('Tekrar Dene'),
             ),
           ],

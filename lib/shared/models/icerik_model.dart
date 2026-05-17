@@ -90,7 +90,8 @@ class IcerikModel {
   final Map<String, dynamic> yazar;
   final Map<String, dynamic>? kategori;
   final String yazi;
-  final String yaziTemiz;
+  final String _rawYaziTemiz;
+  String? _normalizedYaziTemiz;
   final int yorumSayisi;
   final int begeniSayisi;
   final bool begendim;
@@ -108,14 +109,14 @@ class IcerikModel {
     required this.yazar,
     this.kategori,
     required this.yazi,
-    required this.yaziTemiz,
+    required String yaziTemiz,
     this.yorumSayisi = 0,
     this.begeniSayisi = 0,
     this.begendim = false,
     this.kaydedildi = false,
     this.ozet = '',
     this.okumaSuresi = 0,
-  });
+  }) : _rawYaziTemiz = yaziTemiz;
 
   factory IcerikModel.fromJson(Map<String, dynamic> json) {
     final yazi = _asString(json['yazi']);
@@ -134,7 +135,7 @@ class IcerikModel {
           ? Map<String, dynamic>.from(json['kategori'])
           : null,
       yazi: yazi,
-      yaziTemiz: _normalizeArticleHtml(yaziTemiz),
+      yaziTemiz: yaziTemiz,
       yorumSayisi: json['yorum_sayisi'] is int
           ? json['yorum_sayisi'] as int
           : int.tryParse(json['yorum_sayisi']?.toString() ?? '') ?? 0,
@@ -178,7 +179,7 @@ class IcerikModel {
       yazar: yazar ?? this.yazar,
       kategori: kategori ?? this.kategori,
       yazi: yazi ?? this.yazi,
-      yaziTemiz: yaziTemiz ?? this.yaziTemiz,
+      yaziTemiz: yaziTemiz ?? _rawYaziTemiz,
       yorumSayisi: yorumSayisi ?? this.yorumSayisi,
       begeniSayisi: begeniSayisi ?? this.begeniSayisi,
       begendim: begendim ?? this.begendim,
@@ -190,6 +191,9 @@ class IcerikModel {
 
   // Kategori adını kolayca almak için yardımcı getter
   String get kategoriAdi => kategori?['isim'] ?? 'Genel';
+
+  String get yaziTemiz =>
+      _normalizedYaziTemiz ??= _normalizeArticleHtml(_rawYaziTemiz);
 
   // Yazar adını kolayca almak için yardımcı getter
   String get yazarAdi => yazar['username'] ?? 'Anonim';

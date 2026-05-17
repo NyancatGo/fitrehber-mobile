@@ -8,6 +8,7 @@ import '../../core/constants/api_constants.dart';
 import '../../shared/api_service.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/kategori_model.dart';
+import '../../shared/pagination/pagination_helpers.dart';
 import '../../shared/session_controller.dart';
 
 class HomeContent extends ConsumerStatefulWidget {
@@ -20,6 +21,7 @@ class HomeContent extends ConsumerStatefulWidget {
 class _HomeContentState extends ConsumerState<HomeContent> {
   final ApiService _api = ApiService();
   final ScrollController _scrollController = ScrollController();
+  final PaginationTrigger _paginationTrigger = PaginationTrigger();
 
   List<KategoriModel> _kategoriler = [];
   List<IcerikModel> _icerikler = [];
@@ -28,13 +30,14 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   bool _dahaYukleniyor = false;
   bool _dahaVar = true;
   int _page = 1;
+  int _totalCount = 0;
   String? _hata;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _verileriYukle();
+    _verileriYukle(kategorileriYenile: true);
   }
 
   @override
@@ -44,30 +47,33 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 280) {
+    if (_paginationTrigger.shouldLoad(_scrollController)) {
       _dahaYukle();
     }
   }
 
-  Future<void> _verileriYukle() async {
+  Future<void> _verileriYukle({bool kategorileriYenile = false}) async {
     setState(() {
       _yukleniyor = true;
       _hata = null;
     });
     try {
-      final kategoriler = await _api.getKategoriler();
-      final icerikler = await _api.getIcerikler(
+      final kategoriler = kategorileriYenile || _kategoriler.isEmpty
+          ? await _api.getKategoriler()
+          : _kategoriler;
+      final response = await _api.getIcerikler(
         kategoriId: _secilenKategoriId,
         tur: 'haber',
         page: 1,
+        pageSize: ApiConstants.pageSize,
       );
       if (!mounted) return;
       setState(() {
         _kategoriler = kategoriler;
-        _icerikler = icerikler;
+        _icerikler = response.results;
         _page = 1;
-        _dahaVar = icerikler.length >= ApiConstants.pageSize;
+        _totalCount = response.count;
+        _dahaVar = response.hasNext;
       });
     } catch (e) {
       if (!mounted) return;
@@ -81,19 +87,21 @@ class _HomeContentState extends ConsumerState<HomeContent> {
     if (_dahaYukleniyor || !_dahaVar || _yukleniyor) return;
     setState(() => _dahaYukleniyor = true);
     try {
-      final batch = await _api.getIcerikler(
+      final response = await _api.getIcerikler(
         kategoriId: _secilenKategoriId,
         tur: 'haber',
         page: _page + 1,
+        pageSize: ApiConstants.pageSize,
       );
       if (!mounted) return;
       setState(() {
         _page += 1;
-        _icerikler.addAll(batch);
-        _dahaVar = batch.length >= ApiConstants.pageSize;
+        _icerikler.addAll(response.results);
+        _totalCount = response.count;
+        _dahaVar = response.hasNext;
       });
     } catch (_) {
-      // Sonraki sayfa hatasi sessiz gecilir.
+      if (mounted) showPaginationLoadErrorSnack(context);
     } finally {
       if (mounted) setState(() => _dahaYukleniyor = false);
     }
@@ -103,6 +111,8 @@ class _HomeContentState extends ConsumerState<HomeContent> {
     setState(() => _secilenKategoriId = id);
     _verileriYukle();
   }
+
+  Future<void> _yenile() => _verileriYukle(kategorileriYenile: true);
 
   Future<void> _hizliBegen(IcerikModel icerik) async {
     final index = _icerikler.indexWhere((item) => item.id == icerik.id);
@@ -235,15 +245,18 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   }
 
   Widget _kategoriCubugu() {
-    return SizedBox(
-      height: 56,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: [
-          _kategoriButon(null, 'Tumu'),
-          ..._kategoriler.map((k) => _kategoriButon(k.id, k.isim)),
-        ],
+    return Semantics(
+      label: 'Toplam içerik sayısı $_totalCount',
+      child: SizedBox(
+        height: 56,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          children: [
+            _kategoriButon(null, 'Tumu'),
+            ..._kategoriler.map((k) => _kategoriButon(k.id, k.isim)),
+          ],
+        ),
       ),
     );
   }
@@ -290,7 +303,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
     if (_hata != null) return _hataWidget();
     if (_icerikler.isEmpty) {
       return RefreshIndicator(
-        onRefresh: _verileriYukle,
+        onRefresh: _yenile,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: const [
@@ -332,7 +345,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
           Text(_hata!, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: _verileriYukle,
+            onPressed: () => _verileriYukle(),
             child: const Text('Tekrar Dene'),
           ),
         ],
@@ -342,7 +355,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
   Widget _makaleListe(bool canModerate, int? currentUserId) {
     return RefreshIndicator(
-      onRefresh: _verileriYukle,
+      onRefresh: _yenile,
       child: ListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
