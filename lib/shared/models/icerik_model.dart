@@ -92,6 +92,9 @@ class IcerikModel {
   final String yazi;
   final String yaziTemiz;
   final int yorumSayisi;
+  final int begeniSayisi;
+  final bool begendim;
+  final bool kaydedildi;
 
   IcerikModel({
     required this.id,
@@ -105,6 +108,9 @@ class IcerikModel {
     required this.yazi,
     required this.yaziTemiz,
     this.yorumSayisi = 0,
+    this.begeniSayisi = 0,
+    this.begendim = false,
+    this.kaydedildi = false,
   });
 
   factory IcerikModel.fromJson(Map<String, dynamic> json) {
@@ -128,6 +134,45 @@ class IcerikModel {
       yorumSayisi: json['yorum_sayisi'] is int
           ? json['yorum_sayisi'] as int
           : int.tryParse(json['yorum_sayisi']?.toString() ?? '') ?? 0,
+      begeniSayisi: json['begeni_sayisi'] is int
+          ? json['begeni_sayisi'] as int
+          : int.tryParse(json['begeni_sayisi']?.toString() ?? '') ?? 0,
+      begendim: json['begendim'] == true,
+      kaydedildi: json['kaydedildi'] == true,
+    );
+  }
+
+  IcerikModel copyWith({
+    int? id,
+    String? baslik,
+    String? resim,
+    String? resimUrl,
+    String? tur,
+    String? tarih,
+    Map<String, dynamic>? yazar,
+    Map<String, dynamic>? kategori,
+    String? yazi,
+    String? yaziTemiz,
+    int? yorumSayisi,
+    int? begeniSayisi,
+    bool? begendim,
+    bool? kaydedildi,
+  }) {
+    return IcerikModel(
+      id: id ?? this.id,
+      baslik: baslik ?? this.baslik,
+      resim: resim ?? this.resim,
+      resimUrl: resimUrl ?? this.resimUrl,
+      tur: tur ?? this.tur,
+      tarih: tarih ?? this.tarih,
+      yazar: yazar ?? this.yazar,
+      kategori: kategori ?? this.kategori,
+      yazi: yazi ?? this.yazi,
+      yaziTemiz: yaziTemiz ?? this.yaziTemiz,
+      yorumSayisi: yorumSayisi ?? this.yorumSayisi,
+      begeniSayisi: begeniSayisi ?? this.begeniSayisi,
+      begendim: begendim ?? this.begendim,
+      kaydedildi: kaydedildi ?? this.kaydedildi,
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -31,10 +32,8 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       body: profileState.when(
-        data: (profile) => _ProfileContent(
-          profile: profile,
-          isOwnProfile: isOwn,
-        ),
+        data: (profile) =>
+            _ProfileContent(profile: profile, isOwnProfile: isOwn),
         loading: () => const _ProfileSkeleton(),
         error: (error, stackTrace) => _ProfileError(
           message: error.toString(),
@@ -68,10 +67,7 @@ class _ProfileContent extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
-            child: _ProfileHeader(
-              profile: profile,
-              isOwnProfile: isOwnProfile,
-            ),
+            child: _ProfileHeader(profile: profile, isOwnProfile: isOwnProfile),
           ),
           SliverToBoxAdapter(child: _StatsRow(profile: profile)),
           SliverPadding(
@@ -158,8 +154,7 @@ class _ProfileHeader extends ConsumerWidget {
               if (isOwnProfile)
                 IconButton.filledTonal(
                   tooltip: 'Profili yenile',
-                  onPressed: () =>
-                      ref.read(profileProvider.notifier).refresh(),
+                  onPressed: () => ref.read(profileProvider.notifier).refresh(),
                   icon: const Icon(Icons.refresh),
                 ),
             ],
@@ -1274,6 +1269,7 @@ class _EditProfileSheet extends ConsumerStatefulWidget {
 }
 
 class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
+  final ImagePicker _imagePicker = ImagePicker();
   late final TextEditingController _bioController;
   late final TextEditingController _heightController;
   late final TextEditingController _weightController;
@@ -1281,6 +1277,8 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _goalController;
   late DateTime? _birthDate;
   late String _gender;
+  XFile? _selectedPhoto;
+  Uint8List? _selectedPhotoBytes;
   bool _saving = false;
 
   @override
@@ -1311,6 +1309,22 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     super.dispose();
   }
 
+  Future<void> _pickProfilePhoto(ImageSource source) async {
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 88,
+      maxWidth: 1200,
+    );
+    if (picked == null) return;
+
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      _selectedPhoto = picked;
+      _selectedPhotoBytes = bytes;
+    });
+  }
+
   Future<void> _save() async {
     if (_saving) return;
 
@@ -1331,7 +1345,11 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         throw 'Boy, kilo, hedef kilo, hedef ve doğum tarihi boş bırakılamaz.';
       }
 
-      await ref.read(profileProvider.notifier).updateProfile(data);
+      final notifier = ref.read(profileProvider.notifier);
+      await notifier.updateProfile(data);
+      if (_selectedPhoto != null) {
+        await notifier.uploadProfilePhoto(_selectedPhoto!);
+      }
 
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
@@ -1390,6 +1408,19 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 16),
+            _ProfilePhotoPicker(
+              profile: widget.profile,
+              selectedBytes: _selectedPhotoBytes,
+              onPickGallery: () => _pickProfilePhoto(ImageSource.gallery),
+              onPickCamera: () => _pickProfilePhoto(ImageSource.camera),
+              onClear: _selectedPhotoBytes == null
+                  ? null
+                  : () => setState(() {
+                      _selectedPhoto = null;
+                      _selectedPhotoBytes = null;
+                    }),
+            ),
+            const SizedBox(height: 14),
             TextField(
               controller: _bioController,
               minLines: 2,
@@ -1464,6 +1495,161 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                     )
                   : const Icon(Icons.save_outlined),
               label: const Text('Kaydet'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfilePhotoPicker extends StatelessWidget {
+  final ProfilModel profile;
+  final Uint8List? selectedBytes;
+  final VoidCallback onPickGallery;
+  final VoidCallback onPickCamera;
+  final VoidCallback? onClear;
+
+  const _ProfilePhotoPicker({
+    required this.profile,
+    required this.selectedBytes,
+    required this.onPickGallery,
+    required this.onPickCamera,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 76,
+            height: 76,
+            padding: const EdgeInsets.all(3),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
+              ),
+            ),
+            child: ClipOval(child: _preview()),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Profil fotografi',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  selectedBytes == null
+                      ? 'Galeriden veya kameradan yeni gorsel sec.'
+                      : 'Yeni fotograf kaydetmeye hazir.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.58),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _SmallPickerButton(
+                      icon: Icons.photo_library_outlined,
+                      label: 'Galeri',
+                      onTap: onPickGallery,
+                    ),
+                    _SmallPickerButton(
+                      icon: Icons.photo_camera_outlined,
+                      label: 'Kamera',
+                      onTap: onPickCamera,
+                    ),
+                    if (onClear != null)
+                      _SmallPickerButton(
+                        icon: Icons.close,
+                        label: 'Kaldir',
+                        onTap: onClear!,
+                        danger: true,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _preview() {
+    if (selectedBytes != null) {
+      return Image.memory(selectedBytes!, fit: BoxFit.cover);
+    }
+    if (profile.avatarUrl != null) {
+      return CachedNetworkImage(
+        imageUrl: profile.avatarUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) =>
+            _AvatarFallback(initials: profile.initials),
+        errorWidget: (context, url, error) =>
+            _AvatarFallback(initials: profile.initials),
+      );
+    }
+    return _AvatarFallback(initials: profile.initials);
+  }
+}
+
+class _SmallPickerButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool danger;
+
+  const _SmallPickerButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.danger = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? const Color(0xFFEF4444) : const Color(0xFF22D3EE);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.22)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../core/constants/api_constants.dart';
 import 'models/chat_message_model.dart';
@@ -75,9 +76,7 @@ class ApiService {
     final token = await _storage.read(key: 'access_token');
     final response = await _dio.get(
       ApiConstants.yorumlar(icerikId),
-      options: (token != null && token.isNotEmpty)
-          ? _authOptions(token)
-          : null,
+      options: (token != null && token.isNotEmpty) ? _authOptions(token) : null,
     );
     if (response.statusCode == 200) {
       return _listeyeCevir(
@@ -88,10 +87,67 @@ class ApiService {
   }
 
   /// Yorum beğenisini açar/kapatır. Dönen map: {begendim, begeni_sayisi}.
-  Future<Map<String, dynamic>> toggleYorumBegeni(int yorumId) async {
+  Future<YorumModel> yorumEkle(
+    int icerikId, {
+    required String mesaj,
+    int? parentId,
+  }) async {
     final token = await _accessTokenOrThrow(
-      'Beğenmek için giriş yapmalısın.',
+      'Yorum yazmak icin giris yapmalisin.',
     );
+    final response = await _dio.post(
+      ApiConstants.yorumlar(icerikId),
+      data: {'mesaj': mesaj, 'parent': ?parentId},
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 201 && response.data is Map) {
+      return YorumModel.fromJson(Map<String, dynamic>.from(response.data));
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Yorum yazmak icin giris yapmalisin.',
+      defaultMessage: 'Yorum gonderilemedi.',
+    );
+  }
+
+  Future<IcerikModel> soruSor({
+    required String baslik,
+    required String yazi,
+    required int kategoriId,
+    XFile? resim,
+  }) async {
+    final token = await _accessTokenOrThrow(
+      'Soru sormak icin giris yapmalisin.',
+    );
+    final formData = FormData.fromMap({
+      'baslik': baslik,
+      'yazi': yazi,
+      'kategori': kategoriId,
+      if (resim != null)
+        'resim': MultipartFile.fromBytes(
+          await resim.readAsBytes(),
+          filename: resim.name,
+        ),
+    });
+    final response = await _dio.post(
+      ApiConstants.icerikler,
+      data: formData,
+      options: _authOptions(token, multipart: true),
+    );
+    if (response.statusCode == 201 && response.data is Map) {
+      return IcerikModel.fromJson(Map<String, dynamic>.from(response.data));
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Soru sormak icin giris yapmalisin.',
+      defaultMessage: 'Soru paylasilamadi.',
+    );
+  }
+
+  Future<Map<String, dynamic>> toggleYorumBegeni(int yorumId) async {
+    final token = await _accessTokenOrThrow('Beğenmek için giriş yapmalısın.');
     final response = await _dio.post(
       ApiConstants.yorumBegen(yorumId),
       options: _authOptions(token),
@@ -107,13 +163,75 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> toggleIcerikBegeni(int icerikId) async {
+    final token = await _accessTokenOrThrow('Begenmek icin giris yapmalisin.');
+    final response = await _dio.post(
+      ApiConstants.icerikBegen(icerikId),
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200 && response.data is Map) {
+      return Map<String, dynamic>.from(response.data as Map);
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Begenmek icin giris yapmalisin.',
+      defaultMessage: 'Begeni islemi basarisiz.',
+    );
+  }
+
+  Future<Map<String, dynamic>> toggleIcerikKaydet(int icerikId) async {
+    final token = await _accessTokenOrThrow('Kaydetmek icin giris yapmalisin.');
+    final response = await _dio.post(
+      ApiConstants.icerikKaydet(icerikId),
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200 && response.data is Map) {
+      return Map<String, dynamic>.from(response.data as Map);
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Kaydetmek icin giris yapmalisin.',
+      defaultMessage: 'Kaydetme islemi basarisiz.',
+    );
+  }
+
+  Future<void> icerikSil(int icerikId) async {
+    final token = await _accessTokenOrThrow('Bu islem icin giris yapmalisin.');
+    final response = await _dio.delete(
+      '${ApiConstants.icerikler}$icerikId/',
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 204) return;
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Bu islem icin giris yapmalisin.',
+      defaultMessage: 'Icerik silinemedi.',
+    );
+  }
+
+  Future<void> yorumSil(int yorumId) async {
+    final token = await _accessTokenOrThrow('Bu islem icin giris yapmalisin.');
+    final response = await _dio.delete(
+      ApiConstants.yorumDetay(yorumId),
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 204) return;
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Bu islem icin giris yapmalisin.',
+      defaultMessage: 'Yorum silinemedi.',
+    );
+  }
+
   Future<ProfilModel> getProfilById(int userId) async {
     final token = await _storage.read(key: 'access_token');
     final response = await _dio.get(
       ApiConstants.profilDetay(userId),
-      options: (token != null && token.isNotEmpty)
-          ? _authOptions(token)
-          : null,
+      options: (token != null && token.isNotEmpty) ? _authOptions(token) : null,
     );
     if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
       return ProfilModel.fromJson(response.data as Map<String, dynamic>);
@@ -126,10 +244,7 @@ class ApiService {
     );
   }
 
-  Future<List<IcerikModel>> getProfilIcerikleri(
-    int userId, {
-    int? page,
-  }) async {
+  Future<List<IcerikModel>> getProfilIcerikleri(int userId, {int? page}) async {
     final response = await _dio.get(
       ApiConstants.profilIcerikleri(userId),
       queryParameters: {'page': ?page},
@@ -180,11 +295,9 @@ class ApiService {
       options: _authOptions(token),
     );
     if (response.statusCode == 200) {
-      return _listeyeCevir(
-        response.data,
-      ).map(
-        (e) => YorumOzetModel.fromJson(Map<String, dynamic>.from(e)),
-      ).toList();
+      return _listeyeCevir(response.data)
+          .map((e) => YorumOzetModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
     }
     throw _hataAyikla(
       response.data,
@@ -263,6 +376,41 @@ class ApiService {
       response.statusCode,
       unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
       defaultMessage: 'Profil güncellenemedi.',
+    );
+  }
+
+  Future<ProfilModel> profilFotoYukle(XFile foto) async {
+    final token = await _accessTokenOrThrow(
+      'Profil fotografini guncellemek icin giris yapmalisin.',
+    );
+    final cachedProfile = await _readCachedProfile();
+    final userId = cachedProfile?.id ?? _readUserIdFromToken(token);
+
+    if (userId == null || userId <= 0) {
+      throw 'Profil fotografi icin kullanici id alinamadi. Lutfen cikis yapip tekrar giris yap.';
+    }
+
+    final response = await _dio.patch(
+      ApiConstants.profilDetay(userId),
+      data: FormData.fromMap({
+        'foto': MultipartFile.fromBytes(
+          await foto.readAsBytes(),
+          filename: foto.name,
+        ),
+      }),
+      options: _authOptions(token, multipart: true),
+    );
+
+    if ((response.statusCode == 200 || response.statusCode == 202) &&
+        response.data is Map<String, dynamic>) {
+      return ProfilModel.fromJson(response.data as Map<String, dynamic>);
+    }
+
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum suren dolmus. Lutfen tekrar giris yap.',
+      defaultMessage: 'Profil fotografi guncellenemedi.',
     );
   }
 
@@ -368,11 +516,11 @@ class ApiService {
     return token;
   }
 
-  Options _authOptions(String token) {
+  Options _authOptions(String token, {bool multipart = false}) {
     return Options(
       headers: {
         'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
+        if (!multipart) 'Content-Type': 'application/json',
       },
     );
   }

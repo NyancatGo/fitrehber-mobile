@@ -21,5 +21,8 @@ class ApiConstants {
   static String profilBegeniler(int userId) => '$profil$userId/begeniler/';
 
   static String yorumlar(int icerikId) => '$icerikler$icerikId/yorumlar/';
+  static String yorumDetay(int yorumId) => '$baseUrl/yorumlar/$yorumId/';
   static String yorumBegen(int yorumId) => '$baseUrl/yorumlar/$yorumId/begen/';
+  static String icerikBegen(int icerikId) => '$icerikler$icerikId/begen/';
+  static String icerikKaydet(int icerikId) => '$icerikler$icerikId/kaydet/';
 }

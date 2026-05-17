@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/api_service.dart';
 import '../../../shared/models/profil_model.dart';
@@ -6,10 +7,11 @@ import '../../../shared/models/profil_model.dart';
 final profileApiProvider = Provider<ApiService>((ref) => ApiService());
 
 /// Başka bir kullanıcının profilini id ile yükler (salt-okunur görünüm).
-final profileByIdProvider = FutureProvider.autoDispose
-    .family<ProfilModel, int>((ref, userId) {
-      return ref.watch(profileApiProvider).getProfilById(userId);
-    });
+final profileByIdProvider = FutureProvider.autoDispose.family<ProfilModel, int>(
+  (ref, userId) {
+    return ref.watch(profileApiProvider).getProfilById(userId);
+  },
+);
 
 final profileProvider =
     StateNotifierProvider.autoDispose<ProfileNotifier, AsyncValue<ProfilModel>>(
@@ -35,6 +37,11 @@ class ProfileNotifier extends StateNotifier<AsyncValue<ProfilModel>> {
 
   Future<void> updateProfile(Map<String, dynamic> data) async {
     final updatedProfile = await _api.updateProfil(data);
+    if (mounted) state = AsyncValue.data(updatedProfile);
+  }
+
+  Future<void> uploadProfilePhoto(XFile photo) async {
+    final updatedProfile = await _api.profilFotoYukle(photo);
     if (mounted) state = AsyncValue.data(updatedProfile);
   }
 }

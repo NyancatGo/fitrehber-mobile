@@ -7,6 +7,7 @@ import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/categories/categories_screen.dart';
 import '../../features/forum/forum_screen.dart';
+import '../../features/forum/soru_sor_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/nutrition/nutrition_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
@@ -54,6 +55,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/forum', builder: (context, state) => const ForumScreen()),
       GoRoute(
+        path: '/forum/soru-sor',
+        builder: (context, state) => const SoruSorScreen(),
+      ),
+      GoRoute(
         path: '/asistan',
         builder: (context, state) => const AiAssistantScreen(),
       ),
@@ -67,9 +72,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/profil/:id',
-        builder: (context, state) => ProfileScreen(
-          userId: int.parse(state.pathParameters['id']!),
-        ),
+        builder: (context, state) =>
+            ProfileScreen(userId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/arama',
