@@ -35,6 +35,9 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
   String? _yorumHata;
   YorumModel? _yanitlananYorum;
 
+  // Yanıtları gizlenmiş (daraltılmış) yorum id'leri.
+  final Set<int> _kapaliYorumlar = {};
+
   @override
   void initState() {
     super.initState();
@@ -299,6 +302,16 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
 
   void _yanitiIptalEt() {
     setState(() => _yanitlananYorum = null);
+  }
+
+  void _yanitGorunumunuDegistir(int yorumId) {
+    setState(() {
+      if (_kapaliYorumlar.contains(yorumId)) {
+        _kapaliYorumlar.remove(yorumId);
+      } else {
+        _kapaliYorumlar.add(yorumId);
+      }
+    });
   }
 
   void _yazarProfiliAc(int? yazarId) {
@@ -567,6 +580,11 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
         yorum.yazarAdi == _icerik?.yazarAdi && _icerik?.yazarAdi != 'Anonim';
     final canDeleteComment = canModerate || currentUserId == yorum.yazarId;
     final indent = (derinlik.clamp(0, 5)) * 12.0;
+    final yanitlarKapali = _kapaliYorumlar.contains(yorum.id);
+    final altYanitSayisi = yorum.yanitlar.fold<int>(
+      0,
+      (toplam, y) => toplam + y.toplamSayi,
+    );
     final initial = yorum.yazarAdi.trim().isEmpty
         ? '?'
         : yorum.yazarAdi.trim().substring(0, 1).toUpperCase();
@@ -713,6 +731,18 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
                               color: const Color(0xFF22D3EE),
                               onTap: () => _yanitla(yorum),
                             ),
+                            if (yorum.yanitlar.isNotEmpty)
+                              _yorumAksiyon(
+                                icon: yanitlarKapali
+                                    ? Icons.unfold_more
+                                    : Icons.unfold_less,
+                                label: yanitlarKapali
+                                    ? '$altYanitSayisi yanit'
+                                    : 'Gizle',
+                                color: Colors.white.withValues(alpha: 0.54),
+                                onTap: () =>
+                                    _yanitGorunumunuDegistir(yorum.id),
+                              ),
                           ],
                         ),
                       ],
@@ -722,9 +752,10 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
               ],
             ),
           ),
-          ...yorum.yanitlar.map(
-            (y) => _yorumKarti(y, derinlik + 1, canModerate, currentUserId),
-          ),
+          if (!yanitlarKapali)
+            ...yorum.yanitlar.map(
+              (y) => _yorumKarti(y, derinlik + 1, canModerate, currentUserId),
+            ),
         ],
       ),
     );

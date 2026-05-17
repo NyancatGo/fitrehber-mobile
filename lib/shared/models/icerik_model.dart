@@ -95,6 +95,8 @@ class IcerikModel {
   final int begeniSayisi;
   final bool begendim;
   final bool kaydedildi;
+  final String ozet;
+  final int okumaSuresi;
 
   IcerikModel({
     required this.id,
@@ -111,6 +113,8 @@ class IcerikModel {
     this.begeniSayisi = 0,
     this.begendim = false,
     this.kaydedildi = false,
+    this.ozet = '',
+    this.okumaSuresi = 0,
   });
 
   factory IcerikModel.fromJson(Map<String, dynamic> json) {
@@ -139,6 +143,10 @@ class IcerikModel {
           : int.tryParse(json['begeni_sayisi']?.toString() ?? '') ?? 0,
       begendim: json['begendim'] == true,
       kaydedildi: json['kaydedildi'] == true,
+      ozet: _asString(json['ozet']),
+      okumaSuresi: json['okuma_suresi'] is int
+          ? json['okuma_suresi'] as int
+          : int.tryParse(json['okuma_suresi']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -157,6 +165,8 @@ class IcerikModel {
     int? begeniSayisi,
     bool? begendim,
     bool? kaydedildi,
+    String? ozet,
+    int? okumaSuresi,
   }) {
     return IcerikModel(
       id: id ?? this.id,
@@ -173,6 +183,8 @@ class IcerikModel {
       begeniSayisi: begeniSayisi ?? this.begeniSayisi,
       begendim: begendim ?? this.begendim,
       kaydedildi: kaydedildi ?? this.kaydedildi,
+      ozet: ozet ?? this.ozet,
+      okumaSuresi: okumaSuresi ?? this.okumaSuresi,
     );
   }
 

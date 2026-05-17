@@ -423,6 +423,19 @@ class _HomeContentState extends ConsumerState<HomeContent> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (icerik.ozet.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  icerik.ozet,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [

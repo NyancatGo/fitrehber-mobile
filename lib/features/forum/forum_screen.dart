@@ -466,6 +466,19 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              if (soru.ozet.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  soru.ozet,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Row(
                 children: [

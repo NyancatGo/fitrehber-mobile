@@ -33,6 +33,38 @@ void main() {
     });
   });
 
+  group('IcerikModel ozet & okumaSuresi', () {
+    test('parses ozet and okuma_suresi from the API payload', () {
+      final icerik = IcerikModel.fromJson(base({
+        'ozet': 'Kısa bir özet metni',
+        'okuma_suresi': 4,
+      }));
+      expect(icerik.ozet, 'Kısa bir özet metni');
+      expect(icerik.okumaSuresi, 4);
+    });
+
+    test('defaults ozet to empty and okumaSuresi to 0 when absent', () {
+      final icerik = IcerikModel.fromJson(base({}));
+      expect(icerik.ozet, '');
+      expect(icerik.okumaSuresi, 0);
+    });
+
+    test('parses string-typed okuma_suresi', () {
+      final icerik = IcerikModel.fromJson(base({'okuma_suresi': '7'}));
+      expect(icerik.okumaSuresi, 7);
+    });
+
+    test('copyWith preserves ozet and okumaSuresi', () {
+      final icerik = IcerikModel.fromJson(base({
+        'ozet': 'orijinal',
+        'okuma_suresi': 5,
+      }));
+      final kopya = icerik.copyWith(yorumSayisi: 3);
+      expect(kopya.ozet, 'orijinal');
+      expect(kopya.okumaSuresi, 5);
+    });
+  });
+
   group('IcerikModel basics', () {
     test('exposes author and category helper getters', () {
       final icerik = IcerikModel.fromJson(base({
