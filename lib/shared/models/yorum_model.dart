@@ -47,6 +47,15 @@ class YorumModel {
 
   String get yazarAdi => yazar['username']?.toString() ?? 'Anonim';
 
+  /// Yazarın profil fotoğrafı URL'i; backend farklı anahtarlar kullanabilir.
+  String? get avatarUrl {
+    final raw =
+        yazar['avatar_url'] ?? yazar['avatar'] ?? yazar['foto'] ?? yazar['foto_url'];
+    final url = raw?.toString().trim();
+    if (url == null || url.isEmpty) return null;
+    return url;
+  }
+
   int? get yazarId {
     final raw = yazar['id'];
     if (raw is int) return raw;

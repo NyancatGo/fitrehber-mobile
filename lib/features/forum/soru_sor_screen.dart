@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../shared/api_service.dart';
+import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/kategori_model.dart';
 
 class SoruSorScreen extends StatefulWidget {
@@ -59,7 +60,7 @@ class _SoruSorScreenState extends State<SoruSorScreen> {
             : null;
       });
     } catch (e) {
-      if (mounted) setState(() => _hata = e.toString());
+      if (mounted) setState(() => _hata = kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _yukleniyor = false);
     }
@@ -111,13 +112,14 @@ class _SoruSorScreenState extends State<SoruSorScreen> {
       if (!mounted) return;
       context.pop(yeniSoru);
     } catch (e) {
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _gonderiliyor = false);
     }
   }
 
   void _snack(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

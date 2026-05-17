@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/api_service.dart';
+import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/profil_model.dart';
 import '../../shared/models/yorum_model.dart';
 import '../../shared/session_controller.dart';
 import 'widgets/article_content_renderer.dart';
 import 'widgets/comment_input_bar.dart';
+import 'widgets/comment_skeleton.dart';
+import 'widgets/comment_tile.dart';
 
 class ArticleScreen extends ConsumerStatefulWidget {
   final int id;
@@ -63,7 +66,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
       _yorumlariYukle();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _hata = e.toString());
+      setState(() => _hata = kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _yukleniyor = false);
     }
@@ -80,7 +83,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
       setState(() => _yorumlar = YorumModel.agacKur(duzListe));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _yorumHata = e.toString());
+      setState(() => _yorumHata = kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _yorumlarYukleniyor = false);
     }
@@ -111,7 +114,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
       });
       _commentFocusNode.unfocus();
     } catch (e) {
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _yorumGonderiliyor = false);
     }
@@ -171,7 +174,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
         yorum.begendim = oncekiBegendim;
         yorum.begeniSayisi = oncekiSayi;
       });
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     }
   }
 
@@ -204,7 +207,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
       });
     } catch (e) {
       if (mounted) setState(() => _icerik = onceki);
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _icerikAksiyonuBekliyor = false);
     }
@@ -228,7 +231,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
       });
     } catch (e) {
       if (mounted) setState(() => _icerik = onceki);
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _icerikAksiyonuBekliyor = false);
     }
@@ -245,7 +248,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
       if (!mounted) return;
       context.pop(true);
     } catch (e) {
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     }
   }
 
@@ -266,7 +269,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
         );
       });
     } catch (e) {
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     }
   }
 
@@ -403,6 +406,16 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
     );
   }
 
+  // Tüm sliver çocuklarını tablet genişliğine sığdırır (maks. 820 px).
+  Widget _ortala({required EdgeInsets padding, required Widget child}) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 820),
+        child: Padding(padding: padding, child: child),
+      ),
+    );
+  }
+
   Widget _govde(bool canModerate, int? currentUserId) {
     if (_yukleniyor) {
       return const Center(child: CircularProgressIndicator());
@@ -426,369 +439,211 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
     }
     if (_icerik == null) return const SizedBox();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 118),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _etiket(_icerik!.kategoriAdi, const Color(0xFFF5A623)),
-              const SizedBox(height: 16),
-              Text(
-                _icerik!.baslik,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 16,
-                runSpacing: 8,
-                children: [
-                  InkWell(
-                    onTap: () => _yazarProfiliAc(_icerik!.yazarId),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.person_outline,
-                            size: 16,
-                            color: Color(0xFF22D3EE),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _icerik!.yazarAdi,
-                            style: const TextStyle(
-                              color: Color(0xFF22D3EE),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _meta(Icons.calendar_today_outlined, _icerik!.tarihFormatli),
-                  _meta(Icons.favorite_border, '${_icerik!.begeniSayisi}'),
-                  _meta(Icons.chat_bubble_outline, '${_icerik!.yorumSayisi}'),
-                ],
-              ),
-              if (_icerik!.resimUrl != null &&
-                  _icerik!.resimUrl!.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _kapakResmi(_icerik!.resimUrl!),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _ortala(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _makaleGovdesi(),
+                const Divider(height: 40),
+                _yorumBasligi(),
+                const SizedBox(height: 16),
               ],
-              const Divider(height: 32),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final contentWidth = constraints.maxWidth.isFinite
-                      ? constraints.maxWidth
-                      : MediaQuery.sizeOf(context).width - 40;
-
-                  return SizedBox(
-                    width: double.infinity,
-                    child: ArticleContentRenderer(
-                      html: _icerik!.yaziTemiz,
-                      contentWidth: contentWidth,
-                    ),
-                  );
-                },
-              ),
-              const Divider(height: 40),
-              _yorumBolumu(canModerate, currentUserId),
-            ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _yorumBolumu(bool canModerate, int? currentUserId) {
-    final baslik = _forumMu ? 'Cevaplar' : 'Yorumlar';
-    final toplam = _yorumlar.fold<int>(0, (t, y) => t + y.toplamSayi);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              _forumMu
-                  ? Icons.question_answer_outlined
-                  : Icons.chat_bubble_outline,
-              size: 20,
-              color: const Color(0xFF22D3EE),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _yorumlarYukleniyor ? baslik : '$baslik ($toplam)',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (_yorumlarYukleniyor)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (_yorumHata != null)
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _yorumHata!,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ),
-              TextButton(
-                onPressed: _yorumlariYukle,
-                child: const Text('Tekrar Dene'),
-              ),
-            ],
-          )
-        else if (_yorumlar.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              _forumMu
-                  ? 'Henuz cevap yok. Ilk cevabi sen ver!'
-                  : 'Henuz yorum yok.',
-              style: const TextStyle(color: Colors.grey),
-            ),
-          )
-        else
-          ..._yorumlar.map(
-            (y) => _yorumKarti(y, 0, canModerate, currentUserId),
-          ),
+        ..._yorumSliverlari(canModerate, currentUserId),
       ],
     );
   }
 
-  Widget _yorumKarti(
-    YorumModel yorum,
-    int derinlik,
-    bool canModerate,
-    int? currentUserId,
-  ) {
-    final yazarMakaleSahibi =
-        yorum.yazarAdi == _icerik?.yazarAdi && _icerik?.yazarAdi != 'Anonim';
-    final canDeleteComment = canModerate || currentUserId == yorum.yazarId;
-    final indent = (derinlik.clamp(0, 5)) * 12.0;
-    final yanitlarKapali = _kapaliYorumlar.contains(yorum.id);
-    final altYanitSayisi = yorum.yanitlar.fold<int>(
-      0,
-      (toplam, y) => toplam + y.toplamSayi,
-    );
-    final initial = yorum.yazarAdi.trim().isEmpty
-        ? '?'
-        : yorum.yazarAdi.trim().substring(0, 1).toUpperCase();
+  Widget _makaleGovdesi() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _etiket(_icerik!.kategoriAdi, const Color(0xFFF5A623)),
+        const SizedBox(height: 16),
+        Text(
+          _icerik!.baslik,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          children: [
+            InkWell(
+              onTap: () => _yazarProfiliAc(_icerik!.yazarId),
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.person_outline,
+                      size: 16,
+                      color: Color(0xFF22D3EE),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _icerik!.yazarAdi,
+                      style: const TextStyle(
+                        color: Color(0xFF22D3EE),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _meta(Icons.calendar_today_outlined, _icerik!.tarihFormatli),
+            _meta(Icons.favorite_border, '${_icerik!.begeniSayisi}'),
+            _meta(Icons.chat_bubble_outline, '${_icerik!.yorumSayisi}'),
+          ],
+        ),
+        if (_icerik!.resimUrl != null && _icerik!.resimUrl!.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _kapakResmi(_icerik!.resimUrl!),
+        ],
+        const SizedBox(height: 20),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final contentWidth = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : MediaQuery.sizeOf(context).width - 40;
 
-    return Padding(
-      padding: EdgeInsets.only(left: indent, bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          IntrinsicHeight(
+            return SizedBox(
+              width: double.infinity,
+              child: ArticleContentRenderer(
+                html: _icerik!.yaziTemiz,
+                contentWidth: contentWidth,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _yorumBasligi() {
+    final baslik = _forumMu ? 'Cevaplar' : 'Yorumlar';
+    // Yüklenirken bile içerik modelindeki sayı gösterilir.
+    final toplam = _yorumlarYukleniyor
+        ? (_icerik?.yorumSayisi ?? 0)
+        : _yorumlar.fold<int>(0, (t, y) => t + y.toplamSayi);
+
+    return Row(
+      children: [
+        Icon(
+          _forumMu
+              ? Icons.question_answer_outlined
+              : Icons.chat_bubble_outline,
+          size: 20,
+          color: const Color(0xFF22D3EE),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$baslik ($toplam)',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _yorumSliverlari(bool canModerate, int? currentUserId) {
+    const altPadding = EdgeInsets.fromLTRB(20, 0, 20, 118);
+
+    if (_yorumlarYukleniyor) {
+      return [
+        SliverToBoxAdapter(
+          child: _ortala(
+            padding: altPadding,
+            child: const CommentSkeletonList(),
+          ),
+        ),
+      ];
+    }
+
+    if (_yorumHata != null) {
+      return [
+        SliverToBoxAdapter(
+          child: _ortala(
+            padding: altPadding,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 36,
-                  child: Stack(
-                    alignment: Alignment.topCenter,
-                    children: [
-                      Positioned(
-                        top: 34,
-                        bottom: 0,
-                        child: Container(
-                          width: 1.5,
-                          color: const Color(
-                            0xFF2A2D37,
-                          ).withValues(alpha: 0.72),
-                        ),
-                      ),
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: const Color(
-                          0xFF22D3EE,
-                        ).withValues(alpha: 0.14),
-                        child: Text(
-                          initial,
-                          style: const TextStyle(
-                            color: Color(0xFFBFF6FF),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
+                Expanded(
+                  child: Text(
+                    _yorumHata!,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.06),
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: InkWell(
-                                onTap: () => _yazarProfiliAc(yorum.yazarId),
-                                child: Text(
-                                  yorum.yazarAdi,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 13,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                            if (yazarMakaleSahibi) ...[
-                              const SizedBox(width: 6),
-                              _etiket(
-                                'YAZAR',
-                                const Color(0xFFF5A623),
-                                mini: true,
-                              ),
-                            ],
-                            const SizedBox(width: 8),
-                            Text(
-                              yorum.tarihGoreli,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.44),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (canDeleteComment)
-                              PopupMenuButton<String>(
-                                padding: EdgeInsets.zero,
-                                tooltip: 'Moderasyon',
-                                onSelected: (value) {
-                                  if (value == 'delete') _yorumSil(yorum);
-                                },
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.delete_outline,
-                                          color: Color(0xFFEF4444),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text('Sil'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          yorum.mesaj,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            height: 1.45,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 12,
-                          children: [
-                            _yorumAksiyon(
-                              icon: yorum.begendim
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              label: '${yorum.begeniSayisi}',
-                              color: yorum.begendim
-                                  ? const Color(0xFFEF4444)
-                                  : Colors.white.withValues(alpha: 0.54),
-                              onTap: () => _yorumBegen(yorum),
-                            ),
-                            _yorumAksiyon(
-                              icon: Icons.mode_comment_outlined,
-                              label: 'Yanitla',
-                              color: const Color(0xFF22D3EE),
-                              onTap: () => _yanitla(yorum),
-                            ),
-                            if (yorum.yanitlar.isNotEmpty)
-                              _yorumAksiyon(
-                                icon: yanitlarKapali
-                                    ? Icons.unfold_more
-                                    : Icons.unfold_less,
-                                label: yanitlarKapali
-                                    ? '$altYanitSayisi yanit'
-                                    : 'Gizle',
-                                color: Colors.white.withValues(alpha: 0.54),
-                                onTap: () =>
-                                    _yanitGorunumunuDegistir(yorum.id),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                TextButton(
+                  onPressed: _yorumlariYukle,
+                  child: const Text('Tekrar Dene'),
                 ),
               ],
             ),
           ),
-          if (!yanitlarKapali)
-            ...yorum.yanitlar.map(
-              (y) => _yorumKarti(y, derinlik + 1, canModerate, currentUserId),
-            ),
-        ],
-      ),
-    );
-  }
+        ),
+      ];
+    }
 
-  Widget _yorumAksiyon({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: color,
+    if (_yorumlar.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: _ortala(
+            padding: altPadding,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                _forumMu
+                    ? 'Henuz cevap yok. Ilk cevabi sen ver!'
+                    : 'Henuz yorum yok.',
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
-          ],
+          ),
+        ),
+      ];
+    }
+
+    return [
+      SliverPadding(
+        padding: altPadding,
+        sliver: SliverList.builder(
+          itemCount: _yorumlar.length,
+          itemBuilder: (context, index) {
+            final yorum = _yorumlar[index];
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 820),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: CommentTile(
+                    key: ValueKey('yorum-${yorum.id}'),
+                    yorum: yorum,
+                    depth: 0,
+                    opAuthorName: _icerik?.yazarAdi,
+                    canModerate: canModerate,
+                    currentUserId: currentUserId,
+                    collapsedIds: _kapaliYorumlar,
+                    onReply: _yanitla,
+                    onLike: _yorumBegen,
+                    onDelete: _yorumSil,
+                    onToggleCollapse: _yanitGorunumunuDegistir,
+                    onAuthorTap: _yazarProfiliAc,
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
-    );
+    ];
   }
 
   Widget _meta(IconData icon, String value) {
@@ -802,12 +657,9 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
     );
   }
 
-  Widget _etiket(String text, Color color, {bool mini = false}) {
+  Widget _etiket(String text, Color color) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: mini ? 6 : 10,
-        vertical: mini ? 2 : 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(6),
@@ -816,7 +668,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
         text,
         style: TextStyle(
           color: color,
-          fontSize: mini ? 9 : 13,
+          fontSize: 13,
           fontWeight: FontWeight.w800,
         ),
       ),

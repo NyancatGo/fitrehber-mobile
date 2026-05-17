@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-class CommentInputBar extends StatefulWidget {
+/// Yorum/yanıt yazma çubuğu.
+/// Metin değiştikçe yalnızca gönder butonu yeniden derlenir; gradient,
+/// gölge ve yanıt banner'ı her tuşta gereksiz yere rebuild olmaz.
+class CommentInputBar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String? replyToUsername;
@@ -19,37 +22,7 @@ class CommentInputBar extends StatefulWidget {
   });
 
   @override
-  State<CommentInputBar> createState() => _CommentInputBarState();
-}
-
-class _CommentInputBarState extends State<CommentInputBar> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onTextChanged);
-  }
-
-  @override
-  void didUpdateWidget(covariant CommentInputBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_onTextChanged);
-      widget.controller.addListener(_onTextChanged);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onTextChanged);
-    super.dispose();
-  }
-
-  void _onTextChanged() => setState(() {});
-
-  @override
   Widget build(BuildContext context) {
-    final text = widget.controller.text.trim();
-    final canSend = text.isNotEmpty && !widget.isSending;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return AnimatedPadding(
@@ -73,10 +46,10 @@ class _CommentInputBarState extends State<CommentInputBar> {
               children: [
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 160),
-                  child: widget.replyToUsername == null
+                  child: replyToUsername == null
                       ? const SizedBox.shrink()
                       : Container(
-                          key: ValueKey(widget.replyToUsername),
+                          key: ValueKey(replyToUsername),
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -103,7 +76,7 @@ class _CommentInputBarState extends State<CommentInputBar> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  '@${widget.replyToUsername} kullanicisine yanit veriliyor',
+                                  '@$replyToUsername kullanicisine yanit veriliyor',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -116,7 +89,7 @@ class _CommentInputBarState extends State<CommentInputBar> {
                               IconButton(
                                 visualDensity: VisualDensity.compact,
                                 tooltip: 'Yaniti iptal et',
-                                onPressed: widget.onCancelReply,
+                                onPressed: onCancelReply,
                                 icon: const Icon(Icons.close, size: 18),
                               ),
                             ],
@@ -128,13 +101,13 @@ class _CommentInputBarState extends State<CommentInputBar> {
                   children: [
                     Expanded(
                       child: TextField(
-                        controller: widget.controller,
-                        focusNode: widget.focusNode,
+                        controller: controller,
+                        focusNode: focusNode,
                         minLines: 1,
                         maxLines: 4,
                         textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
-                          hintText: widget.replyToUsername == null
+                          hintText: replyToUsername == null
                               ? 'Yorum yaz...'
                               : 'Yanıtını yaz...',
                           filled: true,
@@ -151,46 +124,18 @@ class _CommentInputBarState extends State<CommentInputBar> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        gradient: canSend
-                            ? const LinearGradient(
-                                colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-                              )
-                            : null,
-                        color: canSend
-                            ? null
-                            : Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: canSend
-                            ? [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF22D3EE,
-                                  ).withValues(alpha: 0.24),
-                                  blurRadius: 14,
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: IconButton(
-                        tooltip: 'Gonder',
-                        onPressed: canSend
-                            ? () => widget.onSend(widget.controller.text.trim())
-                            : null,
-                        icon: widget.isSending
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.send_rounded),
-                      ),
+                    // Yalnızca bu buton metin/gönderim durumuna göre rebuild olur.
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: controller,
+                      builder: (context, value, _) {
+                        final canSend =
+                            value.text.trim().isNotEmpty && !isSending;
+                        return _GonderButonu(
+                          canSend: canSend,
+                          isSending: isSending,
+                          onSend: () => onSend(controller.text.trim()),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -198,6 +143,57 @@ class _CommentInputBarState extends State<CommentInputBar> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GonderButonu extends StatelessWidget {
+  final bool canSend;
+  final bool isSending;
+  final VoidCallback onSend;
+
+  const _GonderButonu({
+    required this.canSend,
+    required this.isSending,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        gradient: canSend
+            ? const LinearGradient(
+                colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
+              )
+            : null,
+        color: canSend ? null : Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: canSend
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF22D3EE).withValues(alpha: 0.24),
+                  blurRadius: 14,
+                ),
+              ]
+            : null,
+      ),
+      child: IconButton(
+        tooltip: 'Gonder',
+        onPressed: canSend ? onSend : null,
+        icon: isSending
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.send_rounded),
       ),
     );
   }

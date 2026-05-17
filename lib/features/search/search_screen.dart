@@ -1,5 +1,6 @@
 // İçerik arama ekranı.
 // Başlığa göre API'de arama yapar (haber + forum sorusu birlikte).
+// Sonuçlar sayfalıdır: aşağı kaydırınca sonraki sayfa yüklenir.
 
 import 'dart:async';
 
@@ -7,8 +8,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/api_constants.dart';
 import '../../shared/api_service.dart';
+import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/icerik_model.dart';
+import '../../shared/pagination/pagination_helpers.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -20,18 +24,36 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final ApiService _api = ApiService();
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final PaginationTrigger _paginationTrigger = PaginationTrigger();
   Timer? _debounce;
 
   List<IcerikModel> _sonuclar = [];
   bool _yukleniyor = false;
+  bool _dahaYukleniyor = false;
+  bool _dahaVar = false;
+  int _page = 1;
   String? _hata;
   String _sonAranan = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_paginationTrigger.shouldLoad(_scrollController)) {
+      _dahaYukle();
+    }
   }
 
   void _aramaDegisti(String deger) {
@@ -41,12 +63,21 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
+  void _aramayiTemizle() {
+    // Bekleyen debounce timer'ını iptal et; eski sorgu tetiklenmesin.
+    _debounce?.cancel();
+    _controller.clear();
+    _ara('');
+  }
+
   Future<void> _ara(String sorgu) async {
     if (sorgu.length < 2) {
       setState(() {
         _sonuclar = [];
         _hata = null;
         _yukleniyor = false;
+        _dahaVar = false;
+        _page = 1;
         _sonAranan = sorgu;
       });
       return;
@@ -57,14 +88,45 @@ class _SearchScreenState extends State<SearchScreen> {
       _sonAranan = sorgu;
     });
     try {
-      final response = await _api.getIcerikler(arama: sorgu);
+      final response = await _api.getIcerikler(
+        arama: sorgu,
+        page: 1,
+        pageSize: ApiConstants.pageSize,
+      );
       if (!mounted) return;
-      setState(() => _sonuclar = response.results);
+      setState(() {
+        _sonuclar = response.results;
+        _page = 1;
+        _dahaVar = response.hasNext;
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _hata = e.toString());
+      setState(() => _hata = kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _yukleniyor = false);
+    }
+  }
+
+  Future<void> _dahaYukle() async {
+    if (_dahaYukleniyor || !_dahaVar || _yukleniyor) return;
+    if (_sonAranan.length < 2) return;
+    setState(() => _dahaYukleniyor = true);
+    try {
+      final response = await _api.getIcerikler(
+        arama: _sonAranan,
+        page: _page + 1,
+        pageSize: ApiConstants.pageSize,
+      );
+      if (!mounted) return;
+      setState(() {
+        _page += 1;
+        _sonuclar.addAll(response.results);
+        _dahaVar = response.hasNext;
+      });
+    } catch (_) {
+      if (mounted) showPaginationLoadErrorSnack(context, onRetry: _dahaYukle);
+    } finally {
+      if (mounted) setState(() => _dahaYukleniyor = false);
     }
   }
 
@@ -87,10 +149,7 @@ class _SearchScreenState extends State<SearchScreen> {
           if (_controller.text.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.clear),
-              onPressed: () {
-                _controller.clear();
-                _ara('');
-              },
+              onPressed: _aramayiTemizle,
             ),
         ],
       ),
@@ -136,15 +195,32 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(12),
-      itemCount: _sonuclar.length,
-      itemBuilder: (context, index) => _sonucKarti(_sonuclar[index]),
+      itemCount: _sonuclar.length + (_dahaVar ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= _sonuclar.length) {
+          return const Padding(
+            key: ValueKey('arama-yukleniyor'),
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+        return _sonucKarti(_sonuclar[index]);
+      },
     );
   }
 
   Widget _sonucKarti(IcerikModel icerik) {
     final forumMu = icerik.tur == 'soru';
     return Card(
+      key: ValueKey('arama-${icerik.id}'),
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(

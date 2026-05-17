@@ -1,19 +1,22 @@
 // Profil ekranındaki "İçerikler" sekme bölümü.
 // Paylaşımlar (herkese açık), Kaydedilenler ve Beğenilenler (yalnızca sahibi).
-// Her sekme sayfalı (infinite scroll) çalışır.
+// Her sekme sayfalı (infinite scroll) çalışır ve sekme değişiminde durumunu korur.
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/api_service.dart';
+import '../../../shared/hata_yardimcilari.dart';
 import '../../../shared/models/icerik_model.dart';
 import '../../../shared/models/paginated_response.dart';
 import '../../../shared/models/yorum_model.dart';
 import '../../../shared/pagination/pagination_helpers.dart';
+import '../providers/profile_provider.dart';
 
-class ProfileContentTabs extends StatefulWidget {
+class ProfileContentTabs extends ConsumerStatefulWidget {
   final int userId;
   final bool isOwnProfile;
 
@@ -24,17 +27,19 @@ class ProfileContentTabs extends StatefulWidget {
   });
 
   @override
-  State<ProfileContentTabs> createState() => _ProfileContentTabsState();
+  ConsumerState<ProfileContentTabs> createState() => _ProfileContentTabsState();
 }
 
-class _ProfileContentTabsState extends State<ProfileContentTabs>
+class _ProfileContentTabsState extends ConsumerState<ProfileContentTabs>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  final ApiService _api = ApiService();
+  // Merkezi Dio konfigürasyonu paylaşılsın diye ApiService Riverpod'dan alınır.
+  late final ApiService _api;
 
   @override
   void initState() {
     super.initState();
+    _api = ref.read(profileApiProvider);
     _tabController = TabController(
       length: widget.isOwnProfile ? 3 : 1,
       vsync: this,
@@ -54,6 +59,13 @@ class _ProfileContentTabsState extends State<ProfileContentTabs>
       if (widget.isOwnProfile) const Tab(text: 'Kaydedilenler'),
       if (widget.isOwnProfile) const Tab(text: 'Beğenilenler'),
     ];
+
+    // Sabit yükseklik yerine ekran boyutuna göre uyarlanır; küçük cihazlarda
+    // daha kompakt, büyük ekranlarda daha ferah görünür.
+    final tabHeight = (MediaQuery.sizeOf(context).height * 0.6).clamp(
+      360.0,
+      640.0,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -75,7 +87,7 @@ class _ProfileContentTabsState extends State<ProfileContentTabs>
             tabs: tabs,
           ),
           SizedBox(
-            height: 420,
+            height: tabHeight,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -125,7 +137,8 @@ class _PaginatedListView<T> extends StatefulWidget {
   State<_PaginatedListView<T>> createState() => _PaginatedListViewState<T>();
 }
 
-class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
+class _PaginatedListViewState<T> extends State<_PaginatedListView<T>>
+    with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
   final PaginationTrigger _paginationTrigger = PaginationTrigger();
   final List<T> _items = [];
@@ -135,6 +148,10 @@ class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
   bool _dahaYukleniyor = false;
   bool _dahaVar = true;
   String? _hata;
+
+  // Sekme değiştirildiğinde state (scroll konumu, yüklenmiş sayfalar) korunur.
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -172,7 +189,7 @@ class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _hata = e.toString());
+      setState(() => _hata = kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _ilkYukleniyor = false);
     }
@@ -190,7 +207,7 @@ class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
         _dahaVar = response.hasNext;
       });
     } catch (_) {
-      if (mounted) showPaginationLoadErrorSnack(context);
+      if (mounted) showPaginationLoadErrorSnack(context, onRetry: _dahaYukle);
     } finally {
       if (mounted) setState(() => _dahaYukleniyor = false);
     }
@@ -198,6 +215,7 @@ class _PaginatedListViewState<T> extends State<_PaginatedListView<T>> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_ilkYukleniyor) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -271,6 +289,7 @@ class _IcerikSatiri extends StatelessWidget {
   Widget build(BuildContext context) {
     final forumMu = icerik.tur == 'soru';
     return Card(
+      key: ValueKey('profil-icerik-${icerik.id}'),
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
@@ -315,6 +334,7 @@ class _BegeniSatiri extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      key: ValueKey('profil-begeni-${yorum.id}'),
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(

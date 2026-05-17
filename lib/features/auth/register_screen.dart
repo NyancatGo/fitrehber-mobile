@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../shared/hata_yardimcilari.dart';
 import '../../shared/session_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -45,7 +46,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _hata = e.toString();
+          _hata = kullaniciDostuHata(e);
         });
       }
     } finally {

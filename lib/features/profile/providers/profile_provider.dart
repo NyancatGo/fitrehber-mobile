@@ -33,7 +33,12 @@ class ProfileNotifier extends StateNotifier<AsyncValue<ProfilModel>> {
     if (mounted) state = result;
   }
 
-  Future<void> refresh() => loadProfile();
+  /// Yenileme sırasında mevcut profil verisini ekranda tutar; böylece
+  /// pull-to-refresh'te içerik aniden shimmer'a dönüşmez.
+  Future<void> refresh() async {
+    final result = await AsyncValue.guard(_api.getProfil);
+    if (mounted) state = result;
+  }
 
   Future<void> updateProfile(Map<String, dynamic> data) async {
     final updatedProfile = await _api.updateProfil(data);

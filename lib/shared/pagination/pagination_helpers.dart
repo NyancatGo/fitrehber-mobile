@@ -24,8 +24,16 @@ class PaginationTrigger {
   }
 }
 
-void showPaginationLoadErrorSnack(BuildContext context) {
-  ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(const SnackBar(content: Text(paginationLoadErrorMessage)));
+/// Sayfalama hatası bildirir. [onRetry] verilirse "Tekrar Dene" aksiyonu ekler.
+void showPaginationLoadErrorSnack(BuildContext context, {VoidCallback? onRetry}) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.clearSnackBars();
+  messenger.showSnackBar(
+    SnackBar(
+      content: const Text(paginationLoadErrorMessage),
+      action: onRetry == null
+          ? null
+          : SnackBarAction(label: 'Tekrar Dene', onPressed: onRetry),
+    ),
+  );
 }

@@ -26,12 +26,17 @@ class ApiService {
 
   Future<List<KategoriModel>> getKategoriler() async {
     final response = await _dio.get(ApiConstants.kategoriler);
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 && response.data is List) {
       return (response.data as List)
           .map((e) => KategoriModel.fromJson(e))
           .toList();
     }
-    throw 'Kategoriler yüklenemedi.';
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Kategoriler yüklenemedi.',
+    );
   }
 
   Future<PaginatedResponse<IcerikModel>> getIcerikler({
@@ -54,7 +59,12 @@ class ApiService {
     if (response.statusCode == 200) {
       return _sayfaliYanitaCevir(response.data, IcerikModel.fromJson);
     }
-    throw 'Makaleler yüklenemedi.';
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Makaleler yüklenemedi.',
+    );
   }
 
   /// API yanıtı düz liste ([...]) veya sayfalı ({results: [...]}) olabilir;
@@ -71,19 +81,34 @@ class ApiService {
     if (response.statusCode == 200) {
       return IcerikModel.fromJson(response.data);
     }
-    throw 'Makale yüklenemedi.';
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Makale yüklenemedi.',
+    );
   }
 
+  // TODO(pagination): Yorumlar tek seferde çekiliyor. Çok yorumlu içeriklerde
+  // (200+) gerçek sayfalama gerekiyor; threaded yapı nedeniyle kök yorumların
+  // sayfalanıp alt yanıtların ayrıca yüklenmesi gerekir. Şimdilik backend
+  // varsayılan sayfa boyutunu aşmamak için geniş bir page_size isteniyor.
   Future<List<YorumModel>> getYorumlar(int icerikId) async {
     final token = await _storage.read(key: 'access_token');
     final response = await _dio.get(
       ApiConstants.yorumlar(icerikId),
+      queryParameters: const {'page_size': 200},
       options: (token != null && token.isNotEmpty) ? _authOptions(token) : null,
     );
     if (response.statusCode == 200) {
       return _sayfaliYanitaCevir(response.data, YorumModel.fromJson).results;
     }
-    throw 'Yorumlar yüklenemedi.';
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Yorumlar yüklenemedi.',
+    );
   }
 
   /// Yorum beğenisini açar/kapatır. Dönen map: {begendim, begeni_sayisi}.
@@ -256,7 +281,12 @@ class ApiService {
     if (response.statusCode == 200) {
       return _sayfaliYanitaCevir(response.data, IcerikModel.fromJson);
     }
-    throw 'Paylaşımlar yüklenemedi.';
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Paylaşımlar yüklenemedi.',
+    );
   }
 
   Future<PaginatedResponse<IcerikModel>> getProfilKaydedilenler(

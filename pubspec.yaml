@@ -58,6 +58,7 @@ dependencies:
   flutter_markdown_plus: ^1.0.7
   image_picker: ^1.2.2
   dotted_border: ^3.1.0
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

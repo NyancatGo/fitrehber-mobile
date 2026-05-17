@@ -1,15 +1,15 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../core/constants/api_constants.dart';
 import '../../shared/api_service.dart';
+import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/kategori_model.dart';
 import '../../shared/pagination/pagination_helpers.dart';
 import '../../shared/session_controller.dart';
+import '../../shared/widgets/icerik_kart_parcalari.dart';
 
 class HomeContent extends ConsumerStatefulWidget {
   const HomeContent({super.key});
@@ -77,7 +77,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _hata = e.toString());
+      setState(() => _hata = kullaniciDostuHata(e));
     } finally {
       if (mounted) setState(() => _yukleniyor = false);
     }
@@ -97,11 +97,10 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       setState(() {
         _page += 1;
         _icerikler.addAll(response.results);
-        _totalCount = response.count;
         _dahaVar = response.hasNext;
       });
     } catch (_) {
-      if (mounted) showPaginationLoadErrorSnack(context);
+      if (mounted) showPaginationLoadErrorSnack(context, onRetry: _dahaYukle);
     } finally {
       if (mounted) setState(() => _dahaYukleniyor = false);
     }
@@ -146,7 +145,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       });
     } catch (e) {
       if (mounted) setState(() => _icerikler[index] = onceki);
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     }
   }
 
@@ -172,7 +171,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       });
     } catch (e) {
       if (mounted) setState(() => _icerikler[index] = onceki);
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     }
   }
 
@@ -204,7 +203,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       if (!mounted) return;
       setState(() => _icerikler.removeWhere((item) => item.id == icerik.id));
     } catch (e) {
-      _snack(e.toString());
+      _snack(kullaniciDostuHata(e));
     }
   }
 
@@ -264,6 +263,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   Widget _kategoriButon(int? id, String isim) {
     final secili = _secilenKategoriId == id;
     return Padding(
+      key: ValueKey('kategori-${id ?? 'tumu'}'),
       padding: const EdgeInsets.only(right: 8),
       child: InkWell(
         onTap: () => _kategoriSec(id),
@@ -299,8 +299,10 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   }
 
   Widget _icerikAlani(bool canModerate, int? currentUserId) {
-    if (_yukleniyor) return _shimmerListe();
-    if (_hata != null) return _hataWidget();
+    if (_yukleniyor) return const IcerikShimmerListe();
+    if (_hata != null) {
+      return HataGorunumu(mesaj: _hata!, onRetry: () => _verileriYukle());
+    }
     if (_icerikler.isEmpty) {
       return RefreshIndicator(
         onRefresh: _yenile,
@@ -316,43 +318,6 @@ class _HomeContentState extends ConsumerState<HomeContent> {
     return _makaleListe(canModerate, currentUserId);
   }
 
-  Widget _shimmerListe() {
-    return Shimmer.fromColors(
-      baseColor: const Color(0xFF1A1D27),
-      highlightColor: const Color(0xFF2A2D37),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: 5,
-        itemBuilder: (context, index) => Container(
-          height: 100,
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _hataWidget() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 12),
-          Text(_hata!, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => _verileriYukle(),
-            child: const Text('Tekrar Dene'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _makaleListe(bool canModerate, int? currentUserId) {
     return RefreshIndicator(
       onRefresh: _yenile,
@@ -364,6 +329,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
         itemBuilder: (context, index) {
           if (index >= _icerikler.length) {
             return const Padding(
+              key: ValueKey('home-yukleniyor'),
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: SizedBox(
@@ -388,6 +354,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
     final canDelete = canModerate || currentUserId == icerik.yazarId;
 
     return Card(
+      key: ValueKey('icerik-${icerik.id}'),
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: InkWell(
@@ -399,10 +366,13 @@ class _HomeContentState extends ConsumerState<HomeContent> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (icerik.resimUrl != null && icerik.resimUrl!.isNotEmpty)
-                _kapakResmi(icerik.resimUrl!),
+                IcerikKapakResmi(url: icerik.resimUrl!),
               Row(
                 children: [
-                  _etiket(icerik.kategoriAdi, const Color(0xFFF5A623)),
+                  IcerikEtiket(
+                    text: icerik.kategoriAdi,
+                    color: const Color(0xFFF5A623),
+                  ),
                   const Spacer(),
                   if (canDelete)
                     PopupMenuButton<String>(
@@ -485,7 +455,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _QuickActionButton(
+                  QuickActionButton(
                     tooltip: 'Begen',
                     icon: icerik.begendim
                         ? Icons.favorite
@@ -497,7 +467,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
                     onTap: () => _hizliBegen(icerik),
                   ),
                   const SizedBox(width: 8),
-                  _QuickActionButton(
+                  QuickActionButton(
                     tooltip: 'Kaydet',
                     icon: icerik.kaydedildi
                         ? Icons.bookmark_rounded
@@ -510,108 +480,6 @@ class _HomeContentState extends ConsumerState<HomeContent> {
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _etiket(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _kapakResmi(String url) {
-    return CachedNetworkImage(
-      imageUrl: url,
-      imageBuilder: (context, imageProvider) => Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image(image: imageProvider, fit: BoxFit.cover),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-      ),
-      placeholder: (context, url) => Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Container(color: const Color(0xFF2A2D37)),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-      ),
-      errorWidget: (context, url, error) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _QuickActionButton extends StatelessWidget {
-  final String tooltip;
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionButton({
-    required this.tooltip,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Tooltip(
-        message: tooltip,
-        child: Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 18),
-              if (label.isNotEmpty) ...[
-                const SizedBox(width: 5),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
             ],
           ),
         ),

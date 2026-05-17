@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../shared/hata_yardimcilari.dart';
 import '../../shared/session_controller.dart';
 import '../profile/providers/profile_provider.dart';
 
@@ -77,7 +78,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ref.invalidate(profileProvider);
       if (mounted) context.go('/');
     } catch (error) {
-      if (mounted) _showMessage(error.toString());
+      if (mounted) _showMessage(kullaniciDostuHata(error));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
