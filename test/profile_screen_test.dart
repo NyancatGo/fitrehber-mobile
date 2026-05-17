@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('profile screen renders fetched profile data', (tester) async {
-    const profile = ProfilModel(
+    final profile = ProfilModel(
       id: 7,
       username: 'baran',
       email: 'baran@example.com',
@@ -25,6 +25,48 @@ void main() {
       isStaff: true,
       isSuperuser: true,
       postCount: 8,
+      achievements: [
+        AchievementModel(
+          key: 'ilk_adim',
+          name: 'Ilk Adim',
+          icon: 'target',
+          description: 'Ilk sorunu sor.',
+          progress: 100,
+          isUnlocked: true,
+          metrics: [
+            AchievementMetricModel(
+              key: 'soru',
+              label: 'Soru Sor',
+              current: 1,
+              target: 1,
+              progress: 100,
+            ),
+          ],
+        ),
+      ],
+      dailyActivity: DailyActivitySummary(
+        averageMinutes: 12,
+        days: [
+          DailyActivityDay(
+            isoDate: '2026-05-17',
+            label: '17 May',
+            day: 17,
+            month: 'May',
+            minutes: 32,
+          ),
+        ],
+      ),
+      recentActivities: [
+        ProfileActivityModel(
+          id: 1,
+          type: 'icerik',
+          detail: 'Yeni gonderi olusturdun',
+          date: DateTime(2026, 5, 17),
+          contentId: null,
+          contentTitle: 'Protein rehberi',
+          commentId: null,
+        ),
+      ],
     );
 
     await tester.pumpWidget(
@@ -41,9 +83,15 @@ void main() {
     expect(find.text('Admin'), findsOneWidget);
     expect(find.text('180 cm'), findsOneWidget);
     expect(find.text('81 kg'), findsOneWidget);
-    expect(find.text('Fat loss'), findsOneWidget);
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fat loss'), findsOneWidget);
+    expect(find.text('Başarılar'), findsOneWidget);
+    expect(find.text('Aktivite Haritası'), findsOneWidget);
+    expect(find.text('Son Aktiviteler'), findsOneWidget);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1400));
     await tester.pumpAndSettle();
 
     expect(find.text('baran@example.com'), findsOneWidget);

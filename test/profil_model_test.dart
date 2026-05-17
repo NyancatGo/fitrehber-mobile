@@ -22,6 +22,43 @@ void main() {
       'fitness_hedefi': 'Fat loss',
       'dogum_tarihi': '1998-03-12',
       'post_count': 8,
+      'rozetler': {
+        'items': [
+          {
+            'key': 'ilk_adim',
+            'name': 'Ilk Adim',
+            'icon': 'target',
+            'description': 'Ilk sorunu sor.',
+            'progress': 100,
+            'is_unlocked': true,
+            'metrics': [
+              {'key': 'soru', 'label': 'Soru Sor', 'current': 1, 'target': 1},
+            ],
+          },
+        ],
+      },
+      'gunluk_aktivite': {
+        'average_minutes': 12,
+        'days': [
+          {
+            'iso_date': '2026-05-17',
+            'date': '17 May',
+            'day': 17,
+            'month': 'May',
+            'minutes': 32,
+          },
+        ],
+      },
+      'son_aktiviteler': [
+        {
+          'id': 4,
+          'type': 'icerik',
+          'detail': 'Yeni gonderi olusturdun',
+          'date': '2026-05-17T10:00:00Z',
+          'content_id': 9,
+          'content_title': 'Protein rehberi',
+        },
+      ],
     });
 
     expect(profile.id, 7);
@@ -43,6 +80,12 @@ void main() {
     expect(profile.postCount, 8);
     expect(profile.bmi, closeTo(25.15, 0.01));
     expect(profile.roleName, 'Admin');
+    expect(profile.achievements, hasLength(1));
+    expect(profile.achievements.first.isUnlocked, isTrue);
+    expect(profile.achievements.first.metrics.first.progress, 100);
+    expect(profile.dailyActivity.averageMinutes, 12);
+    expect(profile.dailyActivity.days.first.minutes, 32);
+    expect(profile.recentActivities.first.contentId, 9);
   });
 
   test('parses deployed profile api payload', () {

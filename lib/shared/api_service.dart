@@ -37,7 +37,8 @@ class ApiService {
     final response = await _dio.get(
       ApiConstants.icerikler,
       queryParameters: {
-        'kategori': ?kategoriId,
+        // ignore: use_null_aware_elements
+        if (kategoriId != null) 'kategori': kategoriId,
         if (tur != null && tur.isNotEmpty) 'tur': tur,
         if (arama != null && arama.isNotEmpty) 'search': arama,
       },
@@ -105,7 +106,11 @@ class ApiService {
     }
 
     final cleanedData = Map<String, dynamic>.from(data)
-      ..removeWhere((key, value) => value == null);
+      ..removeWhere(
+        (key, value) =>
+            value == null &&
+            !{'boy', 'kilo', 'hedef_kilo', 'dogum_tarihi'}.contains(key),
+      );
 
     final response = await _dio.patch(
       ApiConstants.profilDetay(userId),

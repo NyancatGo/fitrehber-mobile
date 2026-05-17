@@ -53,6 +53,20 @@ class _ProfileContent extends ConsumerWidget {
                 const SizedBox(height: 14),
                 _GoalProgressCard(profile: profile),
                 const SizedBox(height: 14),
+                if (profile.achievements.isNotEmpty) ...[
+                  _AchievementsSection(achievements: profile.achievements),
+                  const SizedBox(height: 14),
+                ],
+                if (profile.dailyActivity.days.isNotEmpty) ...[
+                  _ActivityHeatmapSection(activity: profile.dailyActivity),
+                  const SizedBox(height: 14),
+                ],
+                if (profile.recentActivities.isNotEmpty) ...[
+                  _RecentActivitiesSection(
+                    activities: profile.recentActivities,
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 _InfoSection(profile: profile),
                 const SizedBox(height: 14),
                 _ActionSection(profile: profile),
@@ -557,6 +571,332 @@ class _GoalProgressCard extends StatelessWidget {
   }
 }
 
+class _AchievementsSection extends StatelessWidget {
+  final List<AchievementModel> achievements;
+
+  const _AchievementsSection({required this.achievements});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(
+            icon: Icons.workspace_premium_outlined,
+            title: 'Başarılar',
+            subtitle:
+                '${achievements.where((item) => item.isUnlocked).length}/${achievements.length} açık',
+          ),
+          const SizedBox(height: 14),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: achievements.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 0.88,
+            ),
+            itemBuilder: (context, index) {
+              final achievement = achievements[index];
+              return _AchievementTile(
+                achievement: achievement,
+                onTap: () => _showAchievementSheet(context, achievement),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AchievementTile extends StatelessWidget {
+  final AchievementModel achievement;
+  final VoidCallback onTap;
+
+  const _AchievementTile({required this.achievement, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = achievement.isUnlocked
+        ? const Color(0xFFFFD166)
+        : Colors.white.withValues(alpha: 0.38);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Ink(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(
+            alpha: achievement.isUnlocked ? 0.07 : 0.035,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: achievement.isUnlocked
+                ? const Color(0xFFFFD166).withValues(alpha: 0.32)
+                : Colors.white.withValues(alpha: 0.05),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(_achievementIcon(achievement.icon), color: accent, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              achievement.name.isEmpty ? achievement.key : achievement.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: achievement.isUnlocked
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.58),
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const Spacer(),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 5,
+                value: achievement.progress / 100,
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                valueColor: AlwaysStoppedAnimation(accent),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityHeatmapSection extends StatelessWidget {
+  final DailyActivitySummary activity;
+
+  const _ActivityHeatmapSection({required this.activity});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(
+            icon: Icons.grid_view_rounded,
+            title: 'Aktivite Haritası',
+            subtitle:
+                'Son 30 gün: ${activity.averageMinutes} dk günlük ortalama',
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: activity.days.map((day) {
+              return Tooltip(
+                message: '${day.label}: ${day.minutes} dk',
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: _activityLevelColor(day.minutes),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentActivitiesSection extends StatelessWidget {
+  final List<ProfileActivityModel> activities;
+
+  const _RecentActivitiesSection({required this.activities});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            icon: Icons.timeline_outlined,
+            title: 'Son Aktiviteler',
+            subtitle: 'Topluluktaki son hareketlerin',
+          ),
+          const SizedBox(height: 10),
+          ...activities.map((activity) {
+            return _TimelineTile(activity: activity);
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineTile extends StatelessWidget {
+  final ProfileActivityModel activity;
+
+  const _TimelineTile({required this.activity});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _activityTypeColor(activity.type);
+    final contentTitle = activity.contentTitle;
+
+    return InkWell(
+      onTap: activity.contentId == null
+          ? null
+          : () => context.go('/makale/${activity.contentId}'),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                _activityTypeIcon(activity.type),
+                color: accent,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.detail.isEmpty
+                        ? _activityTypeLabel(activity.type)
+                        : activity.detail,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (contentTitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      contentTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.56),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatRelativeActivityDate(activity.date),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.42),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: AppTheme.primary, size: 21),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.58),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _InfoSection extends StatelessWidget {
   final ProfilModel profile;
 
@@ -875,6 +1215,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _weightController;
   late final TextEditingController _targetWeightController;
   late final TextEditingController _goalController;
+  late DateTime? _birthDate;
   bool _saving = false;
 
   @override
@@ -891,6 +1232,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       text: _formatNumber(widget.profile.targetWeight),
     );
     _goalController = TextEditingController(text: widget.profile.goal);
+    _birthDate = widget.profile.birthDate;
   }
 
   @override
@@ -915,6 +1257,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         'kilo': _parseNullableDouble(_weightController.text),
         'hedef_kilo': _parseNullableDouble(_targetWeightController.text),
         'fitness_hedefi': _goalController.text.trim(),
+        'dogum_tarihi': _birthDate?.toIso8601String().split('T').first,
       });
 
       if (!mounted) return;
@@ -930,6 +1273,20 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 25, now.month, now.day),
+      firstDate: DateTime(now.year - 100),
+      lastDate: now,
+    );
+
+    if (picked != null && mounted) {
+      setState(() => _birthDate = picked);
     }
   }
 
@@ -1005,6 +1362,12 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 border: OutlineInputBorder(),
               ),
             ),
+            const SizedBox(height: 12),
+            _BirthDatePickerTile(
+              birthDate: _birthDate,
+              onPick: _pickBirthDate,
+              onClear: () => setState(() => _birthDate = null),
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _saving ? null : _save,
@@ -1045,6 +1408,51 @@ class _NumberField extends StatelessWidget {
         labelText: label,
         suffixText: suffix,
         border: const OutlineInputBorder(),
+      ),
+    );
+  }
+}
+
+class _BirthDatePickerTile extends StatelessWidget {
+  final DateTime? birthDate;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  const _BirthDatePickerTile({
+    required this.birthDate,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = birthDate != null;
+
+    return InkWell(
+      onTap: onPick,
+      borderRadius: BorderRadius.circular(4),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Doğum Tarihi',
+          prefixIcon: const Icon(Icons.cake_outlined),
+          suffixIcon: hasValue
+              ? IconButton(
+                  tooltip: 'Tarihi temizle',
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close),
+                )
+              : const Icon(Icons.calendar_month_outlined),
+          border: const OutlineInputBorder(),
+        ),
+        child: Text(
+          hasValue ? _formatDate(birthDate) : 'Henüz eklenmedi',
+          style: TextStyle(
+            color: hasValue
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.52),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
@@ -1125,6 +1533,121 @@ class _NotificationSettingsSheetState
   }
 }
 
+void _showAchievementSheet(BuildContext context, AchievementModel achievement) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: AppTheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      final accent = achievement.isUnlocked
+          ? const Color(0xFFFFD166)
+          : Colors.white.withValues(alpha: 0.52);
+
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _achievementIcon(achievement.icon),
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        achievement.name.isEmpty
+                            ? achievement.key
+                            : achievement.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        achievement.description,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.58),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ...achievement.metrics.map((metric) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            metric.label,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        Text(
+                          '${metric.current} / ${metric.target}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.58),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 8,
+                        value: metric.progress / 100,
+                        backgroundColor: Colors.white.withValues(alpha: 0.08),
+                        valueColor: AlwaysStoppedAnimation(accent),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 void _showEditProfileSheet(BuildContext context, ProfilModel profile) {
   showModalBottomSheet<void>(
     context: context,
@@ -1178,6 +1701,95 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
   ref.invalidate(profileProvider);
 
   if (context.mounted) context.go('/giris');
+}
+
+IconData _achievementIcon(String icon) {
+  switch (icon) {
+    case 'target':
+      return Icons.ads_click;
+    case 'star':
+      return Icons.star_rounded;
+    case 'heart':
+      return Icons.favorite_rounded;
+    case 'chat':
+      return Icons.chat_bubble_rounded;
+    case 'flame':
+      return Icons.local_fire_department_rounded;
+    case 'crown':
+      return Icons.workspace_premium_rounded;
+    default:
+      return Icons.emoji_events_rounded;
+  }
+}
+
+Color _activityLevelColor(int minutes) {
+  if (minutes <= 0) return Colors.white.withValues(alpha: 0.08);
+  if (minutes <= 20) return const Color(0xFF1E3A5F);
+  if (minutes <= 45) return const Color(0xFF2563EB);
+  if (minutes <= 90) return const Color(0xFF22D3EE);
+  return const Color(0xFF34D399);
+}
+
+IconData _activityTypeIcon(String type) {
+  switch (type) {
+    case 'icerik':
+      return Icons.add_circle_rounded;
+    case 'yorum':
+      return Icons.chat_rounded;
+    case 'begeni':
+      return Icons.favorite_rounded;
+    case 'kayit':
+      return Icons.bookmark_rounded;
+    case 'rozet':
+      return Icons.emoji_events_rounded;
+    default:
+      return Icons.bolt_rounded;
+  }
+}
+
+Color _activityTypeColor(String type) {
+  switch (type) {
+    case 'icerik':
+      return const Color(0xFF60A5FA);
+    case 'yorum':
+      return const Color(0xFF34D399);
+    case 'begeni':
+      return const Color(0xFFEF4444);
+    case 'kayit':
+      return const Color(0xFFF5A623);
+    case 'rozet':
+      return const Color(0xFFFFD166);
+    default:
+      return AppTheme.primary;
+  }
+}
+
+String _activityTypeLabel(String type) {
+  switch (type) {
+    case 'icerik':
+      return 'İçerik paylaştın';
+    case 'yorum':
+      return 'Yorum yaptın';
+    case 'begeni':
+      return 'Yorum beğendin';
+    case 'kayit':
+      return 'İçerik kaydettin';
+    case 'rozet':
+      return 'Rozet kazandın';
+    default:
+      return 'Aktivite';
+  }
+}
+
+String _formatRelativeActivityDate(DateTime? date) {
+  if (date == null) return 'Tarih yok';
+
+  final difference = DateTime.now().difference(date.toLocal());
+  if (difference.inMinutes < 1) return 'Az önce';
+  if (difference.inMinutes < 60) return '${difference.inMinutes} dk önce';
+  if (difference.inHours < 24) return '${difference.inHours} sa önce';
+  if (difference.inDays < 7) return '${difference.inDays} gün önce';
+  return _formatDate(date);
 }
 
 String _formatNumber(
