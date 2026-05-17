@@ -8,8 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../shared/auth_service.dart';
 import '../../shared/models/profil_model.dart';
+import '../../shared/session_controller.dart';
 import 'providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -1217,6 +1217,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _targetWeightController;
   late final TextEditingController _goalController;
   late DateTime? _birthDate;
+  late String _gender;
   bool _saving = false;
 
   @override
@@ -1234,6 +1235,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     );
     _goalController = TextEditingController(text: widget.profile.goal);
     _birthDate = widget.profile.birthDate;
+    _gender = widget.profile.gender;
   }
 
   @override
@@ -1252,14 +1254,21 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     setState(() => _saving = true);
 
     try {
-      await ref.read(profileProvider.notifier).updateProfile({
+      final data = {
         'hakkinda': _bioController.text.trim(),
+        'cinsiyet': _gender,
         'boy': _parseNullableDouble(_heightController.text),
         'kilo': _parseNullableDouble(_weightController.text),
         'hedef_kilo': _parseNullableDouble(_targetWeightController.text),
         'fitness_hedefi': _goalController.text.trim(),
         'dogum_tarihi': _birthDate?.toIso8601String().split('T').first,
-      });
+      };
+
+      if (widget.profile.isOnboarded && !_hasRequiredBiometrics(data)) {
+        throw 'Boy, kilo, hedef kilo, hedef ve doğum tarihi boş bırakılamaz.';
+      }
+
+      await ref.read(profileProvider.notifier).updateProfile(data);
 
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
@@ -1327,6 +1336,18 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 prefixIcon: Icon(Icons.notes_outlined),
                 border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'E', label: Text('Erkek')),
+                ButtonSegment(value: 'K', label: Text('Kadın')),
+                ButtonSegment(value: 'B', label: Text('Belirtmem')),
+              ],
+              selected: {_gender},
+              onSelectionChanged: (values) {
+                setState(() => _gender = values.first);
+              },
             ),
             const SizedBox(height: 12),
             Row(
@@ -1698,7 +1719,7 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
 
   if (confirmed != true || !context.mounted) return;
 
-  await AuthService().logout();
+  await ref.read(sessionControllerProvider.notifier).logout();
   ref.invalidate(profileProvider);
 
   if (context.mounted) context.go('/giris');
@@ -1842,4 +1863,12 @@ double? _parseNullableDouble(String value) {
   final trimmed = value.trim();
   if (trimmed.isEmpty || trimmed == '-') return null;
   return double.tryParse(trimmed.replaceAll(',', '.'));
+}
+
+bool _hasRequiredBiometrics(Map<String, dynamic> data) {
+  return data['boy'] != null &&
+      data['kilo'] != null &&
+      data['hedef_kilo'] != null &&
+      (data['fitness_hedefi']?.toString().trim().isNotEmpty ?? false) &&
+      data['dogum_tarihi'] != null;
 }

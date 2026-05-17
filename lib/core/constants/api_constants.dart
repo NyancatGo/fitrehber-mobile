@@ -4,6 +4,7 @@ class ApiConstants {
   static const String kategoriler = '$baseUrl/kategoriler/';
   static const String icerikler = '$baseUrl/icerikler/';
   static const String profil = '$baseUrl/profil/';
+  static const String profilOnboard = '$baseUrl/profil/onboard/';
 
   static const String login = '$baseUrl/auth/login/';
   static const String register = '$baseUrl/auth/register/';

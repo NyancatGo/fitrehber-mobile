@@ -13,6 +13,8 @@ class ProfilModel {
   final double? weight;
   final double? targetWeight;
   final String goal;
+  final String gender;
+  final bool isOnboarded;
   final DateTime? birthDate;
   final DateTime? joinDate;
   final bool isStaff;
@@ -34,6 +36,8 @@ class ProfilModel {
     required this.weight,
     required this.targetWeight,
     required this.goal,
+    required this.gender,
+    required this.isOnboarded,
     required this.birthDate,
     required this.joinDate,
     required this.isStaff,
@@ -93,6 +97,10 @@ class ProfilModel {
         read(['hedef_kilo', 'target_weight', 'targetWeight']),
       ),
       goal: _asString(read(['fitness_hedefi', 'goal', 'hedef'])),
+      gender: _asString(read(['cinsiyet', 'gender'])).isEmpty
+          ? 'B'
+          : _asString(read(['cinsiyet', 'gender'])),
+      isOnboarded: _asBool(read(['is_onboarded', 'isOnboarded'])),
       birthDate: _asDate(read(['dogum_tarihi', 'birth_date', 'birthDate'])),
       joinDate: _asDate(
         read(['date_joined', 'join_date', 'joinDate', 'joined_at']),
@@ -121,6 +129,8 @@ class ProfilModel {
       weight: null,
       targetWeight: null,
       goal: '',
+      gender: 'B',
+      isOnboarded: false,
       birthDate: null,
       joinDate: null,
       isStaff: false,
@@ -144,6 +154,8 @@ class ProfilModel {
     double? weight,
     double? targetWeight,
     String? goal,
+    String? gender,
+    bool? isOnboarded,
     DateTime? birthDate,
     DateTime? joinDate,
     bool? isStaff,
@@ -165,6 +177,8 @@ class ProfilModel {
       weight: weight ?? this.weight,
       targetWeight: targetWeight ?? this.targetWeight,
       goal: goal ?? this.goal,
+      gender: gender ?? this.gender,
+      isOnboarded: isOnboarded ?? this.isOnboarded,
       birthDate: birthDate ?? this.birthDate,
       joinDate: joinDate ?? this.joinDate,
       isStaff: isStaff ?? this.isStaff,

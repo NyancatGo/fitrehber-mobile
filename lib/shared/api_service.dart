@@ -131,6 +131,29 @@ class ApiService {
     );
   }
 
+  Future<ProfilModel> completeOnboarding(Map<String, dynamic> data) async {
+    final token = await _accessTokenOrThrow(
+      'Profil kurulumunu tamamlamak için giriş yapmalısın.',
+    );
+
+    final response = await _dio.patch(
+      ApiConstants.profilOnboard,
+      data: data,
+      options: _authOptions(token),
+    );
+
+    if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+      return ProfilModel.fromJson(response.data as Map<String, dynamic>);
+    }
+
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
+      defaultMessage: 'Profil kurulumu tamamlanamadı.',
+    );
+  }
+
   Future<String> askAi({
     required String message,
     required List<ChatMessageModel> history,

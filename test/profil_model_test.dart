@@ -20,6 +20,8 @@ void main() {
       'kilo': '81.5',
       'hedef_kilo': '76',
       'fitness_hedefi': 'Fat loss',
+      'cinsiyet': 'B',
+      'is_onboarded': true,
       'dogum_tarihi': '1998-03-12',
       'post_count': 8,
       'rozetler': {
@@ -72,6 +74,8 @@ void main() {
     expect(profile.weight, 81.5);
     expect(profile.targetWeight, 76);
     expect(profile.goal, 'Fat loss');
+    expect(profile.gender, 'B');
+    expect(profile.isOnboarded, isTrue);
     expect(profile.birthDate, DateTime(1998, 3, 12));
     expect(profile.joinDate, DateTime.parse('2026-05-01T10:00:00Z'));
     expect(profile.isAdmin, isTrue);
@@ -116,5 +120,7 @@ void main() {
     expect(profile.isAdmin, isTrue);
     expect(profile.postCount, 8);
     expect(profile.roleName, 'Admin');
+    expect(profile.gender, 'B');
+    expect(profile.isOnboarded, isFalse);
   });
 }

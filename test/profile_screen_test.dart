@@ -20,6 +20,8 @@ void main() {
       weight: 81,
       targetWeight: 76,
       goal: 'Fat loss',
+      gender: 'B',
+      isOnboarded: true,
       birthDate: null,
       joinDate: null,
       isStaff: true,

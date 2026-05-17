@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../shared/auth_service.dart';
+import '../../shared/session_controller.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
 
   bool _isLoading = false;
   bool _sifreGizli = true;
@@ -35,20 +35,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _hata = null;
     });
     try {
-      await _authService.register(
-        _usernameController.text.trim(),
-        _passwordController.text,
-        _emailController.text.trim(),
-      );
-      if (mounted) context.go('/');
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .register(
+            _usernameController.text.trim(),
+            _passwordController.text,
+            _emailController.text.trim(),
+          );
     } catch (e) {
-      setState(() {
-        _hata = e.toString();
-      });
+      if (mounted) {
+        setState(() {
+          _hata = e.toString();
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
