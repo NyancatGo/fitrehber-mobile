@@ -599,8 +599,8 @@ class _AchievementsSection extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: achievements.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 140,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
               childAspectRatio: 0.88,
