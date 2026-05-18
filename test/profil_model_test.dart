@@ -123,4 +123,28 @@ void main() {
     expect(profile.gender, 'B');
     expect(profile.isOnboarded, isFalse);
   });
+
+  test('prefers nested user id over profile row id', () {
+    final profile = ProfilModel.fromJson({
+      'id': 99,
+      'user': {'id': 7, 'username': 'mobile-user'},
+      'is_onboarded': false,
+    });
+
+    expect(profile.id, 7);
+    expect(profile.username, 'mobile-user');
+  });
+
+  test('empty profile can preserve authenticated user identity', () {
+    final profile = ProfilModel.empty(
+      id: 12,
+      username: 'new-user',
+      email: 'new@example.com',
+    );
+
+    expect(profile.id, 12);
+    expect(profile.username, 'new-user');
+    expect(profile.email, 'new@example.com');
+    expect(profile.isOnboarded, isFalse);
+  });
 }

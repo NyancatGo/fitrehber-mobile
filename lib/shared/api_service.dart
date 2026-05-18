@@ -379,14 +379,28 @@ class ApiService {
     );
 
     if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
-      final profile = ProfilModel.fromJson(
+      final rawProfile = ProfilModel.fromJson(
         response.data as Map<String, dynamic>,
       );
-      return profile.copyWith(
-        email: profile.email.isEmpty ? cachedProfile?.email : null,
-        firstName: profile.firstName.isEmpty ? cachedProfile?.firstName : null,
-        lastName: profile.lastName.isEmpty ? cachedProfile?.lastName : null,
+      final profile = rawProfile.copyWith(
+        email: rawProfile.email.isEmpty ? cachedProfile?.email : null,
+        firstName: rawProfile.firstName.isEmpty
+            ? cachedProfile?.firstName
+            : null,
+        lastName: rawProfile.lastName.isEmpty ? cachedProfile?.lastName : null,
       );
+      await _writeCachedProfile(profile);
+      return profile;
+    }
+
+    if (response.statusCode == 404 || _isOnboardingRequired(response.data)) {
+      final profile = ProfilModel.empty(
+        id: userId,
+        username: cachedProfile?.username,
+        email: cachedProfile?.email ?? '',
+      );
+      await _writeCachedProfile(profile);
+      return profile;
     }
 
     throw _hataAyikla(
@@ -423,7 +437,11 @@ class ApiService {
 
     if ((response.statusCode == 200 || response.statusCode == 202) &&
         response.data is Map<String, dynamic>) {
-      return ProfilModel.fromJson(response.data as Map<String, dynamic>);
+      final profile = ProfilModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _writeCachedProfile(profile);
+      return profile;
     }
 
     throw _hataAyikla(
@@ -458,7 +476,11 @@ class ApiService {
 
     if ((response.statusCode == 200 || response.statusCode == 202) &&
         response.data is Map<String, dynamic>) {
-      return ProfilModel.fromJson(response.data as Map<String, dynamic>);
+      final profile = ProfilModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _writeCachedProfile(profile);
+      return profile;
     }
 
     throw _hataAyikla(
@@ -481,7 +503,11 @@ class ApiService {
     );
 
     if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
-      return ProfilModel.fromJson(response.data as Map<String, dynamic>);
+      final profile = ProfilModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _writeCachedProfile(profile);
+      return profile;
     }
 
     throw _hataAyikla(
@@ -625,6 +651,33 @@ class ApiService {
     }
 
     return null;
+  }
+
+  bool _isOnboardingRequired(dynamic data) {
+    if (data is! Map) return false;
+    final code = data['code']?.toString();
+    if (code == 'onboarding_required') return true;
+    final detail = data['detail'];
+    if (detail is Map) {
+      return detail['code']?.toString() == 'onboarding_required';
+    }
+    return false;
+  }
+
+  Future<void> _writeCachedProfile(ProfilModel profile) async {
+    await _storage.write(
+      key: 'current_user',
+      value: jsonEncode({
+        'id': profile.id,
+        'username': profile.username,
+        'email': profile.email,
+        'first_name': profile.firstName,
+        'last_name': profile.lastName,
+        'is_staff': profile.isStaff,
+        'is_superuser': profile.isSuperuser,
+        'is_onboarded': profile.isOnboarded,
+      }),
+    );
   }
 
   int? _readUserIdFromToken(String token) {

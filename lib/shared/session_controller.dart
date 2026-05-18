@@ -74,7 +74,7 @@ class SessionController extends StateNotifier<SessionState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _authService.login(username, password);
-      await _loadProfile();
+      await _loadProfile(logoutOnFailure: false);
     } catch (error) {
       state = SessionState(isLoading: false, error: error.toString());
       rethrow;
@@ -85,7 +85,7 @@ class SessionController extends StateNotifier<SessionState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _authService.register(username, password, email);
-      await _loadProfile();
+      await _loadProfile(logoutOnFailure: false);
     } catch (error) {
       state = SessionState(isLoading: false, error: error.toString());
       rethrow;
@@ -112,9 +112,9 @@ class SessionController extends StateNotifier<SessionState> {
     state = const SessionState(isLoading: false);
   }
 
-  Future<void> refreshProfile() => _loadProfile();
+  Future<void> refreshProfile() => _loadProfile(logoutOnFailure: false);
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadProfile({bool logoutOnFailure = true}) async {
     try {
       final profile = await _apiService.getProfil();
       state = SessionState(
@@ -123,8 +123,17 @@ class SessionController extends StateNotifier<SessionState> {
         profile: profile,
       );
     } catch (error) {
-      await _authService.logout();
-      state = SessionState(isLoading: false, error: error.toString());
+      if (logoutOnFailure) {
+        await _authService.logout();
+        state = SessionState(isLoading: false, error: error.toString());
+      } else {
+        state = SessionState(
+          isLoading: false,
+          isLoggedIn: true,
+          profile: state.profile ?? ProfilModel.empty(),
+          error: error.toString(),
+        );
+      }
     }
   }
 }

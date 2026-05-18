@@ -74,7 +74,7 @@ class ProfilModel {
     ]);
 
     return ProfilModel(
-      id: _asInt(read(['id', 'user_id'])) ?? 0,
+      id: _asInt(user['id'] ?? read(['user_id', 'id'])) ?? 0,
       username: _asString(read(['username', 'kullanici_adi'])),
       email: _asString(read(['email', 'e_posta'])),
       firstName: _asString(read(['first_name', 'firstName', 'ad'])),
@@ -116,11 +116,11 @@ class ProfilModel {
     );
   }
 
-  factory ProfilModel.empty({String? username}) {
+  factory ProfilModel.empty({int id = 0, String? username, String email = ''}) {
     return ProfilModel(
-      id: 0,
+      id: id,
       username: username ?? '',
-      email: '',
+      email: email,
       firstName: '',
       lastName: '',
       avatarUrl: null,
