@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../core/constants/api_constants.dart';
+import 'models/beslenme_model.dart';
 import 'models/chat_message_model.dart';
 import 'models/icerik_model.dart';
 import 'models/kategori_model.dart';
@@ -89,15 +90,17 @@ class ApiService {
     );
   }
 
-  // TODO(pagination): Yorumlar tek seferde çekiliyor. Çok yorumlu içeriklerde
-  // (200+) gerçek sayfalama gerekiyor; threaded yapı nedeniyle kök yorumların
-  // sayfalanıp alt yanıtların ayrıca yüklenmesi gerekir. Şimdilik backend
-  // varsayılan sayfa boyutunu aşmamak için geniş bir page_size isteniyor.
-  Future<List<YorumModel>> getYorumlar(int icerikId) async {
+  Future<List<YorumModel>> getYorumlar(
+    int icerikId, {
+    bool onlyRoots = false,
+  }) async {
     final token = await _storage.read(key: 'access_token');
     final response = await _dio.get(
       ApiConstants.yorumlar(icerikId),
-      queryParameters: const {'page_size': 200},
+      queryParameters: {
+        'page_size': 200,
+        if (onlyRoots) 'only_roots': 'true',
+      },
       options: (token != null && token.isNotEmpty) ? _authOptions(token) : null,
     );
     if (response.statusCode == 200) {
@@ -108,6 +111,24 @@ class ApiService {
       response.statusCode,
       unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
       defaultMessage: 'Yorumlar yüklenemedi.',
+    );
+  }
+
+  /// Belirli bir yoruma verilen direkt yanıtları getirir (lazy load için).
+  Future<List<YorumModel>> getYanitlar(int yorumId) async {
+    final token = await _storage.read(key: 'access_token');
+    final response = await _dio.get(
+      ApiConstants.yorumYanitlari(yorumId),
+      options: (token != null && token.isNotEmpty) ? _authOptions(token) : null,
+    );
+    if (response.statusCode == 200) {
+      return _sayfaliYanitaCevir(response.data, YorumModel.fromJson).results;
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Yanıtlar yüklenemedi.',
     );
   }
 
@@ -464,6 +485,89 @@ class ApiService {
       response.statusCode,
       unauthorizedMessage: 'Oturum süren dolmuş. Lütfen tekrar giriş yap.',
       defaultMessage: 'Profil kurulumu tamamlanamadı.',
+    );
+  }
+
+  Future<GunlukBeslenmeModel> getBeslenmeSu(String tarih) async {
+    final token = await _accessTokenOrThrow(
+      'Beslenme verilerini görmek için giriş yapmalısın.',
+    );
+    final response = await _dio.get(
+      ApiConstants.beslenmeSu,
+      queryParameters: {'tarih': tarih},
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+      return GunlukBeslenmeModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Beslenme verisi yüklenemedi.',
+    );
+  }
+
+  Future<GunlukBeslenmeModel> suEkle({
+    required String tarih,
+    required int miktarMl,
+  }) async {
+    final token = await _accessTokenOrThrow(
+      'Su eklemek için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiConstants.beslenmeSu,
+      data: {'tarih': tarih, 'su_ml': miktarMl},
+      options: _authOptions(token),
+    );
+    if ((response.statusCode == 200 || response.statusCode == 201) &&
+        response.data is Map<String, dynamic>) {
+      return GunlukBeslenmeModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Su eklenemedi.',
+    );
+  }
+
+  Future<GunlukBeslenmeModel> kaloriEkle({
+    required String tarih,
+    required int kaloriKcal,
+    double proteinG = 0,
+    double karbonhidratG = 0,
+    double yagG = 0,
+  }) async {
+    final token = await _accessTokenOrThrow(
+      'Kalori eklemek için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiConstants.beslenmeSu,
+      data: {
+        'tarih': tarih,
+        'kalori_kcal': kaloriKcal,
+        'protein_g': proteinG,
+        'karbonhidrat_g': karbonhidratG,
+        'yag_g': yagG,
+      },
+      options: _authOptions(token),
+    );
+    if ((response.statusCode == 200 || response.statusCode == 201) &&
+        response.data is Map<String, dynamic>) {
+      return GunlukBeslenmeModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Kalori eklenemedi.',
     );
   }
 

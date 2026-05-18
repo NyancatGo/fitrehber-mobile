@@ -8,6 +8,7 @@ class ApiConstants {
   static const String icerikler = '$baseUrl/icerikler/';
   static const String profil = '$baseUrl/profil/';
   static const String profilOnboard = '$baseUrl/profil/onboard/';
+  static const String beslenmeSu = '$baseUrl/profil/beslenme-su/';
 
   static const String login = '$baseUrl/auth/login/';
   static const String register = '$baseUrl/auth/register/';
@@ -21,6 +22,7 @@ class ApiConstants {
   static String profilBegeniler(int userId) => '$profil$userId/begeniler/';
 
   static String yorumlar(int icerikId) => '$icerikler$icerikId/yorumlar/';
+  static String yorumYanitlari(int yorumId) => '$baseUrl/yorumlar/$yorumId/yanitlar/';
   static String yorumDetay(int yorumId) => '$baseUrl/yorumlar/$yorumId/';
   static String yorumBegen(int yorumId) => '$baseUrl/yorumlar/$yorumId/begen/';
   static String icerikBegen(int icerikId) => '$icerikler$icerikId/begen/';

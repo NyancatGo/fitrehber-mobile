@@ -1,12 +1,16 @@
 // Tek bir yorumu (ve özyinelemeli olarak yanıtlarını) render eden kart.
 // Reddit tarzı: renk kodlu thread çizgileri, profil fotoğrafı, animasyonlu
 // daraltma ve makale yazarı (OP) vurgusu içerir.
+// Yanıtlar: widget.yorum.yanitlar ile geldiyse doğrudan gösterir;
+// boşsa "yanıtları göster" tıklandığında API'den lazy yükler.
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/api_service.dart';
 import '../../../shared/models/yorum_model.dart';
+import 'comment_skeleton.dart';
 import 'linkified_text.dart';
 
 // Seviye bazlı thread çizgi renkleri (her iç içe seviye farklı renk alır).
@@ -20,7 +24,7 @@ const List<Color> _threadColors = [
 
 Color threadRengi(int depth) => _threadColors[depth % _threadColors.length];
 
-class CommentTile extends StatelessWidget {
+class CommentTile extends StatefulWidget {
   final YorumModel yorum;
   final int depth;
   final String? opAuthorName;
@@ -48,19 +52,91 @@ class CommentTile extends StatelessWidget {
     required this.onAuthorTap,
   });
 
+  @override
+  State<CommentTile> createState() => _CommentTileState();
+}
+
+class _CommentTileState extends State<CommentTile> {
+  // Yanıtlar widget.yorum.yanitlar'dan geldiyse doğrudan kullan.
+  // Boşsa API'den lazy yükle.
+  late List<YorumModel> _replies;
+  bool _isLoadingReplies = false;
+  bool _hasCheckedApi = false;
+  // Yalnızca API'den yüklenen yanıtların görünürlüğü (_showApiReplies).
+  // Pre-loaded yanıtlar collapsedIds mekanizmasıyla yönetilir.
+  bool _showApiReplies = false;
+
   bool get _isOp =>
-      opAuthorName != null &&
-      opAuthorName != 'Anonim' &&
-      yorum.yazarAdi == opAuthorName;
+      widget.opAuthorName != null &&
+      widget.opAuthorName != 'Anonim' &&
+      widget.yorum.yazarAdi == widget.opAuthorName;
+
+  @override
+  void initState() {
+    super.initState();
+    _replies = widget.yorum.yanitlar;
+    // Yanıtlar model üzerinden zaten geldiyse API kontrolüne gerek yok.
+    _hasCheckedApi = widget.yorum.yanitlar.isNotEmpty;
+  }
+
+  Future<void> _fetchReplies() async {
+    if (_isLoadingReplies || _hasCheckedApi) return;
+    setState(() => _isLoadingReplies = true);
+    try {
+      final apiService = ApiService();
+      final yanitlar = await apiService.getYanitlar(widget.yorum.id);
+      if (!mounted) return;
+      setState(() {
+        _replies = yanitlar;
+        _hasCheckedApi = true;
+        _isLoadingReplies = false;
+        _showApiReplies = yanitlar.isNotEmpty;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasCheckedApi = true;
+        _isLoadingReplies = false;
+      });
+    }
+  }
+
+  void _handleToggle() {
+    if (widget.yorum.yanitlar.isNotEmpty) {
+      // Pre-loaded: mevcut collapse mekanizmasını kullan.
+      widget.onToggleCollapse(widget.yorum.id);
+    } else if (!_hasCheckedApi) {
+      // Henüz yüklenmedi: API'den getir.
+      _fetchReplies();
+    } else {
+      // API kontrolü yapıldı: toggle göster/gizle.
+      setState(() => _showApiReplies = !_showApiReplies);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final collapsed = collapsedIds.contains(yorum.id);
-    final hasReplies = yorum.yanitlar.isNotEmpty;
-    final altYanitSayisi = yorum.yanitlar.fold<int>(
-      0,
-      (toplam, y) => toplam + y.toplamSayi,
-    );
+    final collapsed = widget.collapsedIds.contains(widget.yorum.id);
+
+    // Gösterilecek yanıtlar: pre-loaded ise widget.yorum.yanitlar,
+    // API'den geldiyse _replies.
+    final effectiveReplies = widget.yorum.yanitlar.isNotEmpty
+        ? widget.yorum.yanitlar
+        : _replies;
+
+    final hasReplies = effectiveReplies.isNotEmpty || _isLoadingReplies;
+
+    // Yanıtlar gösterilecek mi?
+    final showReplies = widget.yorum.yanitlar.isNotEmpty
+        ? !collapsed
+        : _showApiReplies;
+
+    final altYanitSayisi = widget.yorum.yanitlar.isNotEmpty
+        ? widget.yorum.yanitlar.fold<int>(
+            0,
+            (toplam, y) => toplam + y.toplamSayi,
+          )
+        : _replies.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,11 +146,11 @@ class CommentTile extends StatelessWidget {
           ClipRect(
             child: AnimatedAlign(
               alignment: Alignment.topCenter,
-              heightFactor: collapsed ? 0.0 : 1.0,
+              heightFactor: showReplies ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
               child: AnimatedOpacity(
-                opacity: collapsed ? 0.0 : 1.0,
+                opacity: showReplies ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeInOut,
                 child: Padding(
@@ -84,35 +160,40 @@ class CommentTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: Border(
                         left: BorderSide(
-                          color: threadRengi(depth).withValues(alpha: 0.55),
+                          color: threadRengi(widget.depth).withValues(alpha: 0.55),
                           width: 2.5,
                         ),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: yorum.yanitlar
-                          .map(
-                            (y) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: CommentTile(
-                                key: ValueKey('yorum-${y.id}'),
-                                yorum: y,
-                                depth: depth + 1,
-                                opAuthorName: opAuthorName,
-                                canModerate: canModerate,
-                                currentUserId: currentUserId,
-                                collapsedIds: collapsedIds,
-                                onReply: onReply,
-                                onLike: onLike,
-                                onDelete: onDelete,
-                                onToggleCollapse: onToggleCollapse,
-                                onAuthorTap: onAuthorTap,
-                              ),
-                            ),
+                    child: _isLoadingReplies
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 6),
+                            child: CommentSkeletonList(adet: 2),
                           )
-                          .toList(),
-                    ),
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: effectiveReplies
+                                .map(
+                                  (y) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: CommentTile(
+                                      key: ValueKey('yorum-${y.id}'),
+                                      yorum: y,
+                                      depth: widget.depth + 1,
+                                      opAuthorName: widget.opAuthorName,
+                                      canModerate: widget.canModerate,
+                                      currentUserId: widget.currentUserId,
+                                      collapsedIds: widget.collapsedIds,
+                                      onReply: widget.onReply,
+                                      onLike: widget.onLike,
+                                      onDelete: widget.onDelete,
+                                      onToggleCollapse: widget.onToggleCollapse,
+                                      onAuthorTap: widget.onAuthorTap,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                   ),
                 ),
               ),
@@ -128,7 +209,8 @@ class CommentTile extends StatelessWidget {
     bool hasReplies,
     int altYanitSayisi,
   ) {
-    final canDelete = canModerate || currentUserId == yorum.yazarId;
+    final canDelete =
+        widget.canModerate || widget.currentUserId == widget.yorum.yazarId;
     final bg = _isOp
         ? AppTheme.primary.withValues(alpha: 0.07)
         : Colors.white.withValues(alpha: 0.035);
@@ -148,7 +230,6 @@ class CommentTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Makale yazarının yorumlarında sol accent şeridi.
             if (_isOp) Container(width: 3.5, color: AppTheme.primary),
             Expanded(
               child: Padding(
@@ -159,7 +240,7 @@ class CommentTile extends StatelessWidget {
                     _baslik(canDelete),
                     const SizedBox(height: 9),
                     LinkifiedText(
-                      text: yorum.mesaj,
+                      text: widget.yorum.mesaj,
                       baseStyle: const TextStyle(
                         fontSize: 14,
                         height: 1.45,
@@ -189,7 +270,7 @@ class CommentTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          onTap: () => onAuthorTap(yorum.yazarId),
+          onTap: () => widget.onAuthorTap(widget.yorum.yazarId),
           borderRadius: BorderRadius.circular(20),
           child: _avatar(),
         ),
@@ -202,9 +283,9 @@ class CommentTile extends StatelessWidget {
                 children: [
                   Flexible(
                     child: InkWell(
-                      onTap: () => onAuthorTap(yorum.yazarId),
+                      onTap: () => widget.onAuthorTap(widget.yorum.yazarId),
                       child: Text(
-                        yorum.yazarAdi,
+                        widget.yorum.yazarAdi,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -222,7 +303,7 @@ class CommentTile extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                yorum.tarihGoreli,
+                widget.yorum.tarihGoreli,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.44),
                   fontSize: 11,
@@ -245,7 +326,7 @@ class CommentTile extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.5),
               ),
               onSelected: (value) {
-                if (value == 'delete') onDelete(yorum);
+                if (value == 'delete') widget.onDelete(widget.yorum);
               },
               itemBuilder: (context) => const [
                 PopupMenuItem(
@@ -266,9 +347,9 @@ class CommentTile extends StatelessWidget {
   }
 
   Widget _avatar() {
-    final initial = yorum.yazarAdi.trim().isEmpty
+    final initial = widget.yorum.yazarAdi.trim().isEmpty
         ? '?'
-        : yorum.yazarAdi.trim().substring(0, 1).toUpperCase();
+        : widget.yorum.yazarAdi.trim().substring(0, 1).toUpperCase();
     final fallback = Container(
       color: const Color(0xFF22D3EE).withValues(alpha: 0.14),
       alignment: Alignment.center,
@@ -281,7 +362,7 @@ class CommentTile extends StatelessWidget {
         ),
       ),
     );
-    final url = yorum.avatarUrl;
+    final url = widget.yorum.avatarUrl;
 
     return SizedBox(
       width: 40,
@@ -323,19 +404,19 @@ class CommentTile extends StatelessWidget {
     return Row(
       children: [
         _aksiyon(
-          icon: yorum.begendim ? Icons.favorite : Icons.favorite_border,
-          label: '${yorum.begeniSayisi}',
-          color: yorum.begendim
+          icon: widget.yorum.begendim ? Icons.favorite : Icons.favorite_border,
+          label: '${widget.yorum.begeniSayisi}',
+          color: widget.yorum.begendim
               ? const Color(0xFFEF4444)
               : Colors.white.withValues(alpha: 0.56),
-          onTap: () => onLike(yorum),
+          onTap: () => widget.onLike(widget.yorum),
         ),
         const SizedBox(width: 6),
         _aksiyon(
           icon: Icons.mode_comment_outlined,
-          label: 'Yanitla',
+          label: 'Yanıtla',
           color: const Color(0xFF22D3EE),
-          onTap: () => onReply(yorum),
+          onTap: () => widget.onReply(widget.yorum),
         ),
       ],
     );
@@ -371,37 +452,53 @@ class CommentTile extends StatelessWidget {
     );
   }
 
-  // Reddit tarzı satır içi "── X yanıtı göster ──" bağlantısı.
   Widget _yanitToggle(bool collapsed, int altYanitSayisi) {
-    final renk = threadRengi(depth);
+    final renk = threadRengi(widget.depth);
+
+    // Pre-loaded yanıtlar collapse mekanizmasını kullanır.
+    // API'den gelen yanıtlar _showApiReplies'i kullanır.
+    final gizlendi = widget.yorum.yanitlar.isNotEmpty
+        ? collapsed
+        : !_showApiReplies && _hasCheckedApi;
+
+    final etiket = _isLoadingReplies
+        ? 'Yükleniyor...'
+        : gizlendi
+            ? '$altYanitSayisi yanıtı göster'
+            : 'Yanıtları gizle';
+
     return InkWell(
-      onTap: () => onToggleCollapse(yorum.id),
+      onTap: _handleToggle,
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
           children: [
             Expanded(
-              child: Container(
-                height: 1,
-                color: renk.withValues(alpha: 0.22),
-              ),
+              child: Container(height: 1, color: renk.withValues(alpha: 0.22)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    collapsed ? Icons.expand_more : Icons.expand_less,
-                    size: 15,
-                    color: renk,
-                  ),
+                  _isLoadingReplies
+                      ? SizedBox(
+                          width: 13,
+                          height: 13,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: renk,
+                          ),
+                        )
+                      : Icon(
+                          gizlendi ? Icons.expand_more : Icons.expand_less,
+                          size: 15,
+                          color: renk,
+                        ),
                   const SizedBox(width: 4),
                   Text(
-                    collapsed
-                        ? '$altYanitSayisi yanıtı göster'
-                        : 'Yanıtları gizle',
+                    etiket,
                     style: TextStyle(
                       color: renk,
                       fontSize: 12,
@@ -414,10 +511,7 @@ class CommentTile extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Container(
-                height: 1,
-                color: renk.withValues(alpha: 0.22),
-              ),
+              child: Container(height: 1, color: renk.withValues(alpha: 0.22)),
             ),
           ],
         ),

@@ -192,6 +192,8 @@ class IcerikModel {
   // Kategori adını kolayca almak için yardımcı getter
   String get kategoriAdi => kategori?['isim'] ?? 'Genel';
 
+  String get rawYaziTemiz => _rawYaziTemiz;
+
   String get yaziTemiz =>
       _normalizedYaziTemiz ??= _normalizeArticleHtml(_rawYaziTemiz);
 

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/api_constants.dart';
 import '../../shared/api_service.dart';
 import '../../shared/hata_yardimcilari.dart';
+import '../../shared/local_database_service.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/kategori_model.dart';
 import '../../shared/pagination/pagination_helpers.dart';
@@ -32,6 +33,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   int _page = 1;
   int _totalCount = 0;
   String? _hata;
+  bool _cevrimdisi = false;
 
   @override
   void initState() {
@@ -57,10 +59,31 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       _yukleniyor = true;
       _hata = null;
     });
+
+    // Önce önbellekten yükle (ilk açılışı hızlandırır).
     try {
-      final kategoriler = kategorileriYenile || _kategoriler.isEmpty
-          ? await _api.getKategoriler()
-          : _kategoriler;
+      final cachedKat =
+          (kategorileriYenile || _kategoriler.isEmpty)
+              ? await LocalDatabaseService.getCachedKategoriler()
+              : _kategoriler;
+      final cachedIce = await LocalDatabaseService.getCachedIcerikler();
+      if (cachedIce.isNotEmpty && mounted) {
+        setState(() {
+          if (cachedKat.isNotEmpty) _kategoriler = cachedKat;
+          _icerikler = cachedIce;
+          _yukleniyor = false;
+        });
+      }
+    } catch (_) {
+      // Önbellek okunamadıysa sessizce geç.
+    }
+
+    // Sonra API'den güncel veri çek.
+    try {
+      final kategoriler =
+          (kategorileriYenile || _kategoriler.isEmpty)
+              ? await _api.getKategoriler()
+              : _kategoriler;
       final response = await _api.getIcerikler(
         kategoriId: _secilenKategoriId,
         tur: 'haber',
@@ -74,10 +97,19 @@ class _HomeContentState extends ConsumerState<HomeContent> {
         _page = 1;
         _totalCount = response.count;
         _dahaVar = response.hasNext;
+        _cevrimdisi = false;
       });
+      // Güncel veriyi önbelleğe yaz.
+      LocalDatabaseService.cacheIcerikler(response.results).ignore();
+      LocalDatabaseService.cacheKategoriler(kategoriler).ignore();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _hata = kullaniciDostuHata(e));
+      if (_icerikler.isNotEmpty) {
+        // Önbellekten yüklenmiş veri var → çevrimdışı banner göster.
+        setState(() => _cevrimdisi = true);
+      } else {
+        setState(() => _hata = kullaniciDostuHata(e));
+      }
     } finally {
       if (mounted) setState(() => _yukleniyor = false);
     }
@@ -236,6 +268,23 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       ),
       body: Column(
         children: [
+          if (_cevrimdisi)
+            MaterialBanner(
+              backgroundColor: const Color(0xFFF97316).withValues(alpha: 0.9),
+              content: const Text(
+                'Çevrimdışı modda çalışıyorsunuz. Gösterilen veriler önbellekten.',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => _verileriYukle(kategorileriYenile: true),
+                  child: const Text(
+                    'Tekrar Dene',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
           _kategoriCubugu(),
           Expanded(child: _icerikAlani(canModerate, currentUserId)),
         ],
