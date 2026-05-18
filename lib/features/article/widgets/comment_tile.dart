@@ -24,9 +24,12 @@ const List<Color> _threadColors = [
 
 Color threadRengi(int depth) => _threadColors[depth % _threadColors.length];
 
+const int defaultMaxInlineCommentDepth = 2;
+
 class CommentTile extends StatefulWidget {
   final YorumModel yorum;
   final int depth;
+  final int maxInlineDepth;
   final String? opAuthorName;
   final bool canModerate;
   final int? currentUserId;
@@ -36,11 +39,13 @@ class CommentTile extends StatefulWidget {
   final ValueChanged<YorumModel> onDelete;
   final ValueChanged<int> onToggleCollapse;
   final ValueChanged<int?> onAuthorTap;
+  final ValueChanged<YorumModel>? onContinueThread;
 
   const CommentTile({
     super.key,
     required this.yorum,
     required this.depth,
+    this.maxInlineDepth = defaultMaxInlineCommentDepth,
     required this.opAuthorName,
     required this.canModerate,
     required this.currentUserId,
@@ -50,6 +55,7 @@ class CommentTile extends StatefulWidget {
     required this.onDelete,
     required this.onToggleCollapse,
     required this.onAuthorTap,
+    this.onContinueThread,
   });
 
   @override
@@ -81,6 +87,7 @@ class _CommentTileState extends State<CommentTile> {
 
   Future<void> _fetchReplies() async {
     if (_isLoadingReplies || _hasCheckedApi) return;
+    if (widget.depth >= widget.maxInlineDepth) return;
     setState(() => _isLoadingReplies = true);
     try {
       final apiService = ApiService();
@@ -102,6 +109,10 @@ class _CommentTileState extends State<CommentTile> {
   }
 
   void _handleToggle() {
+    if (widget.depth >= widget.maxInlineDepth) {
+      widget.onContinueThread?.call(widget.yorum);
+      return;
+    }
     if (widget.yorum.yanitlar.isNotEmpty) {
       // Pre-loaded: mevcut collapse mekanizmasını kullan.
       widget.onToggleCollapse(widget.yorum.id);
@@ -117,6 +128,7 @@ class _CommentTileState extends State<CommentTile> {
   @override
   Widget build(BuildContext context) {
     final expanded = widget.expandedIds.contains(widget.yorum.id);
+    final canInlineReplies = widget.depth < widget.maxInlineDepth;
 
     // Gösterilecek yanıtlar: pre-loaded ise widget.yorum.yanitlar,
     // API'den geldiyse _replies.
@@ -124,25 +136,42 @@ class _CommentTileState extends State<CommentTile> {
         ? widget.yorum.yanitlar
         : _replies;
 
-    final hasReplies = effectiveReplies.isNotEmpty || _isLoadingReplies;
+    final hasKnownReplies =
+        effectiveReplies.isNotEmpty ||
+        widget.yorum.yanitSayisi > 0 ||
+        widget.yorum.toplamYanitSayisi > 0 ||
+        widget.yorum.hasMoreReplies ||
+        _isLoadingReplies;
+    final hasInlineReplyControl = canInlineReplies && hasKnownReplies;
+    final hasContinuation =
+        !canInlineReplies && hasKnownReplies && widget.onContinueThread != null;
 
     // Yanıtlar gösterilecek mi?
-    final showReplies = widget.yorum.yanitlar.isNotEmpty
-        ? expanded
-        : _showApiReplies;
+    final showReplies = hasInlineReplyControl
+        ? (widget.yorum.yanitlar.isNotEmpty ? expanded : _showApiReplies)
+        : false;
 
-    final altYanitSayisi = widget.yorum.yanitlar.isNotEmpty
-        ? widget.yorum.yanitlar.fold<int>(
-            0,
-            (toplam, y) => toplam + y.toplamSayi,
-          )
-        : _replies.length;
+    final localReplyCount = effectiveReplies.fold<int>(
+      0,
+      (toplam, y) => toplam + y.toplamSayi,
+    );
+    final altYanitSayisi = widget.yorum.toplamYanitSayisi > 0
+        ? widget.yorum.toplamYanitSayisi
+        : localReplyCount > 0
+        ? localReplyCount
+        : widget.yorum.yanitSayisi;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _kart(context, expanded, hasReplies, altYanitSayisi),
-        if (hasReplies)
+        _kart(
+          context,
+          expanded,
+          hasInlineReplyControl,
+          hasContinuation,
+          altYanitSayisi,
+        ),
+        if (hasInlineReplyControl)
           ClipRect(
             child: AnimatedAlign(
               alignment: Alignment.topCenter,
@@ -160,7 +189,9 @@ class _CommentTileState extends State<CommentTile> {
                     decoration: BoxDecoration(
                       border: Border(
                         left: BorderSide(
-                          color: threadRengi(widget.depth).withValues(alpha: 0.55),
+                          color: threadRengi(
+                            widget.depth,
+                          ).withValues(alpha: 0.55),
                           width: 2.5,
                         ),
                       ),
@@ -180,6 +211,7 @@ class _CommentTileState extends State<CommentTile> {
                                       key: ValueKey('yorum-${y.id}'),
                                       yorum: y,
                                       depth: widget.depth + 1,
+                                      maxInlineDepth: widget.maxInlineDepth,
                                       opAuthorName: widget.opAuthorName,
                                       canModerate: widget.canModerate,
                                       currentUserId: widget.currentUserId,
@@ -189,6 +221,7 @@ class _CommentTileState extends State<CommentTile> {
                                       onDelete: widget.onDelete,
                                       onToggleCollapse: widget.onToggleCollapse,
                                       onAuthorTap: widget.onAuthorTap,
+                                      onContinueThread: widget.onContinueThread,
                                     ),
                                   ),
                                 )
@@ -206,7 +239,8 @@ class _CommentTileState extends State<CommentTile> {
   Widget _kart(
     BuildContext context,
     bool expanded,
-    bool hasReplies,
+    bool hasInlineReplyControl,
+    bool hasContinuation,
     int altYanitSayisi,
   ) {
     final canDelete =
@@ -251,7 +285,10 @@ class _CommentTileState extends State<CommentTile> {
                     ),
                     const SizedBox(height: 10),
                     _aksiyonlar(),
-                    if (hasReplies) ...[
+                    if (hasContinuation) ...[
+                      const SizedBox(height: 8),
+                      _devamButonu(altYanitSayisi),
+                    ] else if (hasInlineReplyControl) ...[
                       const SizedBox(height: 8),
                       _yanitToggle(expanded, altYanitSayisi),
                     ],
@@ -295,10 +332,7 @@ class _CommentTileState extends State<CommentTile> {
                       ),
                     ),
                   ),
-                  if (_isOp) ...[
-                    const SizedBox(width: 6),
-                    _opRozeti(),
-                  ],
+                  if (_isOp) ...[const SizedBox(width: 6), _opRozeti()],
                 ],
               ),
               const SizedBox(height: 2),
@@ -452,6 +486,43 @@ class _CommentTileState extends State<CommentTile> {
     );
   }
 
+  Widget _devamButonu(int altYanitSayisi) {
+    final renk = threadRengi(widget.depth);
+    final sayiMetni = altYanitSayisi > 0 ? ' ($altYanitSayisi)' : '';
+
+    return InkWell(
+      onTap: () => widget.onContinueThread?.call(widget.yorum),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          color: renk.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: renk.withValues(alpha: 0.24)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.arrow_forward_rounded, size: 17, color: renk),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Bu tartışmanın devamını gör$sayiMetni',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: renk,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _yanitToggle(bool expanded, int altYanitSayisi) {
     final renk = threadRengi(widget.depth);
 
@@ -459,13 +530,13 @@ class _CommentTileState extends State<CommentTile> {
     // API'den gelen yanıtlar _showApiReplies'i kullanır.
     final gizlendi = widget.yorum.yanitlar.isNotEmpty
         ? !expanded
-        : !_showApiReplies && _hasCheckedApi;
+        : !_showApiReplies;
 
     final etiket = _isLoadingReplies
         ? 'Yükleniyor...'
         : gizlendi
-            ? '$altYanitSayisi yanıtı göster'
-            : 'Yanıtları gizle';
+        ? '$altYanitSayisi yanıtı göster'
+        : 'Yanıtları gizle';
 
     return InkWell(
       onTap: _handleToggle,

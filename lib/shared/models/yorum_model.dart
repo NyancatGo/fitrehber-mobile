@@ -9,6 +9,9 @@ class YorumModel {
   final int depth;
   final Map<String, dynamic> yazar;
   final List<YorumModel> yanitlar;
+  final int yanitSayisi;
+  final int toplamYanitSayisi;
+  final bool hasMoreReplies;
 
   // Beğeni durumu toggle sonrası güncellenebildiği için mutable.
   int begeniSayisi;
@@ -21,6 +24,9 @@ class YorumModel {
     required this.parent,
     required this.depth,
     required this.yazar,
+    this.yanitSayisi = 0,
+    this.toplamYanitSayisi = 0,
+    this.hasMoreReplies = false,
     this.begeniSayisi = 0,
     this.begendim = false,
     List<YorumModel>? yanitlar,
@@ -38,6 +44,13 @@ class YorumModel {
           ? json['depth'] as int
           : int.tryParse(json['depth']?.toString() ?? '') ?? 0,
       yazar: Map<String, dynamic>.from(json['yazar'] ?? {}),
+      yanitSayisi: json['yanit_sayisi'] is int
+          ? json['yanit_sayisi'] as int
+          : int.tryParse(json['yanit_sayisi']?.toString() ?? '') ?? 0,
+      toplamYanitSayisi: json['toplam_yanit_sayisi'] is int
+          ? json['toplam_yanit_sayisi'] as int
+          : int.tryParse(json['toplam_yanit_sayisi']?.toString() ?? '') ?? 0,
+      hasMoreReplies: json['has_more_replies'] == true,
       begeniSayisi: json['begeni_sayisi'] is int
           ? json['begeni_sayisi'] as int
           : int.tryParse(json['begeni_sayisi']?.toString() ?? '') ?? 0,
@@ -50,7 +63,10 @@ class YorumModel {
   /// Yazarın profil fotoğrafı URL'i; backend farklı anahtarlar kullanabilir.
   String? get avatarUrl {
     final raw =
-        yazar['avatar_url'] ?? yazar['avatar'] ?? yazar['foto'] ?? yazar['foto_url'];
+        yazar['avatar_url'] ??
+        yazar['avatar'] ??
+        yazar['foto'] ??
+        yazar['foto_url'];
     final url = raw?.toString().trim();
     if (url == null || url.isEmpty) return null;
     return url;
@@ -84,7 +100,8 @@ class YorumModel {
     for (final yanit in yanitlar) {
       toplam += yanit.toplamSayi;
     }
-    return toplam;
+    final apiToplam = toplamYanitSayisi + 1;
+    return apiToplam > toplam ? apiToplam : toplam;
   }
 
   // ISO tarihi "2 saat önce" benzeri göreli metne çevirir.

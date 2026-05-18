@@ -49,13 +49,13 @@ void main() {
 
   group('YorumModel.agacKur', () {
     Map<String, dynamic> raw(int id, int? parent) => {
-          'id': id,
-          'mesaj': 'm$id',
-          'tarih': '',
-          'parent': parent,
-          'depth': 0,
-          'yazar': {'username': 'u$id'},
-        };
+      'id': id,
+      'mesaj': 'm$id',
+      'tarih': '',
+      'parent': parent,
+      'depth': 0,
+      'yazar': {'username': 'u$id'},
+    };
 
     test('builds a nested tree from a flat list', () {
       final duz = [
@@ -77,9 +77,7 @@ void main() {
     });
 
     test('treats a comment with a missing parent as a root', () {
-      final duz = [
-        YorumModel.fromJson(raw(10, 999)),
-      ];
+      final duz = [YorumModel.fromJson(raw(10, 999))];
 
       final kokler = YorumModel.agacKur(duz);
 
@@ -137,19 +135,23 @@ void main() {
 
   group('YorumModel.tarihGoreli', () {
     YorumModel withDate(DateTime dt) => YorumModel.fromJson({
-          'id': 1,
-          'mesaj': 'm',
-          'tarih': dt.toUtc().toIso8601String(),
-          'depth': 0,
-        });
+      'id': 1,
+      'mesaj': 'm',
+      'tarih': dt.toUtc().toIso8601String(),
+      'depth': 0,
+    });
 
     test('renders "Az önce" for a very recent date', () {
-      final yorum = withDate(DateTime.now().subtract(const Duration(seconds: 10)));
+      final yorum = withDate(
+        DateTime.now().subtract(const Duration(seconds: 10)),
+      );
       expect(yorum.tarihGoreli, 'Az önce');
     });
 
     test('renders minutes', () {
-      final yorum = withDate(DateTime.now().subtract(const Duration(minutes: 5)));
+      final yorum = withDate(
+        DateTime.now().subtract(const Duration(minutes: 5)),
+      );
       expect(yorum.tarihGoreli, '5 dk önce');
     });
 
@@ -191,6 +193,23 @@ void main() {
       });
       expect(yorum.begeniSayisi, 4);
       expect(yorum.begendim, isTrue);
+    });
+
+    test('parses reply metadata from the API payload', () {
+      final yorum = YorumModel.fromJson({
+        'id': 1,
+        'mesaj': 'm',
+        'tarih': '',
+        'depth': 2,
+        'yanit_sayisi': '2',
+        'toplam_yanit_sayisi': 4,
+        'has_more_replies': true,
+      });
+
+      expect(yorum.yanitSayisi, 2);
+      expect(yorum.toplamYanitSayisi, 4);
+      expect(yorum.hasMoreReplies, isTrue);
+      expect(yorum.toplamSayi, 5);
     });
 
     test('defaults like fields when absent', () {

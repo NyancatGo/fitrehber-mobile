@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/ai_assistant/ai_assistant_screen.dart';
 import '../../features/article/article_screen.dart';
+import '../../features/article/focused_comment_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/categories/categories_screen.dart';
@@ -78,6 +79,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/arama',
         builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/makale/:id/yorum/:yorumId',
+        builder: (context, state) => FocusedCommentScreen(
+          icerikId: int.parse(state.pathParameters['id']!),
+          focusCommentId: int.parse(state.pathParameters['yorumId']!),
+        ),
       ),
       GoRoute(
         path: '/makale/:id',

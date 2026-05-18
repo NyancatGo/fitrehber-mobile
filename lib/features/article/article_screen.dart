@@ -325,6 +325,15 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
     context.push('/profil/$yazarId');
   }
 
+  Future<void> _yorumDevaminiAc(YorumModel yorum) async {
+    final changed = await context.push<bool>(
+      '/makale/${widget.id}/yorum/${yorum.id}',
+    );
+    if (changed == true && mounted) {
+      _yorumlariYukle();
+    }
+  }
+
   void _snack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -542,9 +551,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
     return Row(
       children: [
         Icon(
-          _forumMu
-              ? Icons.question_answer_outlined
-              : Icons.chat_bubble_outline,
+          _forumMu ? Icons.question_answer_outlined : Icons.chat_bubble_outline,
           size: 20,
           color: const Color(0xFF22D3EE),
         ),
@@ -639,6 +646,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
                     onDelete: _yorumSil,
                     onToggleCollapse: _yanitGorunumunuDegistir,
                     onAuthorTap: _yazarProfiliAc,
+                    onContinueThread: _yorumDevaminiAc,
                   ),
                 ),
               ),

@@ -93,12 +93,16 @@ class ApiService {
   Future<List<YorumModel>> getYorumlar(
     int icerikId, {
     bool onlyRoots = false,
+    int? odakId,
+    int depthLimit = 2,
   }) async {
     final token = await _storage.read(key: 'access_token');
     final response = await _dio.get(
       ApiConstants.yorumlar(icerikId),
       queryParameters: {
         'page_size': 200,
+        'depth_limit': depthLimit,
+        'odak': ?odakId,
         if (onlyRoots) 'only_roots': 'true',
       },
       options: (token != null && token.isNotEmpty) ? _authOptions(token) : null,
