@@ -30,7 +30,7 @@ class CommentTile extends StatefulWidget {
   final String? opAuthorName;
   final bool canModerate;
   final int? currentUserId;
-  final Set<int> collapsedIds;
+  final Set<int> expandedIds;
   final ValueChanged<YorumModel> onReply;
   final ValueChanged<YorumModel> onLike;
   final ValueChanged<YorumModel> onDelete;
@@ -44,7 +44,7 @@ class CommentTile extends StatefulWidget {
     required this.opAuthorName,
     required this.canModerate,
     required this.currentUserId,
-    required this.collapsedIds,
+    required this.expandedIds,
     required this.onReply,
     required this.onLike,
     required this.onDelete,
@@ -116,7 +116,7 @@ class _CommentTileState extends State<CommentTile> {
 
   @override
   Widget build(BuildContext context) {
-    final collapsed = widget.collapsedIds.contains(widget.yorum.id);
+    final expanded = widget.expandedIds.contains(widget.yorum.id);
 
     // Gösterilecek yanıtlar: pre-loaded ise widget.yorum.yanitlar,
     // API'den geldiyse _replies.
@@ -128,7 +128,7 @@ class _CommentTileState extends State<CommentTile> {
 
     // Yanıtlar gösterilecek mi?
     final showReplies = widget.yorum.yanitlar.isNotEmpty
-        ? !collapsed
+        ? expanded
         : _showApiReplies;
 
     final altYanitSayisi = widget.yorum.yanitlar.isNotEmpty
@@ -141,7 +141,7 @@ class _CommentTileState extends State<CommentTile> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _kart(context, collapsed, hasReplies, altYanitSayisi),
+        _kart(context, expanded, hasReplies, altYanitSayisi),
         if (hasReplies)
           ClipRect(
             child: AnimatedAlign(
@@ -183,7 +183,7 @@ class _CommentTileState extends State<CommentTile> {
                                       opAuthorName: widget.opAuthorName,
                                       canModerate: widget.canModerate,
                                       currentUserId: widget.currentUserId,
-                                      collapsedIds: widget.collapsedIds,
+                                      expandedIds: widget.expandedIds,
                                       onReply: widget.onReply,
                                       onLike: widget.onLike,
                                       onDelete: widget.onDelete,
@@ -205,7 +205,7 @@ class _CommentTileState extends State<CommentTile> {
 
   Widget _kart(
     BuildContext context,
-    bool collapsed,
+    bool expanded,
     bool hasReplies,
     int altYanitSayisi,
   ) {
@@ -253,7 +253,7 @@ class _CommentTileState extends State<CommentTile> {
                     _aksiyonlar(),
                     if (hasReplies) ...[
                       const SizedBox(height: 8),
-                      _yanitToggle(collapsed, altYanitSayisi),
+                      _yanitToggle(expanded, altYanitSayisi),
                     ],
                   ],
                 ),
@@ -452,13 +452,13 @@ class _CommentTileState extends State<CommentTile> {
     );
   }
 
-  Widget _yanitToggle(bool collapsed, int altYanitSayisi) {
+  Widget _yanitToggle(bool expanded, int altYanitSayisi) {
     final renk = threadRengi(widget.depth);
 
     // Pre-loaded yanıtlar collapse mekanizmasını kullanır.
     // API'den gelen yanıtlar _showApiReplies'i kullanır.
     final gizlendi = widget.yorum.yanitlar.isNotEmpty
-        ? collapsed
+        ? !expanded
         : !_showApiReplies && _hasCheckedApi;
 
     final etiket = _isLoadingReplies

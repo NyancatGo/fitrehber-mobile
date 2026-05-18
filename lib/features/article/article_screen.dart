@@ -38,8 +38,8 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
   String? _yorumHata;
   YorumModel? _yanitlananYorum;
 
-  // Yanıtları gizlenmiş (daraltılmış) yorum id'leri.
-  final Set<int> _kapaliYorumlar = {};
+  // Yanıtları gösterilen (açılmış) yorum id'leri.
+  final Set<int> _acikYorumlar = {};
 
   @override
   void initState() {
@@ -105,6 +105,9 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
         if (parentId == null ||
             !_agacaYorumEkle(_yorumlar, parentId, yeniYorum)) {
           _yorumlar.add(yeniYorum);
+        } else {
+          // [PREMIUM UX EDGE CASE]: Yeni yanıt yazıldığında dalı otomatik genişlet
+          _acikYorumlar.add(parentId);
         }
         _icerik = _icerik?.copyWith(
           yorumSayisi: (_icerik?.yorumSayisi ?? 0) + 1,
@@ -309,10 +312,10 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
 
   void _yanitGorunumunuDegistir(int yorumId) {
     setState(() {
-      if (_kapaliYorumlar.contains(yorumId)) {
-        _kapaliYorumlar.remove(yorumId);
+      if (_acikYorumlar.contains(yorumId)) {
+        _acikYorumlar.remove(yorumId);
       } else {
-        _kapaliYorumlar.add(yorumId);
+        _acikYorumlar.add(yorumId);
       }
     });
   }
@@ -630,7 +633,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
                     opAuthorName: _icerik?.yazarAdi,
                     canModerate: canModerate,
                     currentUserId: currentUserId,
-                    collapsedIds: _kapaliYorumlar,
+                    expandedIds: _acikYorumlar,
                     onReply: _yanitla,
                     onLike: _yorumBegen,
                     onDelete: _yorumSil,
