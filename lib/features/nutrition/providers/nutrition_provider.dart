@@ -2,18 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/api_service.dart';
 import '../../../shared/models/beslenme_model.dart';
+import '../../../shared/session_controller.dart';
+import '../../../shared/utils/nutrition_calculator.dart';
 
 class NutritionState {
   final bool isLoading;
   final String? hata;
   final GunlukBeslenmeModel? veri;
   final String seciliTarih;
+  final NutritionGoals hedefler;
 
   NutritionState({
     this.isLoading = false,
     this.hata,
     this.veri,
     required this.seciliTarih,
+    this.hedefler = NutritionGoals.defaults,
   });
 
   NutritionState copyWith({
@@ -21,6 +25,7 @@ class NutritionState {
     String? hata,
     GunlukBeslenmeModel? veri,
     String? seciliTarih,
+    NutritionGoals? hedefler,
     bool clearHata = false,
     bool clearVeri = false,
   }) {
@@ -29,15 +34,27 @@ class NutritionState {
       hata: clearHata ? null : (hata ?? this.hata),
       veri: clearVeri ? null : (veri ?? this.veri),
       seciliTarih: seciliTarih ?? this.seciliTarih,
+      hedefler: hedefler ?? this.hedefler,
     );
   }
 }
 
 class NutritionNotifier extends StateNotifier<NutritionState> {
   final ApiService _api = ApiService();
+  final Ref _ref;
 
-  NutritionNotifier() : super(NutritionState(seciliTarih: _bugunStr())) {
+  NutritionNotifier(this._ref)
+      : super(NutritionState(seciliTarih: _bugunStr())) {
+    _hesaplaHedefler();
     load(_bugunStr());
+  }
+
+  /// Profil verilerinden dinamik hedefleri hesaplar.
+  void _hesaplaHedefler() {
+    final session = _ref.read(sessionControllerProvider);
+    final profil = session.profile;
+    final hedefler = NutritionCalculator.calculate(profil);
+    state = state.copyWith(hedefler: hedefler);
   }
 
   Future<void> load(String tarih) async {
@@ -46,6 +63,10 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
       seciliTarih: tarih,
       clearHata: true,
     );
+
+    // Her yükleme sırasında hedefleri de güncelle (profil değişmiş olabilir).
+    _hesaplaHedefler();
+
     try {
       final veri = await _api.getBeslenmeSu(tarih);
       state = state.copyWith(isLoading: false, veri: veri);
@@ -136,5 +157,5 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
 
 final nutritionProvider =
     StateNotifierProvider<NutritionNotifier, NutritionState>((ref) {
-      return NutritionNotifier();
+      return NutritionNotifier(ref);
     });
