@@ -540,6 +540,84 @@ class ApiService {
     );
   }
 
+  Future<List<BesinModel>> besinAra(String query) async {
+    final token = await _accessTokenOrThrow(
+      'Besin aramak için giriş yapmalısın.',
+    );
+    final response = await _dio.get(
+      ApiConstants.besinler,
+      queryParameters: {'q': query},
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200 && response.data is List) {
+      return (response.data as List)
+          .whereType<Map>()
+          .map((item) => BesinModel.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Besin araması yapılamadı.',
+    );
+  }
+
+  Future<void> ogunEkle({
+    required String tarih,
+    required String ogunTipi,
+    int? besinId,
+    String? besinIsim,
+    required double miktar,
+    int kalori = 0,
+    double protein = 0,
+    double karbonhidrat = 0,
+    double yag = 0,
+  }) async {
+    final token = await _accessTokenOrThrow(
+      'Öğün eklemek için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiConstants.beslenmeEkle,
+      data: {
+        'tarih': tarih,
+        'ogun_tipi': ogunTipi,
+        'besin_id': besinId,
+        'besin_isim': besinIsim,
+        'miktar': miktar,
+        'kalori': kalori,
+        'protein': protein,
+        'karbonhidrat': karbonhidrat,
+        'yag': yag,
+      },
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 201) return;
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Öğün eklenemedi.',
+    );
+  }
+
+  Future<void> ogunSil(int id) async {
+    final token = await _accessTokenOrThrow(
+      'Öğün silmek için giriş yapmalısın.',
+    );
+    final response = await _dio.delete(
+      ApiConstants.beslenmeSil(id),
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 204) return;
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Öğün silinemedi.',
+    );
+  }
+
   Future<GunlukBeslenmeModel> suEkle({
     required String tarih,
     required int miktarMl,

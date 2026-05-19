@@ -36,12 +36,7 @@ class NutritionState {
 class NutritionNotifier extends StateNotifier<NutritionState> {
   final ApiService _api = ApiService();
 
-  NutritionNotifier()
-      : super(
-          NutritionState(
-            seciliTarih: _bugunStr(),
-          ),
-        ) {
+  NutritionNotifier() : super(NutritionState(seciliTarih: _bugunStr())) {
     load(_bugunStr());
   }
 
@@ -67,50 +62,69 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
   Future<void> suEkle(int ml) async {
     final onceki = state.veri;
     final tarih = state.seciliTarih;
-    // Optimistik güncelleme: UI anında tepki versin.
     if (onceki != null) {
-      state = state.copyWith(
-        veri: onceki.copyWith(suMl: onceki.suMl + ml),
-      );
+      state = state.copyWith(veri: onceki.copyWith(suMl: onceki.suMl + ml));
     }
     try {
-      final guncellendi = await _api.suEkle(tarih: tarih, miktarMl: ml);
-      state = state.copyWith(veri: guncellendi);
+      await _api.suEkle(tarih: tarih, miktarMl: ml);
+      await load(tarih);
     } catch (_) {
-      // API başarısızsa optimistik güncellemeyi geri al.
-      if (mounted) state = state.copyWith(veri: onceki);
+      if (mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          veri: onceki,
+          hata: 'Su eklenemedi.',
+        );
+      }
     }
   }
 
-  Future<void> kaloriEkle({
-    required int kaloriKcal,
-    double proteinG = 0,
-    double karbonhidratG = 0,
-    double yagG = 0,
+  Future<List<BesinModel>> besinAra(String query) {
+    return _api.besinAra(query);
+  }
+
+  Future<void> ogunEkle({
+    required String ogunTipi,
+    int? besinId,
+    String? besinIsim,
+    required double miktar,
+    int kalori = 0,
+    double protein = 0,
+    double karbonhidrat = 0,
+    double yag = 0,
   }) async {
-    final onceki = state.veri;
     final tarih = state.seciliTarih;
-    if (onceki != null) {
-      state = state.copyWith(
-        veri: onceki.copyWith(
-          kaloriKcal: onceki.kaloriKcal + kaloriKcal,
-          proteinG: onceki.proteinG + proteinG,
-          karbonhidratG: onceki.karbonhidratG + karbonhidratG,
-          yagG: onceki.yagG + yagG,
-        ),
-      );
-    }
+    state = state.copyWith(isLoading: true, clearHata: true);
     try {
-      final guncellendi = await _api.kaloriEkle(
+      await _api.ogunEkle(
         tarih: tarih,
-        kaloriKcal: kaloriKcal,
-        proteinG: proteinG,
-        karbonhidratG: karbonhidratG,
-        yagG: yagG,
+        ogunTipi: ogunTipi,
+        besinId: besinId,
+        besinIsim: besinIsim,
+        miktar: miktar,
+        kalori: kalori,
+        protein: protein,
+        karbonhidrat: karbonhidrat,
+        yag: yag,
       );
-      state = state.copyWith(veri: guncellendi);
+      await load(tarih);
     } catch (_) {
-      if (mounted) state = state.copyWith(veri: onceki);
+      if (mounted) {
+        state = state.copyWith(isLoading: false, hata: 'Besin eklenemedi.');
+      }
+    }
+  }
+
+  Future<void> ogunSil(int id) async {
+    final tarih = state.seciliTarih;
+    state = state.copyWith(isLoading: true, clearHata: true);
+    try {
+      await _api.ogunSil(id);
+      await load(tarih);
+    } catch (_) {
+      if (mounted) {
+        state = state.copyWith(isLoading: false, hata: 'Kayıt silinemedi.');
+      }
     }
   }
 
@@ -122,5 +136,5 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
 
 final nutritionProvider =
     StateNotifierProvider<NutritionNotifier, NutritionState>((ref) {
-  return NutritionNotifier();
-});
+      return NutritionNotifier();
+    });

@@ -24,7 +24,7 @@ class NutritionScreen extends ConsumerWidget {
           : _GovdeParcasi(state: state),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddMealBottomSheet(context, ref),
-        label: const Text('Besin / Kalori Ekle'),
+        label: const Text('Öğün Ekle'),
         icon: const Icon(Icons.add_circle_outline, color: Colors.white),
         backgroundColor: const Color(0xFFF97316),
         foregroundColor: Colors.white,
@@ -54,6 +54,12 @@ class _GovdeParcasi extends ConsumerWidget {
         ),
         const SizedBox(height: 28),
         _MakroBarlar(veri: veri),
+        if (state.hata != null) ...[
+          const SizedBox(height: 16),
+          _HataKutusu(metin: state.hata!),
+        ],
+        const SizedBox(height: 28),
+        _OgunListesi(veri: veri, isLoading: state.isLoading),
         const SizedBox(height: 32),
       ],
     );
@@ -69,7 +75,10 @@ class _GunSecici extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bugun = DateTime.now();
-    final gunler = List.generate(7, (i) => bugun.subtract(Duration(days: 3 - i)));
+    final gunler = List.generate(
+      7,
+      (i) => bugun.subtract(Duration(days: 3 - i)),
+    );
 
     return SizedBox(
       height: 70,
@@ -84,8 +93,7 @@ class _GunSecici extends ConsumerWidget {
           const gunAdlari = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
           return GestureDetector(
-            onTap: () =>
-                ref.read(nutritionProvider.notifier).load(tarihStr),
+            onTap: () => ref.read(nutritionProvider.notifier).load(tarihStr),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               width: 56,
@@ -97,9 +105,7 @@ class _GunSecici extends ConsumerWidget {
                         colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
                       )
                     : null,
-                color: secili
-                    ? null
-                    : Colors.white.withValues(alpha: 0.05),
+                color: secili ? null : Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: secili
@@ -303,13 +309,7 @@ class _HalkaPainter extends CustomPainter {
         ..strokeWidth = kalinlik
         ..strokeCap = StrokeCap.round;
 
-      canvas.drawArc(
-        rect,
-        -math.pi / 2,
-        2 * math.pi * yuzde,
-        false,
-        fgPaint,
-      );
+      canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * yuzde, false, fgPaint);
     }
   }
 
@@ -371,9 +371,13 @@ class _SuEklemeButonlari extends StatelessWidget {
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _SuButon(ml: 250, onEkle: onEkle, isLoading: isLoading)),
+            Expanded(
+              child: _SuButon(ml: 250, onEkle: onEkle, isLoading: isLoading),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _SuButon(ml: 500, onEkle: onEkle, isLoading: isLoading)),
+            Expanded(
+              child: _SuButon(ml: 500, onEkle: onEkle, isLoading: isLoading),
+            ),
           ],
         ),
       ],
@@ -385,7 +389,11 @@ class _SuButon extends StatefulWidget {
   final int ml;
   final void Function(int ml) onEkle;
   final bool isLoading;
-  const _SuButon({required this.ml, required this.onEkle, required this.isLoading});
+  const _SuButon({
+    required this.ml,
+    required this.onEkle,
+    required this.isLoading,
+  });
 
   @override
   State<_SuButon> createState() => _SuButonState();
@@ -405,9 +413,10 @@ class _SuButonState extends State<_SuButon>
       lowerBound: 0.0,
       upperBound: 0.1,
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -551,10 +560,7 @@ class _MakroBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: Stack(
             children: [
-              Container(
-                height: 8,
-                color: Colors.white.withValues(alpha: 0.07),
-              ),
+              Container(height: 8, color: Colors.white.withValues(alpha: 0.07)),
               FractionallySizedBox(
                 widthFactor: yuzde,
                 child: Container(height: 8, color: renk),
@@ -567,164 +573,928 @@ class _MakroBar extends StatelessWidget {
   }
 }
 
+class _HataKutusu extends StatelessWidget {
+  final String metin;
+  const _HataKutusu({required this.metin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        metin,
+        style: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _OgunListesi extends StatelessWidget {
+  final GunlukBeslenmeModel veri;
+  final bool isLoading;
+
+  const _OgunListesi({required this.veri, required this.isLoading});
+
+  @override
+  Widget build(BuildContext context) {
+    const ogunSirasi = ['sabah', 'ogle', 'aksam', 'atistirmalik'];
+    final kayitSayisi = veri.ogunler.values.fold<int>(
+      0,
+      (toplam, kayitlar) => toplam + kayitlar.length,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Öğünler',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.45),
+                letterSpacing: 0.5,
+              ),
+            ),
+            Text(
+              '$kayitSayisi kayıt',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.38),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ...ogunSirasi.map(
+          (ogunTipi) => _OgunBolumu(
+            ogunTipi: ogunTipi,
+            kayitlar: veri.ogunler[ogunTipi] ?? const [],
+            isLoading: isLoading,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OgunBolumu extends StatelessWidget {
+  final String ogunTipi;
+  final List<OgunKaydiModel> kayitlar;
+  final bool isLoading;
+
+  const _OgunBolumu({
+    required this.ogunTipi,
+    required this.kayitlar,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final toplamKalori = kayitlar.fold<int>(
+      0,
+      (toplam, kayit) => toplam + kayit.kalori,
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF97316).withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  _ogunIkonu(ogunTipi),
+                  color: const Color(0xFFF97316),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _ogunBasligi(ogunTipi),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '$toplamKalori kcal',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          if (kayitlar.isEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Henüz kayıt yok',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.36),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            ...kayitlar.map(
+              (kayit) => _OgunKarti(kayit: kayit, isLoading: isLoading),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OgunKarti extends ConsumerWidget {
+  final OgunKaydiModel kayit;
+  final bool isLoading;
+
+  const _OgunKarti({required this.kayit, required this.isLoading});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  kayit.besinIsim,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_formatMiktar(kayit.miktar)} ${kayit.miktarBirimi} • '
+                  'P ${kayit.protein.toStringAsFixed(1)}g • '
+                  'K ${kayit.karbonhidrat.toStringAsFixed(1)}g • '
+                  'Y ${kayit.yag.toStringAsFixed(1)}g',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.42),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '${kayit.kalori}',
+            style: const TextStyle(
+              color: Color(0xFFF97316),
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Text(
+            'kcal',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.36),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Sil',
+            visualDensity: VisualDensity.compact,
+            onPressed: isLoading
+                ? null
+                : () => ref.read(nutritionProvider.notifier).ogunSil(kayit.id),
+            icon: const Icon(Icons.delete_outline, color: Colors.white38),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 void _showAddMealBottomSheet(BuildContext context, WidgetRef ref) {
   final formKey = GlobalKey<FormState>();
-  final mealCtrl = TextEditingController();
+  final searchCtrl = TextEditingController();
+  final nameCtrl = TextEditingController();
+  final amountCtrl = TextEditingController(text: '100');
   final calCtrl = TextEditingController();
   final proteinCtrl = TextEditingController();
   final carbCtrl = TextEditingController();
   final fatCtrl = TextEditingController();
 
+  const ogunSecenekleri = ['sabah', 'ogle', 'aksam', 'atistirmalik'];
+  String seciliOgun = 'sabah';
+  bool manuelMod = false;
+  bool araniyor = false;
+  String? aramaHatasi;
+  BesinModel? seciliBesin;
+  List<BesinModel> sonuclar = [];
+
+  Future<void> ara(StateSetter setModalState, BuildContext sheetContext) async {
+    final query = searchCtrl.text.trim();
+    if (query.length < 2) {
+      setModalState(() {
+        sonuclar = [];
+        aramaHatasi = null;
+      });
+      return;
+    }
+
+    setModalState(() {
+      araniyor = true;
+      aramaHatasi = null;
+    });
+
+    try {
+      final gelen = await ref.read(nutritionProvider.notifier).besinAra(query);
+      if (!sheetContext.mounted) return;
+      setModalState(() {
+        sonuclar = gelen;
+        araniyor = false;
+      });
+    } catch (_) {
+      if (!sheetContext.mounted) return;
+      setModalState(() {
+        sonuclar = [];
+        araniyor = false;
+        aramaHatasi = 'Besin araması yapılamadı.';
+      });
+    }
+  }
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) {
+    builder: (sheetContext) {
       return Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
         ),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF1A1D27),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Öğün veya Kalori Ekle',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: mealCtrl,
-                    decoration: _inputDec('Öğün / Besin Adı (örn: Yulaf Ezmesi)', Icons.fastfood_outlined),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: calCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: _inputDec('Kalori (kcal) *', Icons.local_fire_department_outlined),
-                    style: const TextStyle(color: Colors.white),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) return 'Lütfen kalori miktarını girin';
-                      if (int.tryParse(val) == null) return 'Geçersiz bir sayı girin';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+        child: StatefulBuilder(
+          builder: (sheetContext, setModalState) {
+            final miktar = _parseInputDouble(amountCtrl.text);
+            final besin = seciliBesin;
+            final hazirBesin = !manuelMod && besin != null;
+            final previewKalori = hazirBesin
+                ? ((besin.kalori100g * miktar) / 100).toInt()
+                : (_parseInputInt(calCtrl.text) ?? 0);
+            final previewProtein = hazirBesin
+                ? (besin.protein100g * miktar) / 100
+                : _parseInputDouble(proteinCtrl.text);
+            final previewKarb = hazirBesin
+                ? (besin.karbonhidrat100g * miktar) / 100
+                : _parseInputDouble(carbCtrl.text);
+            final previewYag = hazirBesin
+                ? (besin.yag100g * miktar) / 100
+                : _parseInputDouble(fatCtrl.text);
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A1D27),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: proteinCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: _inputDec('Protein (g)', null),
-                          style: const TextStyle(color: Colors.white),
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: carbCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: _inputDec('Karb (g)', null),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Öğün Ekle',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: ogunSecenekleri.map((ogun) {
+                          final secili = seciliOgun == ogun;
+                          return ChoiceChip(
+                            label: Text(_ogunBasligi(ogun)),
+                            selected: secili,
+                            onSelected: (_) =>
+                                setModalState(() => seciliOgun = ogun),
+                            selectedColor: const Color(0xFFF97316),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.05,
+                            ),
+                            labelStyle: TextStyle(
+                              color: secili ? Colors.white : Colors.white70,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            side: BorderSide(
+                              color: secili
+                                  ? Colors.transparent
+                                  : Colors.white.withValues(alpha: 0.08),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ModButonu(
+                              metin: 'Besin ara',
+                              secili: !manuelMod,
+                              onTap: () => setModalState(() {
+                                manuelMod = false;
+                                nameCtrl.clear();
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _ModButonu(
+                              metin: 'Manuel',
+                              secili: manuelMod,
+                              onTap: () => setModalState(() {
+                                manuelMod = true;
+                                seciliBesin = null;
+                                sonuclar = [];
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      if (!manuelMod) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: searchCtrl,
+                                decoration: _inputDec(
+                                  'Besin ara (örn: yulaf)',
+                                  Icons.search,
+                                ),
+                                style: const TextStyle(color: Colors.white),
+                                textInputAction: TextInputAction.search,
+                                onFieldSubmitted: (_) =>
+                                    ara(setModalState, sheetContext),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              height: 52,
+                              width: 52,
+                              child: ElevatedButton(
+                                onPressed: araniyor
+                                    ? null
+                                    : () => ara(setModalState, sheetContext),
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  backgroundColor: const Color(0xFFF97316),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: araniyor
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.search,
+                                        color: Colors.white,
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (aramaHatasi != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            aramaHatasi!,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                        if (sonuclar.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            constraints: const BoxConstraints(maxHeight: 210),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.06),
+                              ),
+                            ),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: sonuclar.length,
+                              separatorBuilder: (_, _) => Divider(
+                                height: 1,
+                                color: Colors.white.withValues(alpha: 0.06),
+                              ),
+                              itemBuilder: (context, index) {
+                                final item = sonuclar[index];
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    item.isim,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${item.kalori100g} kcal • '
+                                    'P ${item.protein100g.toStringAsFixed(1)}g • '
+                                    'K ${item.karbonhidrat100g.toStringAsFixed(1)}g • '
+                                    'Y ${item.yag100g.toStringAsFixed(1)}g / 100g',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.42,
+                                      ),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  trailing: item.isVerified
+                                      ? const Icon(
+                                          Icons.verified,
+                                          color: Color(0xFF22C55E),
+                                          size: 18,
+                                        )
+                                      : null,
+                                  onTap: () => setModalState(() {
+                                    seciliBesin = item;
+                                    nameCtrl.text = item.isim;
+                                  }),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                        if (seciliBesin != null) ...[
+                          const SizedBox(height: 12),
+                          _SeciliBesinKutusu(besin: seciliBesin!),
+                        ],
+                      ] else ...[
+                        TextFormField(
+                          controller: nameCtrl,
+                          decoration: _inputDec(
+                            'Besin / Öğün Adı',
+                            Icons.fastfood_outlined,
+                          ),
                           style: const TextStyle(color: Colors.white),
+                          validator: (val) {
+                            if (!manuelMod) return null;
+                            if (val == null || val.trim().isEmpty) {
+                              return 'Lütfen besin adını girin';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: amountCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: _inputDec(
+                          'Miktar (g)',
+                          Icons.scale_outlined,
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        onChanged: (_) => setModalState(() {}),
+                        validator: (val) {
+                          final miktar = _parseInputDouble(val ?? '');
+                          if (miktar <= 0) {
+                            return 'Miktar sıfırdan büyük olmalı';
+                          }
+                          return null;
+                        },
+                      ),
+                      if (manuelMod) ...[
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: calCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: _inputDec(
+                            'Kalori (kcal)',
+                            Icons.local_fire_department_outlined,
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                          onChanged: (_) => setModalState(() {}),
+                          validator: (val) {
+                            if (!manuelMod) return null;
+                            if (_parseInputInt(val ?? '') == null) {
+                              return 'Geçerli kalori girin';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: proteinCtrl,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: _inputDec('Protein (g)', null),
+                                style: const TextStyle(color: Colors.white),
+                                onChanged: (_) => setModalState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: carbCtrl,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: _inputDec('Karb (g)', null),
+                                style: const TextStyle(color: Colors.white),
+                                onChanged: (_) => setModalState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: fatCtrl,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: _inputDec('Yağ (g)', null),
+                                style: const TextStyle(color: Colors.white),
+                                onChanged: (_) => setModalState(() {}),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      _MakroOnizleme(
+                        kalori: previewKalori,
+                        protein: previewProtein,
+                        karbonhidrat: previewKarb,
+                        yag: previewYag,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+                          if (!manuelMod && seciliBesin == null) {
+                            setModalState(() {
+                              aramaHatasi = 'Lütfen listeden bir besin seçin.';
+                            });
+                            return;
+                          }
+
+                          final notifier = ref.read(nutritionProvider.notifier);
+                          final besin = seciliBesin;
+                          Navigator.pop(sheetContext);
+                          await notifier.ogunEkle(
+                            ogunTipi: seciliOgun,
+                            besinId: manuelMod ? null : besin?.id,
+                            besinIsim: manuelMod ? nameCtrl.text.trim() : null,
+                            miktar: _parseInputDouble(amountCtrl.text),
+                            kalori: manuelMod
+                                ? (_parseInputInt(calCtrl.text) ?? 0)
+                                : 0,
+                            protein: manuelMod
+                                ? _parseInputDouble(proteinCtrl.text)
+                                : 0,
+                            karbonhidrat: manuelMod
+                                ? _parseInputDouble(carbCtrl.text)
+                                : 0,
+                            yag: manuelMod
+                                ? _parseInputDouble(fatCtrl.text)
+                                : 0,
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Öğün başarıyla eklendi.'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF97316),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Kaydet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: fatCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: _inputDec('Yağ (g)', null),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
+                      const SizedBox(height: 12),
                     ],
                   ),
-                  const SizedBox(height: 28),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (formKey.currentState!.validate()) {
-                        final cal = int.parse(calCtrl.text);
-                        final p = double.tryParse(proteinCtrl.text) ?? 0.0;
-                        final c = double.tryParse(carbCtrl.text) ?? 0.0;
-                        final f = double.tryParse(fatCtrl.text) ?? 0.0;
-
-                        ref.read(nutritionProvider.notifier).kaloriEkle(
-                          kaloriKcal: cal,
-                          proteinG: p,
-                          karbonhidratG: c,
-                          yagG: f,
-                        );
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Öğün başarıyla eklendi! 🔥'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF97316),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Kaydet',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       );
     },
-  );
+  ).whenComplete(() {
+    searchCtrl.dispose();
+    nameCtrl.dispose();
+    amountCtrl.dispose();
+    calCtrl.dispose();
+    proteinCtrl.dispose();
+    carbCtrl.dispose();
+    fatCtrl.dispose();
+  });
+}
+
+class _ModButonu extends StatelessWidget {
+  final String metin;
+  final bool secili;
+  final VoidCallback onTap;
+
+  const _ModButonu({
+    required this.metin,
+    required this.secili,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: secili
+              ? const Color(0xFFF97316)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: secili
+                ? Colors.transparent
+                : Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Text(
+          metin,
+          style: TextStyle(
+            color: secili ? Colors.white : Colors.white70,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SeciliBesinKutusu extends StatelessWidget {
+  final BesinModel besin;
+
+  const _SeciliBesinKutusu({required this.besin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF22C55E).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF22C55E).withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              besin.isim,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MakroOnizleme extends StatelessWidget {
+  final int kalori;
+  final double protein;
+  final double karbonhidrat;
+  final double yag;
+
+  const _MakroOnizleme({
+    required this.kalori,
+    required this.protein,
+    required this.karbonhidrat,
+    required this.yag,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _OnizlemeDegeri(label: 'kcal', value: '$kalori'),
+          _OnizlemeDegeri(label: 'Protein', value: protein.toStringAsFixed(1)),
+          _OnizlemeDegeri(
+            label: 'Karb',
+            value: karbonhidrat.toStringAsFixed(1),
+          ),
+          _OnizlemeDegeri(label: 'Yağ', value: yag.toStringAsFixed(1)),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnizlemeDegeri extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _OnizlemeDegeri({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.42),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _ogunBasligi(String ogunTipi) {
+  switch (ogunTipi) {
+    case 'sabah':
+      return 'Sabah';
+    case 'ogle':
+      return 'Öğle';
+    case 'aksam':
+      return 'Akşam';
+    case 'atistirmalik':
+      return 'Atıştırmalık';
+    default:
+      return ogunTipi;
+  }
+}
+
+IconData _ogunIkonu(String ogunTipi) {
+  switch (ogunTipi) {
+    case 'sabah':
+      return Icons.wb_sunny_outlined;
+    case 'ogle':
+      return Icons.lunch_dining_outlined;
+    case 'aksam':
+      return Icons.dinner_dining_outlined;
+    case 'atistirmalik':
+      return Icons.local_cafe_outlined;
+    default:
+      return Icons.restaurant_outlined;
+  }
+}
+
+String _formatMiktar(double value) {
+  if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+  return value.toStringAsFixed(1);
+}
+
+int? _parseInputInt(String value) {
+  final normalized = value.trim().replaceAll(',', '.');
+  if (normalized.isEmpty) return null;
+  return int.tryParse(normalized) ?? double.tryParse(normalized)?.toInt();
+}
+
+double _parseInputDouble(String value) {
+  final normalized = value.trim().replaceAll(',', '.');
+  if (normalized.isEmpty) return 0;
+  return double.tryParse(normalized) ?? 0;
 }
 
 InputDecoration _inputDec(String label, IconData? icon) {
   return InputDecoration(
     labelText: label,
     labelStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-    prefixIcon: icon != null ? Icon(icon, color: const Color(0xFFF97316), size: 20) : null,
+    prefixIcon: icon != null
+        ? Icon(icon, color: const Color(0xFFF97316), size: 20)
+        : null,
     filled: true,
     fillColor: Colors.white.withValues(alpha: 0.03),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
