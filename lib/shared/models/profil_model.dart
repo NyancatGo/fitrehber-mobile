@@ -12,6 +12,9 @@ class ProfilModel {
   final double? height;
   final double? weight;
   final double? targetWeight;
+  /// Hedef belirlendiği veya değiştirildiği andaki kilo — ilerleme barının
+  /// %0 referans noktası. Backend `baslangic_kilo` alanından gelir.
+  final double? startWeight;
   final String goal;
   final String gender;
   final bool isOnboarded;
@@ -35,6 +38,7 @@ class ProfilModel {
     required this.height,
     required this.weight,
     required this.targetWeight,
+    required this.startWeight,
     required this.goal,
     required this.gender,
     required this.isOnboarded,
@@ -96,6 +100,9 @@ class ProfilModel {
       targetWeight: _asDouble(
         read(['hedef_kilo', 'target_weight', 'targetWeight']),
       ),
+      startWeight: _asDouble(
+        read(['baslangic_kilo', 'start_weight', 'startWeight']),
+      ),
       goal: _asString(read(['fitness_hedefi', 'goal', 'hedef'])),
       gender: _asString(read(['cinsiyet', 'gender'])).isEmpty
           ? 'B'
@@ -128,6 +135,7 @@ class ProfilModel {
       height: null,
       weight: null,
       targetWeight: null,
+      startWeight: null,
       goal: '',
       gender: 'B',
       isOnboarded: false,
@@ -153,6 +161,7 @@ class ProfilModel {
     double? height,
     double? weight,
     double? targetWeight,
+    double? startWeight,
     String? goal,
     String? gender,
     bool? isOnboarded,
@@ -176,6 +185,7 @@ class ProfilModel {
       height: height ?? this.height,
       weight: weight ?? this.weight,
       targetWeight: targetWeight ?? this.targetWeight,
+      startWeight: startWeight ?? this.startWeight,
       goal: goal ?? this.goal,
       gender: gender ?? this.gender,
       isOnboarded: isOnboarded ?? this.isOnboarded,

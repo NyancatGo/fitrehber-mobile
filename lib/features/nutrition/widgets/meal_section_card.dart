@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/beslenme_model.dart';
 import '../providers/nutrition_provider.dart';
 import 'food_search_sheet.dart';
+import 'kayit_duzenle_sheet.dart';
 
 /// FatSecret tarzı öğün bloğu. Başlık + eklenen besinlerin listesi + "+ Ekle" butonu.
 class MealSectionCard extends ConsumerWidget {
@@ -136,6 +137,34 @@ class _BesinKayitSatiri extends ConsumerWidget {
 
   const _BesinKayitSatiri({required this.kayit, required this.isLoading});
 
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1F2937),
+        title: const Text('Kaydı sil?',
+            style: TextStyle(color: Colors.white)),
+        content: Text(
+          '"${kayit.besinIsim}" kaydı silinsin mi?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç',
+                style: TextStyle(color: Colors.white60)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sil',
+                style: TextStyle(color: Color(0xFFEF4444))),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Dismissible(
@@ -149,64 +178,75 @@ class _BesinKayitSatiri extends ConsumerWidget {
       ),
       confirmDismiss: (_) async {
         if (isLoading) return false;
-        return true;
+        return await _confirmDelete(context);
       },
       onDismissed: (_) {
         ref.read(nutritionProvider.notifier).ogunSil(kayit.id);
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    kayit.besinIsim,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+      child: InkWell(
+        onTap: isLoading
+            ? null
+            : () => showKayitDuzenleSheet(context, ref, kayit),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      kayit.besinIsim,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_formatMiktar(kayit.miktar)} ${kayit.miktarBirimi} • '
-                    'P ${kayit.protein.toStringAsFixed(1)}g • '
-                    'K ${kayit.karbonhidrat.toStringAsFixed(1)}g • '
-                    'Y ${kayit.yag.toStringAsFixed(1)}g',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.38),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_formatMiktar(kayit.miktar)} ${kayit.miktarBirimi} • '
+                      'P ${kayit.protein.toStringAsFixed(1)}g • '
+                      'K ${kayit.karbonhidrat.toStringAsFixed(1)}g • '
+                      'Y ${kayit.yag.toStringAsFixed(1)}g',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.38),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${kayit.kalori}',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
+              const SizedBox(width: 8),
+              Text(
+                '${kayit.kalori}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            Text(
-              ' kcal',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.35),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+              Text(
+                ' kcal',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+              Icon(
+                Icons.chevron_right,
+                color: Colors.white.withValues(alpha: 0.25),
+                size: 18,
+              ),
+            ],
+          ),
         ),
       ),
     );

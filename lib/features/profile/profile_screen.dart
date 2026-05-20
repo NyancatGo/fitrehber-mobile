@@ -404,15 +404,32 @@ class _GoalProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = profile.weight;
     final target = profile.targetWeight;
+    final start = profile.startWeight ?? current; // null ise mevcut kilo = baseline
     final hasGoal = current != null && target != null && target > 0;
-    final difference = hasGoal ? (current - target).abs() : null;
-    final baseline = hasGoal ? math.max(current, target) : 1.0;
-    final progress = hasGoal
-        ? (1 - (difference! / baseline)).clamp(0.06, 1.0).toDouble()
-        : 0.0;
+
+    // Yeni progress mantığı:
+    //   toplam_yol  = |başlangıç - hedef|
+    //   gidilen_yol = |başlangıç - mevcut| (yön doğruysa)
+    //   progress    = gidilen / toplam (0..1)
+    // Kullanıcı ters yöne giderse progress 0; hedefi geçtiyse 1.
+    double progress = 0.0;
+    if (hasGoal && start != null) {
+      final toplamYol = (start - target).abs();
+      if (toplamYol < 0.05) {
+        // Başlangıç = hedef (zaten hedefte) — bar full göster.
+        progress = 1.0;
+      } else {
+        // Hedef yönü: start > target → kilo vermek; start < target → kilo almak.
+        final hedefAsagi = target < start;
+        final gidilen = hedefAsagi ? (start - current) : (current - start);
+        progress = (gidilen / toplamYol).clamp(0.0, 1.0).toDouble();
+      }
+    }
+
     final targetText = hasGoal
         ? _targetStatus(current, target)
         : 'Hedef kilo eklenmedi';
+    final progressPercent = (progress * 100).round();
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -469,16 +486,73 @@ class _GoalProgressCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 10,
-              value: progress,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              valueColor: const AlwaysStoppedAnimation(Color(0xFF34D399)),
-            ),
+          // Progress bar + sağında yüzde
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 10,
+                    value: progress,
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    valueColor: const AlwaysStoppedAnimation(
+                      Color(0xFF34D399),
+                    ),
+                  ),
+                ),
+              ),
+              if (hasGoal) ...[
+                const SizedBox(width: 12),
+                Text(
+                  '%$progressPercent',
+                  style: const TextStyle(
+                    color: Color(0xFF34D399),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 12),
+          // Başlangıç / Mevcut / Hedef üçlüsü
+          if (hasGoal && start != null) ...[
+            Row(
+              children: [
+                _GoalEndpoint(
+                  label: 'Başlangıç',
+                  value: _formatNumber(start, suffix: 'kg', fractionDigits: 1),
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+                Expanded(
+                  child: Center(
+                    child: _GoalEndpoint(
+                      label: 'Mevcut',
+                      value: _formatNumber(
+                        current,
+                        suffix: 'kg',
+                        fractionDigits: 1,
+                      ),
+                      color: Colors.white,
+                      bold: true,
+                    ),
+                  ),
+                ),
+                _GoalEndpoint(
+                  label: 'Hedef',
+                  value: _formatNumber(
+                    target,
+                    suffix: 'kg',
+                    fractionDigits: 1,
+                  ),
+                  color: const Color(0xFF34D399),
+                  alignEnd: true,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -490,18 +564,53 @@ class _GoalProgressCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (target != null)
-                Text(
-                  _formatNumber(target, suffix: 'kg'),
-                  style: const TextStyle(
-                    color: Color(0xFF34D399),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GoalEndpoint extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  final bool bold;
+  final bool alignEnd;
+
+  const _GoalEndpoint({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.bold = false,
+    this.alignEnd = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.4),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: bold ? 15 : 13,
+            fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

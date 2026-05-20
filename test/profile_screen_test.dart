@@ -19,6 +19,7 @@ void main() {
       height: 180,
       weight: 81,
       targetWeight: 76,
+      startWeight: 85,
       goal: 'Fat loss',
       gender: 'B',
       isOnboarded: true,

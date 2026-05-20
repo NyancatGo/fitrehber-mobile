@@ -1,0 +1,12 @@
+{
+  "total_lines": 4494132,
+  "parse_errors": 0,
+  "not_turkish": 4485352,
+  "no_nutriments": 4817,
+  "sanity_fail": 542,
+  "no_name": 0,
+  "duplicate_code": 0,
+  "accepted": 3421,
+  "elapsed_sec": 1075.4,
+  "output_bytes": 1471130
+}

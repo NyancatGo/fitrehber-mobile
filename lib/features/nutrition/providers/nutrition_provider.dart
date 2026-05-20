@@ -144,6 +144,71 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
     }
   }
 
+  /// Mevcut kaydı yeni gramajla günceller.
+  /// Backend'de gerçek bir UPDATE endpoint'i olmadığı için workflow:
+  ///   1) Yeni gramajla yeni kayıt oluştur (orijinal kaydın metadata'sıyla)
+  ///   2) Yeni kayıt başarılıysa eskisini sil
+  /// Bu sırayla yapmamızın sebebi: ekleme patlasa bile eski kayıt yerinde kalır
+  /// → veri kaybı olmaz, en kötü ihtimalle UI'da hata mesajı gözükür.
+  Future<bool> ogunGuncelle({
+    required OgunKaydiModel eski,
+    required double yeniMiktar,
+  }) async {
+    if (yeniMiktar <= 0) {
+      state = state.copyWith(hata: 'Miktar sıfırdan büyük olmalı.');
+      return false;
+    }
+    if (yeniMiktar == eski.miktar) return true; // Değişiklik yok.
+
+    // 100g başına makro değerleri orijinal kayıttan geri hesapla,
+    // sonra yeni gramajla ölçekle. Bu sayede orijinal besinin
+    // besleyici profilini bozmadan miktarı değiştiriyoruz.
+    final oran = yeniMiktar / eski.miktar;
+    final yeniKalori = (eski.kalori * oran).round();
+    final yeniProtein = eski.protein * oran;
+    final yeniKarb = eski.karbonhidrat * oran;
+    final yeniYag = eski.yag * oran;
+
+    final tarih = state.seciliTarih;
+    state = state.copyWith(isLoading: true, clearHata: true);
+
+    try {
+      // 1) Önce yeni gramajla ekle (eski silinmeden).
+      await _api.ogunEkle(
+        tarih: tarih,
+        ogunTipi: eski.ogunTipi,
+        besinId: eski.besinId,
+        besinIsim: eski.besinIsim,
+        miktar: yeniMiktar,
+        kalori: yeniKalori,
+        protein: yeniProtein,
+        karbonhidrat: yeniKarb,
+        yag: yeniYag,
+      );
+      // 2) Yeni eklendi → eskisini sil.
+      try {
+        await _api.ogunSil(eski.id);
+      } catch (e) {
+        debugPrint('[ogunGuncelle] eski kayıt silinemedi: $e');
+        // Yeni eklendi ama eski kalmış → kullanıcıya bildir,
+        // veri kaybı yok ama duplicate var.
+        await load(tarih);
+        state = state.copyWith(
+          hata: 'Güncellendi ama eski kayıt kalmış olabilir.',
+        );
+        return true;
+      }
+      await load(tarih);
+      return true;
+    } catch (e) {
+      debugPrint('[ogunGuncelle] ekleme başarısız: $e');
+      if (mounted) {
+        state = state.copyWith(isLoading: false, hata: _mesaj(e));
+      }
+      return false;
+    }
+  }
+
   Future<bool> ogunSil(int id) async {
     final tarih = state.seciliTarih;
     state = state.copyWith(isLoading: true, clearHata: true);

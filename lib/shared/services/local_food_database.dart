@@ -12,21 +12,18 @@ class LocalFoodDatabase {
   List<LocalFoodItem>? _foods;
   bool _isLoading = false;
 
-  /// Veritabanını bellekte hazırlar. İlk çağrıda JSON parse eder,
-  /// sonraki çağrılarda önbellekten döner.
+  /// Veritabanını bellekte hazırlar. İki kaynak yüklenir:
+  ///   - foods_cleaned.json   → generic foods (curated)
+  ///   - foods_brands_tr.json → Türkiye'deki markalı ürünler (OpenFoodFacts)
+  /// İkincisi yoksa veya bozuksa sadece birincisi kullanılır.
   Future<void> initialize() async {
     if (_foods != null || _isLoading) return;
     _isLoading = true;
     try {
-      final jsonString =
-          await rootBundle.loadString('assets/data/foods_cleaned.json');
-      final List<dynamic> jsonList = json.decode(jsonString) as List<dynamic>;
-      _foods = jsonList
-          .map(
-            (item) =>
-                LocalFoodItem.fromJson(item as Map<String, dynamic>),
-          )
-          .where((f) => f.kalori100g > 0) // Boş verileri filtrele
+      final generic = await _loadFile('assets/data/foods_cleaned.json');
+      final branded = await _loadFile('assets/data/foods_brands_tr.json');
+      _foods = [...generic, ...branded]
+          .where((f) => f.kalori100g > 0)
           .toList();
     } catch (e) {
       _foods = [];
@@ -35,12 +32,25 @@ class LocalFoodDatabase {
     }
   }
 
+  /// Tek bir JSON dosyasını yükler; bulunamazsa veya bozuksa boş liste döner.
+  Future<List<LocalFoodItem>> _loadFile(String assetPath) async {
+    try {
+      final jsonString = await rootBundle.loadString(assetPath);
+      final list = json.decode(jsonString) as List<dynamic>;
+      return list
+          .map((item) => LocalFoodItem.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// Tüm yüklü besinlerin sayısını döner.
   int get totalCount => _foods?.length ?? 0;
 
   /// Besin arar. Türkçe isim ve İngilizce isimde aynı anda arar.
   /// Sonuçlar alakalılık sırasına göre sıralanır (tam eşleşme > başlangıç > içerik).
-  List<LocalFoodItem> search(String query, {int limit = 50}) {
+  List<LocalFoodItem> search(String query, {int limit = 500}) {
     final foods = _foods;
     if (foods == null || query.trim().isEmpty) return [];
 
@@ -91,14 +101,14 @@ class LocalFoodDatabase {
     return results.take(limit).map((s) => s.item).toList();
   }
 
-  /// Popüler / önerilen besinleri getirir (kalori > 0 olan ilk N tane).
-  List<LocalFoodItem> getPopular({int limit = 20}) {
+  /// Arama boşken gösterilecek varsayılan liste — alfabetik tüm besinler.
+  /// ListView.builder lazy render ettiği için 797 item performans sorunu yaratmaz.
+  List<LocalFoodItem> getAll() {
     final foods = _foods;
     if (foods == null) return [];
-    // Yüksek kalorili olanları sırala (kullanıcının en çok arayacağı besinler)
     final sorted = List<LocalFoodItem>.from(foods)
-      ..sort((a, b) => b.kalori100g.compareTo(a.kalori100g));
-    return sorted.take(limit).toList();
+      ..sort((a, b) => a.isim.compareTo(b.isim));
+    return sorted;
   }
 
   /// Türkçe küçük harf dönüşümü (İ->i, I->ı gibi).
@@ -126,6 +136,7 @@ class LocalFoodItem {
   final String id;
   final String isim;
   final String isimIngilizce;
+  final String brand; // OFF kaynağı için marka adı; generic foods'ta boş.
 
   // Makrolar (100g başına)
   final double kalori100g;
@@ -147,6 +158,7 @@ class LocalFoodItem {
     required this.id,
     required this.isim,
     required this.isimIngilizce,
+    this.brand = '',
     required this.kalori100g,
     required this.protein100g,
     required this.karbonhidrat100g,
@@ -165,6 +177,7 @@ class LocalFoodItem {
       id: (json['id'] ?? '').toString(),
       isim: (json['isim'] ?? '').toString().trim(),
       isimIngilizce: (json['isim_ingilizce'] ?? '').toString().trim(),
+      brand: (json['brand'] ?? '').toString().trim(),
       kalori100g: _d(json['kalori100g']),
       protein100g: _d(json['protein100g']),
       karbonhidrat100g: _d(json['karbonhidrat100g']),

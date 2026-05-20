@@ -129,7 +129,7 @@ class _FoodSearchViewState extends ConsumerState<_FoodSearchView> {
     if (mounted) {
       setState(() {
         _isInit = true;
-        _results = LocalFoodDatabase.instance.getPopular();
+        _results = LocalFoodDatabase.instance.getAll();
       });
     }
   }
@@ -137,7 +137,7 @@ class _FoodSearchViewState extends ConsumerState<_FoodSearchView> {
   void _onSearchChanged(String query) {
     if (query.trim().isEmpty) {
       setState(() {
-        _results = LocalFoodDatabase.instance.getPopular();
+        _results = LocalFoodDatabase.instance.getAll();
       });
       return;
     }
@@ -324,13 +324,41 @@ class _FoodListTile extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '100g • ${food.kalori100g.toInt()} kcal',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Row(
+                    children: [
+                      if (food.brand.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3B82F6)
+                                .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            food.brand,
+                            style: const TextStyle(
+                              color: Color(0xFF60A5FA),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Flexible(
+                        child: Text(
+                          '100g • ${food.kalori100g.toInt()} kcal',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
