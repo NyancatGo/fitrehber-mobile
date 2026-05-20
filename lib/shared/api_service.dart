@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -577,22 +578,31 @@ class ApiService {
     final token = await _accessTokenOrThrow(
       'Öğün eklemek için giriş yapmalısın.',
     );
+    // null alanları payload'a koymuyoruz; backend "either besin_id OR besin_isim"
+    // şeklinde XOR validasyon yapıyorsa null gönderim 400'e yol açıyor.
+    final payload = <String, dynamic>{
+      'tarih': tarih,
+      'ogun_tipi': ogunTipi,
+      'miktar': miktar,
+      'kalori': kalori,
+      'protein': protein,
+      'karbonhidrat': karbonhidrat,
+      'yag': yag,
+    };
+    if (besinId != null) payload['besin_id'] = besinId;
+    if (besinIsim != null && besinIsim.trim().isNotEmpty) {
+      payload['besin_isim'] = besinIsim.trim();
+    }
+
     final response = await _dio.post(
       ApiConstants.beslenmeEkle,
-      data: {
-        'tarih': tarih,
-        'ogun_tipi': ogunTipi,
-        'besin_id': besinId,
-        'besin_isim': besinIsim,
-        'miktar': miktar,
-        'kalori': kalori,
-        'protein': protein,
-        'karbonhidrat': karbonhidrat,
-        'yag': yag,
-      },
+      data: payload,
       options: _authOptions(token),
     );
-    if (response.statusCode == 201) return;
+    if (response.statusCode == 201 || response.statusCode == 200) return;
+    debugPrint('[ogunEkle] FAIL ${response.statusCode}');
+    debugPrint('[ogunEkle] payload=${jsonEncode(payload)}');
+    debugPrint('[ogunEkle] body=${response.data}');
     throw _hataAyikla(
       response.data,
       response.statusCode,
@@ -636,6 +646,8 @@ class ApiService {
         response.data as Map<String, dynamic>,
       );
     }
+    debugPrint('[suEkle] FAIL ${response.statusCode}');
+    debugPrint('[suEkle] body=${response.data}');
     throw _hataAyikla(
       response.data,
       response.statusCode,
@@ -814,7 +826,19 @@ class ApiService {
           data['error'] ??
           data['non_field_errors'];
       if (detail != null && detail.toString().trim().isNotEmpty) {
-        return detail.toString();
+        return detail is List ? detail.join(' ') : detail.toString();
+      }
+      // DRF field-level validation errors: {"miktar": ["This field is required."]}
+      final fieldErrors = data.entries
+          .where((e) => e.value != null)
+          .map((e) {
+            final v = e.value;
+            final msg = v is List ? v.join(', ') : v.toString();
+            return '${e.key}: $msg';
+          })
+          .join(' | ');
+      if (fieldErrors.isNotEmpty) {
+        return '$defaultMessage ($fieldErrors)';
       }
     }
 

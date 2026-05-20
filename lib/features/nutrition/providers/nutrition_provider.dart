@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/api_service.dart';
@@ -71,16 +72,17 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
       final veri = await _api.getBeslenmeSu(tarih);
       state = state.copyWith(isLoading: false, veri: veri);
     } catch (e) {
-      // API hazır olmadığında boş veri ile devam et.
+      debugPrint('[NutritionNotifier.load] $e');
+      // Veri yoksa UI'ı boş modelle ayakta tut, ama hatayı kullanıcıya göster.
       state = state.copyWith(
         isLoading: false,
         veri: GunlukBeslenmeModel(tarih: tarih),
-        clearHata: true,
+        hata: _mesaj(e),
       );
     }
   }
 
-  Future<void> suEkle(int ml) async {
+  Future<bool> suEkle(int ml) async {
     final onceki = state.veri;
     final tarih = state.seciliTarih;
     if (onceki != null) {
@@ -89,14 +91,17 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
     try {
       await _api.suEkle(tarih: tarih, miktarMl: ml);
       await load(tarih);
-    } catch (_) {
+      return true;
+    } catch (e) {
+      debugPrint('[NutritionNotifier.suEkle] $e');
       if (mounted) {
         state = state.copyWith(
           isLoading: false,
           veri: onceki,
-          hata: 'Su eklenemedi.',
+          hata: _mesaj(e),
         );
       }
+      return false;
     }
   }
 
@@ -104,7 +109,7 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
     return _api.besinAra(query);
   }
 
-  Future<void> ogunEkle({
+  Future<bool> ogunEkle({
     required String ogunTipi,
     int? besinId,
     String? besinIsim,
@@ -129,24 +134,37 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
         yag: yag,
       );
       await load(tarih);
-    } catch (_) {
+      return true;
+    } catch (e) {
+      debugPrint('[NutritionNotifier.ogunEkle] $e');
       if (mounted) {
-        state = state.copyWith(isLoading: false, hata: 'Besin eklenemedi.');
+        state = state.copyWith(isLoading: false, hata: _mesaj(e));
       }
+      return false;
     }
   }
 
-  Future<void> ogunSil(int id) async {
+  Future<bool> ogunSil(int id) async {
     final tarih = state.seciliTarih;
     state = state.copyWith(isLoading: true, clearHata: true);
     try {
       await _api.ogunSil(id);
       await load(tarih);
-    } catch (_) {
+      return true;
+    } catch (e) {
+      debugPrint('[NutritionNotifier.ogunSil] $e');
       if (mounted) {
-        state = state.copyWith(isLoading: false, hata: 'Kayıt silinemedi.');
+        state = state.copyWith(isLoading: false, hata: _mesaj(e));
       }
+      return false;
     }
+  }
+
+  String _mesaj(Object e) {
+    // ApiService genelde anlaşılır bir String fırlatır; ama
+    // ağ/timeout gibi durumlarda Exception/DioException gelebilir.
+    final raw = e is String ? e : e.toString();
+    return raw.replaceFirst(RegExp(r'^Exception: '), '');
   }
 
   static String _bugunStr() {
