@@ -9,6 +9,7 @@ import '../../shared/models/icerik_model.dart';
 import '../../shared/models/profil_model.dart';
 import '../../shared/models/yorum_model.dart';
 import '../../shared/session_controller.dart';
+import 'widgets/article_block_renderer.dart';
 import 'widgets/article_content_renderer.dart';
 import 'widgets/comment_input_bar.dart';
 import 'widgets/comment_skeleton.dart';
@@ -528,12 +529,20 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
                 ? constraints.maxWidth
                 : MediaQuery.sizeOf(context).width - 40;
 
+            // Yeni mobil blok modeli varsa onu kullan; yoksa eski HTML
+            // renderer'a düş (geriye dönük uyumluluk).
+            final bloklar = _icerik!.mobilBloklar;
             return SizedBox(
               width: double.infinity,
-              child: ArticleContentRenderer(
-                html: _icerik!.yaziTemiz,
-                contentWidth: contentWidth,
-              ),
+              child: bloklar.isNotEmpty
+                  ? ArticleBlockRenderer(
+                      blocks: bloklar,
+                      contentWidth: contentWidth,
+                    )
+                  : ArticleContentRenderer(
+                      html: _icerik!.yaziTemiz,
+                      contentWidth: contentWidth,
+                    ),
             );
           },
         ),

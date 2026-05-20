@@ -3,6 +3,8 @@
 
 import 'package:html/parser.dart' as html_parser;
 
+import 'article_block.dart';
+
 const _siteBaseUrl = 'https://fitrehber.com.tr';
 const _mediaBaseUrl = '$_siteBaseUrl/media/';
 const _mediaPrefixes = ['ckeditor_resimleri/', 'icerik_resimleri/'];
@@ -92,6 +94,9 @@ class IcerikModel {
   final String yazi;
   final String _rawYaziTemiz;
   String? _normalizedYaziTemiz;
+  /// API'nin yeni `yazi_mobil_bloklar` cıktısı. Bos veya null ise mobil
+  /// eski HTML renderer'ına (yaziTemiz) duser.
+  final List<ArticleBlock> mobilBloklar;
   final int yorumSayisi;
   final int begeniSayisi;
   final bool begendim;
@@ -110,6 +115,7 @@ class IcerikModel {
     this.kategori,
     required this.yazi,
     required String yaziTemiz,
+    this.mobilBloklar = const [],
     this.yorumSayisi = 0,
     this.begeniSayisi = 0,
     this.begendim = false,
@@ -122,6 +128,14 @@ class IcerikModel {
     final yazi = _asString(json['yazi']);
     final apiYaziTemiz = _asString(json['yazi_temiz']);
     final yaziTemiz = apiYaziTemiz.isNotEmpty ? apiYaziTemiz : yazi;
+
+    final blokRaw = json['yazi_mobil_bloklar'];
+    final mobilBloklar = blokRaw is List
+        ? blokRaw
+            .whereType<Map>()
+            .map((m) => ArticleBlock.fromJson(Map<String, dynamic>.from(m)))
+            .toList()
+        : const <ArticleBlock>[];
 
     return IcerikModel(
       id: json['id'],
@@ -136,6 +150,7 @@ class IcerikModel {
           : null,
       yazi: yazi,
       yaziTemiz: yaziTemiz,
+      mobilBloklar: mobilBloklar,
       yorumSayisi: json['yorum_sayisi'] is int
           ? json['yorum_sayisi'] as int
           : int.tryParse(json['yorum_sayisi']?.toString() ?? '') ?? 0,
@@ -162,6 +177,7 @@ class IcerikModel {
     Map<String, dynamic>? kategori,
     String? yazi,
     String? yaziTemiz,
+    List<ArticleBlock>? mobilBloklar,
     int? yorumSayisi,
     int? begeniSayisi,
     bool? begendim,
@@ -180,6 +196,7 @@ class IcerikModel {
       kategori: kategori ?? this.kategori,
       yazi: yazi ?? this.yazi,
       yaziTemiz: yaziTemiz ?? _rawYaziTemiz,
+      mobilBloklar: mobilBloklar ?? this.mobilBloklar,
       yorumSayisi: yorumSayisi ?? this.yorumSayisi,
       begeniSayisi: begeniSayisi ?? this.begeniSayisi,
       begendim: begendim ?? this.begendim,
