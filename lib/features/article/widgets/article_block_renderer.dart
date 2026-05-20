@@ -77,6 +77,8 @@ class ArticleBlockRenderer extends StatelessWidget {
       case ArticleBlockType.infoBox:
       case ArticleBlockType.quote:
       case ArticleBlockType.table:
+      case ArticleBlockType.metricGrid:
+      case ArticleBlockType.cardGrid:
         return 12;
       default:
         return 8;
@@ -114,6 +116,10 @@ class ArticleBlockRenderer extends StatelessWidget {
           children: b.children,
           isCompact: isCompact,
         );
+      case ArticleBlockType.metricGrid:
+        return _MetricGrid(items: b.metrics, isCompact: isCompact);
+      case ArticleBlockType.cardGrid:
+        return _CardGrid(items: b.cards, isCompact: isCompact);
       case ArticleBlockType.unknown:
         // Bilinmeyen blok → bos widget, log olarak bırakılabilir.
         return const SizedBox.shrink();
@@ -686,6 +692,221 @@ class _InfoBox extends StatelessWidget {
       );
     }
     return _Paragraph(html: child.text, isCompact: isCompact);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MetricGrid — nutrition-card / stat-card kumesi (degeri buyuk, label kucuk)
+// ---------------------------------------------------------------------------
+
+class _MetricGrid extends StatelessWidget {
+  final List<ArticleMetricItem> items;
+  final bool isCompact;
+
+  const _MetricGrid({required this.items, required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        // Telefonda 2 kolon; daha genis ekranda 4 kolon (1, 2, 3, 4 oge icin
+        // de mantikli grid). 3 oge varsa 3 sirayi tek satira sigdir.
+        final maxWidth = constraints.maxWidth;
+        final int cols;
+        if (items.length == 1) {
+          cols = 1;
+        } else if (items.length == 2) {
+          cols = 2;
+        } else if (isCompact) {
+          cols = 2;
+        } else {
+          cols = items.length <= 4 ? items.length : 4;
+        }
+        const gap = 10.0;
+        final cardWidth = (maxWidth - gap * (cols - 1)) / cols;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: items
+              .map((m) => SizedBox(
+                    width: cardWidth.clamp(80.0, maxWidth),
+                    child: _MetricCard(item: m, isCompact: isCompact),
+                  ))
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final ArticleMetricItem item;
+  final bool isCompact;
+
+  const _MetricCard({required this.item, required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: _BlockColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _BlockColors.line.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            item.value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _BlockColors.link,
+              fontSize: isCompact ? 22 : 26,
+              fontWeight: FontWeight.w900,
+              height: 1.1,
+              letterSpacing: -0.5,
+            ),
+          ),
+          if (item.label.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              item.label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _BlockColors.muted,
+                fontSize: isCompact ? 12 : 13,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CardGrid — benefit-card / recipe-card kumesi (baslik + body)
+// ---------------------------------------------------------------------------
+
+class _CardGrid extends StatelessWidget {
+  final List<ArticleCardItem> items;
+  final bool isCompact;
+
+  const _CardGrid({required this.items, required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    // Mobilde card'lar tek kolon — body'leri uzun olabilir.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: items
+          .map((c) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _CardItem(item: c, isCompact: isCompact),
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _CardItem extends StatelessWidget {
+  final ArticleCardItem item;
+  final bool isCompact;
+
+  const _CardItem({required this.item, required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: _BlockColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _BlockColors.line.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (item.title.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                item.title,
+                style: TextStyle(
+                  color: _BlockColors.textStrong,
+                  fontSize: isCompact ? 16 : 17,
+                  fontWeight: FontWeight.w800,
+                  height: 1.35,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ),
+          ...item.body.map(
+            (p) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: _InlineHtml(
+                html: p.html.isNotEmpty ? p.html : p.text,
+                baseStyle: TextStyle(
+                  color: _BlockColors.text,
+                  fontSize: isCompact ? 15 : 16,
+                  fontWeight: FontWeight.w500,
+                  height: 1.65,
+                ),
+              ),
+            ),
+          ),
+          if (item.list.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...List.generate(item.list.length, (i) {
+              final li = item.list[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      child: Text(
+                        '•',
+                        style: TextStyle(
+                          color: _BlockColors.link,
+                          fontSize: isCompact ? 15 : 16,
+                          fontWeight: FontWeight.w800,
+                          height: 1.65,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: _InlineHtml(
+                        html: li.html.isNotEmpty ? li.html : li.text,
+                        baseStyle: TextStyle(
+                          color: _BlockColors.text,
+                          fontSize: isCompact ? 15 : 16,
+                          fontWeight: FontWeight.w500,
+                          height: 1.65,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
   }
 }
 

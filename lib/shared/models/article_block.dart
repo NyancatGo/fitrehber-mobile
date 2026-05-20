@@ -2,7 +2,8 @@
 //
 // Backend `_normalize_article_blocks` her HTML node'unu su semantik bloklara
 // cevirir: paragraph, lead, heading, figure, quote, list, table, divider,
-// infoBox. Mobil tarafta her blok tipini ayri bir Flutter widget'i render eder.
+// infoBox, metricGrid, cardGrid. Mobil tarafta her blok tipini ayri bir Flutter
+// widget'i render eder.
 //
 // Backward compat: API bos liste veya null donerse mobil eski HTML renderer'a
 // duser (IcerikModel.yaziTemiz).
@@ -17,6 +18,8 @@ enum ArticleBlockType {
   table,
   divider,
   infoBox,
+  metricGrid,
+  cardGrid,
   unknown,
 }
 
@@ -40,6 +43,10 @@ ArticleBlockType _typeFromString(String? raw) {
       return ArticleBlockType.divider;
     case 'infoBox':
       return ArticleBlockType.infoBox;
+    case 'metricGrid':
+      return ArticleBlockType.metricGrid;
+    case 'cardGrid':
+      return ArticleBlockType.cardGrid;
     default:
       return ArticleBlockType.unknown;
   }
@@ -136,6 +143,28 @@ class ArticleBlock {
         .map((m) => ArticleBlock.fromJson(Map<String, dynamic>.from(m)))
         .toList();
   }
+
+  /// metricGrid — ardisik nutrition-card / stat-card kumesi.
+  /// Her item: buyuk deger (h2-h6) + altina kucuk etiket (p).
+  List<ArticleMetricItem> get metrics {
+    final list = raw['items'];
+    if (list is! List) return const [];
+    return list
+        .whereType<Map>()
+        .map((m) => ArticleMetricItem.fromJson(Map<String, dynamic>.from(m)))
+        .toList();
+  }
+
+  /// cardGrid — ardisik benefit-card / recipe-card kumesi.
+  /// Her item: baslik (h2-h6) + bir veya birden cok paragraf + opsiyonel liste.
+  List<ArticleCardItem> get cards {
+    final list = raw['items'];
+    if (list is! List) return const [];
+    return list
+        .whereType<Map>()
+        .map((m) => ArticleCardItem.fromJson(Map<String, dynamic>.from(m)))
+        .toList();
+  }
 }
 
 class ArticleListItem {
@@ -168,6 +197,55 @@ class ArticleTableCell {
       header: json['header'] == true,
       text: (json['text'] ?? '').toString(),
       html: (json['html'] ?? '').toString(),
+    );
+  }
+}
+
+/// Tek bir metric kart ogesi (nutrition-card / stat-card).
+/// value: buyuk sayisal deger (orn. "380" veya "17g")
+/// label: altinda gozuken aciklama (orn. "kcal Kalori")
+class ArticleMetricItem {
+  final String value;
+  final String label;
+
+  const ArticleMetricItem({required this.value, required this.label});
+
+  factory ArticleMetricItem.fromJson(Map<String, dynamic> json) {
+    return ArticleMetricItem(
+      value: (json['value'] ?? '').toString(),
+      label: (json['label'] ?? '').toString(),
+    );
+  }
+}
+
+/// Tek bir feature kart ogesi (benefit-card / recipe-card).
+/// title: kartin basligi (h2-h6)
+/// body: kart icindeki paragraflar (inline HTML korunur)
+/// list: kart icindeki liste ogeleri (varsa)
+class ArticleCardItem {
+  final String title;
+  final List<ArticleListItem> body;
+  final List<ArticleListItem> list;
+
+  const ArticleCardItem({
+    required this.title,
+    required this.body,
+    required this.list,
+  });
+
+  factory ArticleCardItem.fromJson(Map<String, dynamic> json) {
+    List<ArticleListItem> parseItems(Object? raw) {
+      if (raw is! List) return const [];
+      return raw
+          .whereType<Map>()
+          .map((m) => ArticleListItem.fromJson(Map<String, dynamic>.from(m)))
+          .toList();
+    }
+
+    return ArticleCardItem(
+      title: (json['title'] ?? '').toString(),
+      body: parseItems(json['body']),
+      list: parseItems(json['list']),
     );
   }
 }
