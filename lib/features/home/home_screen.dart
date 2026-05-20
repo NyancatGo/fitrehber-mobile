@@ -2,6 +2,7 @@
 // Seçilen sekmeye göre ilgili ekran gösterilir.
 
 import 'package:flutter/material.dart';
+import '../../shared/widgets/ai_assistant_icon.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
 import '../forum/forum_screen.dart';
 import '../nutrition/nutrition_screen.dart';
@@ -52,8 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Forum',
           ),
           NavigationDestination(
-            icon: Icon(Icons.smart_toy_outlined),
-            selectedIcon: Icon(Icons.smart_toy),
+            icon: AiAssistantIcon(isActive: false),
+            selectedIcon: AiAssistantIcon(isActive: true),
             label: 'AI Asistan',
           ),
           NavigationDestination(

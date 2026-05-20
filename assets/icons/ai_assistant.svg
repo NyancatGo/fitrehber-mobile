@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FitRehber · AI Asistan · Sparkle Twin · gradient varyant -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="24" height="24" viewBox="0 0 24 24"
+     fill="none">
+  <defs>
+    <linearGradient id="fr" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#FCD34D"/>
+      <stop offset="55%"  stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#F5A623"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Big sparkle (AI symbol) -->
+  <path d="M11 3.5 C11 9.5 12 11.5 20.5 12.5 C12 13.5 11 15.5 11 21.5 C11 15.5 10 13.5 1.5 12.5 C10 11.5 11 9.5 11 3.5 Z"
+        stroke="url(#fr)" stroke-width="2"
+        stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Companion sparkle (character) -->
+  <path d="M19.2 2.6 C19.2 4.4 19.4 4.8 21.6 5.2 C19.4 5.6 19.2 6.0 19.2 7.8 C19.2 6.0 19.0 5.6 16.8 5.2 C19.0 4.8 19.2 4.4 19.2 2.6 Z"
+        stroke="url(#fr)" stroke-width="2"
+        stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
