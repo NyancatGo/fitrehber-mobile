@@ -31,4 +31,6 @@ class ApiConstants {
   static String icerikBegen(int icerikId) => '$icerikler$icerikId/begen/';
   static String icerikKaydet(int icerikId) => '$icerikler$icerikId/kaydet/';
   static String beslenmeSil(int ogunId) => '$baseUrl/beslenme/sil/$ogunId/';
+  static String beslenmeGuncelle(int ogunId) =>
+      '$baseUrl/beslenme/guncelle/$ogunId/';
 }

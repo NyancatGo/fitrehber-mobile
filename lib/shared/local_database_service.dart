@@ -6,11 +6,13 @@ import 'models/icerik_model.dart';
 import 'models/kategori_model.dart';
 
 class LocalDatabaseService {
+  // Profil cache'i ApiService._writeCachedProfile (FlutterSecureStorage)
+  // tarafindan yapiliyor; bu sinifin _profilKey/_profilTsKey + cacheProfil
+  // /getCachedProfilJson uyeleri hicbir yerden cagrilmiyordu (dead code),
+  // Antigravity #8 — silindi.
   static const String _kategoriKey = 'cached_kategoriler';
   static const String _icerikKey = 'cached_icerikler';
   static const String _icerikTsKey = 'cached_icerikler_ts';
-  static const String _profilKey = 'cached_profil';
-  static const String _profilTsKey = 'cached_profil_ts';
   static const Duration _maxAge = Duration(hours: 1);
 
   // ---------- Kategoriler ----------
@@ -61,25 +63,6 @@ class LocalDatabaseService {
     final ts = prefs.getInt(_icerikTsKey);
     if (ts == null) return true;
     return DateTime.now().millisecondsSinceEpoch - ts > _maxAge.inMilliseconds;
-  }
-
-  // ---------- Profil ----------
-
-  static Future<void> cacheProfil(Map<String, dynamic> json) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_profilKey, jsonEncode(json));
-    await prefs.setInt(_profilTsKey, DateTime.now().millisecondsSinceEpoch);
-  }
-
-  static Future<Map<String, dynamic>?> getCachedProfilJson() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_profilKey);
-    if (raw == null) return null;
-    try {
-      return jsonDecode(raw) as Map<String, dynamic>;
-    } catch (_) {
-      return null;
-    }
   }
 
   // ---------- Serialize yardımcıları ----------

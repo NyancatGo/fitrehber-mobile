@@ -628,6 +628,42 @@ class ApiService {
     );
   }
 
+  /// Tek atomic PATCH ile bir ogun kaydinin miktar+makro alanlarini gunceller.
+  /// Verified besin ise sunucu makrolari yeni miktara gore yeniden hesaplar
+  /// (kalori/protein/karbonhidrat/yag parametreleri istemcide null gecilebilir).
+  /// Custom food ise makro override'lari da gonderilmeli — aksi halde sunucu
+  /// eski deger × (yeni_miktar / eski_miktar) ile olcekler.
+  Future<void> ogunGuncelle({
+    required int id,
+    required double miktar,
+    int? kalori,
+    double? protein,
+    double? karbonhidrat,
+    double? yag,
+  }) async {
+    final token = await _accessTokenOrThrow(
+      'Öğün güncellemek için giriş yapmalısın.',
+    );
+    final payload = <String, dynamic>{'miktar': miktar};
+    if (kalori != null) payload['kalori'] = kalori;
+    if (protein != null) payload['protein'] = protein;
+    if (karbonhidrat != null) payload['karbonhidrat'] = karbonhidrat;
+    if (yag != null) payload['yag'] = yag;
+
+    final response = await _dio.patch(
+      ApiConstants.beslenmeGuncelle(id),
+      data: payload,
+      options: _authOptions(token),
+    );
+    if (response.statusCode == 200) return;
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Öğün güncellenemedi.',
+    );
+  }
+
   Future<GunlukBeslenmeModel> suEkle({
     required String tarih,
     required int miktarMl,

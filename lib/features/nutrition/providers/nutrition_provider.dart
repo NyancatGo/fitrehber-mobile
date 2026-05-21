@@ -99,13 +99,20 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
     final onceki = state.veri;
     final tarih = state.seciliTarih;
     if (onceki != null) {
-      // 0'in altina dusmesin (negatif eksiltme isteklerinde clamp)
+      // Optimistic update — kullanici barini hemen gorur. API yaniti
+      // kanonik degeri overwrite eder (race veya clamp farkliysa duzelir).
       final yeni = (onceki.suMl + ml).clamp(0, 100000);
       state = state.copyWith(veri: onceki.copyWith(suMl: yeni));
     }
     try {
-      await _api.suEkle(tarih: tarih, miktarMl: ml);
-      await load(tarih);
+      // API yaniti guncel GunlukBeslenmeSu modelini doner — onu kullaniyoruz.
+      // Eski 'await load(tarih)' redundant GET'i kaldirildi: hem bir HTTP
+      // round-trip tasarrufu, hem hedefler recompute'u atlanir (su ekleme
+      // profili degistirmez).
+      final guncel = await _api.suEkle(tarih: tarih, miktarMl: ml);
+      if (mounted) {
+        state = state.copyWith(veri: guncel);
+      }
       return true;
     } catch (e) {
       debugPrint('[NutritionNotifier.suEkle] $e');
@@ -159,12 +166,19 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
     }
   }
 
-  /// Mevcut kaydı yeni gramajla günceller.
-  /// Backend'de gerçek bir UPDATE endpoint'i olmadığı için workflow:
-  ///   1) Yeni gramajla yeni kayıt oluştur (orijinal kaydın metadata'sıyla)
-  ///   2) Yeni kayıt başarılıysa eskisini sil
-  /// Bu sırayla yapmamızın sebebi: ekleme patlasa bile eski kayıt yerinde kalır
-  /// → veri kaybı olmaz, en kötü ihtimalle UI'da hata mesajı gözükür.
+  /// Mevcut kaydı yeni gramajla günceller — TEK atomic PATCH isteği.
+  ///
+  /// Eski 'önce yeni ekle, sonra eskiyi sil' workflow'u (non-atomic) artık
+  /// kullanilmiyor: network kesilirse duplicate kayit kaliyordu. API'deki
+  /// yeni `OgunGuncelle` endpoint'i transaction.atomic() icinde:
+  ///   - Dogrulanmis besin ise makrolari yeniden hesaplar (server-side)
+  ///   - Custom food ise istemci payload'unu kullanir
+  ///   - _gunluk_toplami_guncelle ile gunluk agreganini lock altinda
+  ///     yeniler.
+  ///
+  /// Mobil sadece miktar gonderir; makro recompute sunucuda olur. Custom
+  /// food icin geri uyumluluk: sunucu olcekleme yapiyor, ama mobil
+  /// agresif hassasiyet istiyorsa makrolari da yollayabilir.
   Future<bool> ogunGuncelle({
     required OgunKaydiModel eski,
     required double yeniMiktar,
@@ -175,48 +189,16 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
     }
     if (yeniMiktar == eski.miktar) return true; // Değişiklik yok.
 
-    // 100g başına makro değerleri orijinal kayıttan geri hesapla,
-    // sonra yeni gramajla ölçekle. Bu sayede orijinal besinin
-    // besleyici profilini bozmadan miktarı değiştiriyoruz.
-    final oran = yeniMiktar / eski.miktar;
-    final yeniKalori = (eski.kalori * oran).round();
-    final yeniProtein = eski.protein * oran;
-    final yeniKarb = eski.karbonhidrat * oran;
-    final yeniYag = eski.yag * oran;
-
     final tarih = state.seciliTarih;
     state = state.copyWith(isLoading: true, clearHata: true);
 
     try {
-      // 1) Önce yeni gramajla ekle (eski silinmeden).
-      await _api.ogunEkle(
-        tarih: tarih,
-        ogunTipi: eski.ogunTipi,
-        besinId: eski.besinId,
-        besinIsim: eski.besinIsim,
-        miktar: yeniMiktar,
-        kalori: yeniKalori,
-        protein: yeniProtein,
-        karbonhidrat: yeniKarb,
-        yag: yeniYag,
-      );
-      // 2) Yeni eklendi → eskisini sil.
-      try {
-        await _api.ogunSil(eski.id);
-      } catch (e) {
-        debugPrint('[ogunGuncelle] eski kayıt silinemedi: $e');
-        // Yeni eklendi ama eski kalmış → kullanıcıya bildir,
-        // veri kaybı yok ama duplicate var.
-        await load(tarih);
-        state = state.copyWith(
-          hata: 'Güncellendi ama eski kayıt kalmış olabilir.',
-        );
-        return true;
-      }
+      await _api.ogunGuncelle(id: eski.id, miktar: yeniMiktar);
+      // Toplam agregayi tazelemek icin gunluk modeli tekrar cek.
       await load(tarih);
       return true;
     } catch (e) {
-      debugPrint('[ogunGuncelle] ekleme başarısız: $e');
+      debugPrint('[ogunGuncelle] PATCH başarısız: $e');
       if (mounted) {
         state = state.copyWith(isLoading: false, hata: _mesaj(e));
       }
