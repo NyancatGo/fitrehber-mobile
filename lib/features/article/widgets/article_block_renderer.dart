@@ -71,6 +71,8 @@ class ArticleBlockRenderer extends StatelessWidget {
     switch (b.type) {
       case ArticleBlockType.heading:
         return 14;
+      case ArticleBlockType.sectionHead:
+        return 16;
       case ArticleBlockType.divider:
         return 18;
       case ArticleBlockType.figure:
@@ -99,6 +101,7 @@ class ArticleBlockRenderer extends StatelessWidget {
           src: b.src,
           alt: b.alt,
           caption: b.caption,
+          aspectRatio: b.aspectRatio,
           isCompact: isCompact,
         );
       case ArticleBlockType.quote:
@@ -120,6 +123,13 @@ class ArticleBlockRenderer extends StatelessWidget {
         return _MetricGrid(items: b.metrics, isCompact: isCompact);
       case ArticleBlockType.cardGrid:
         return _CardGrid(items: b.cards, isCompact: isCompact);
+      case ArticleBlockType.sectionHead:
+        return _SectionHead(
+          number: b.number,
+          title: b.title,
+          level: b.level,
+          isCompact: isCompact,
+        );
       case ArticleBlockType.unknown:
         // Bilinmeyen blok → bos widget, log olarak bırakılabilir.
         return const SizedBox.shrink();
@@ -283,6 +293,95 @@ class _Heading extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// SectionHead — numara badge + baslik (Whey/Yulaf gibi premium makaleler)
+// ---------------------------------------------------------------------------
+
+class _SectionHead extends StatelessWidget {
+  final String number;
+  final String title;
+  final int level;
+  final bool isCompact;
+
+  const _SectionHead({
+    required this.number,
+    required this.title,
+    required this.level,
+    required this.isCompact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final titleSize = switch (level) {
+      2 => isCompact ? 22.0 : 26.0,
+      3 => isCompact ? 19.0 : 21.0,
+      _ => isCompact ? 17.0 : 18.0,
+    };
+    final badgeSize = isCompact ? 40.0 : 46.0;
+    final badgeFontSize = isCompact ? 18.0 : 20.0;
+
+    final titleWidget = Text(
+      title,
+      style: TextStyle(
+        color: _BlockColors.textStrong,
+        fontSize: titleSize,
+        fontWeight: FontWeight.w900,
+        height: 1.25,
+        letterSpacing: -0.3,
+      ),
+    );
+
+    if (number.isEmpty) {
+      // Numara yoksa sectionHead = ozellestirilmis heading; sol cizgi vurgusu
+      // ile yine de heading'den ayirt edilebilir kalsin.
+      return Container(
+        padding: const EdgeInsets.only(left: 12),
+        decoration: const BoxDecoration(
+          border: Border(
+            left: BorderSide(color: _BlockColors.primary, width: 3),
+          ),
+        ),
+        child: titleWidget,
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: badgeSize,
+          height: badgeSize,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: _BlockColors.primary.withValues(alpha: 0.35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Text(
+            number,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: badgeFontSize,
+              fontWeight: FontWeight.w900,
+              height: 1.0,
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: titleWidget),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Figure
 // ---------------------------------------------------------------------------
 
@@ -290,41 +389,53 @@ class _Figure extends StatelessWidget {
   final String src;
   final String alt;
   final String caption;
+  final double? aspectRatio;
   final bool isCompact;
+
+  /// API aspectRatio bilgisi gondermediginde kullanilan varsayilan.
+  /// 16:9 cogu makale hero gorseli icin makul; backend img width/height
+  /// attribute eklerse bu degisir.
+  static const double _defaultAspectRatio = 16 / 9;
 
   const _Figure({
     required this.src,
     required this.alt,
     required this.caption,
+    required this.aspectRatio,
     required this.isCompact,
   });
 
   @override
   Widget build(BuildContext context) {
     if (src.isEmpty) return const SizedBox.shrink();
+    // Gorsel her zaman AspectRatio icinde yer ayirir — boylece yuklenirken
+    // veya hatada placeholder/error widget'i ayni boyut bos birakir,
+    // yukleme sonrasinda layout shift olmaz.
+    final ratio = aspectRatio ?? _defaultAspectRatio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: CachedNetworkImage(
-            imageUrl: src,
-            fit: BoxFit.cover,
-            placeholder: (_, _) => Container(
-              height: 200,
-              color: _BlockColors.surfaceSoft,
-              alignment: Alignment.center,
-              child: const CircularProgressIndicator(
-                strokeWidth: 2,
-                color: _BlockColors.primary,
+          child: AspectRatio(
+            aspectRatio: ratio,
+            child: CachedNetworkImage(
+              imageUrl: src,
+              fit: BoxFit.cover,
+              placeholder: (_, _) => Container(
+                color: _BlockColors.surfaceSoft,
+                alignment: Alignment.center,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: _BlockColors.primary,
+                ),
               ),
-            ),
-            errorWidget: (_, url, error) => Container(
-              height: 120,
-              alignment: Alignment.center,
-              color: _BlockColors.surfaceSoft,
-              child: const Icon(Icons.broken_image_outlined,
-                  color: _BlockColors.muted),
+              errorWidget: (_, url, error) => Container(
+                alignment: Alignment.center,
+                color: _BlockColors.surfaceSoft,
+                child: const Icon(Icons.broken_image_outlined,
+                    color: _BlockColors.muted),
+              ),
             ),
           ),
         ),

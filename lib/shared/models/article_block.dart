@@ -2,8 +2,8 @@
 //
 // Backend `_normalize_article_blocks` her HTML node'unu su semantik bloklara
 // cevirir: paragraph, lead, heading, figure, quote, list, table, divider,
-// infoBox, metricGrid, cardGrid. Mobil tarafta her blok tipini ayri bir Flutter
-// widget'i render eder.
+// infoBox, metricGrid, cardGrid, sectionHead. Mobil tarafta her blok tipini
+// ayri bir Flutter widget'i render eder.
 //
 // Backward compat: API bos liste veya null donerse mobil eski HTML renderer'a
 // duser (IcerikModel.yaziTemiz).
@@ -20,6 +20,7 @@ enum ArticleBlockType {
   infoBox,
   metricGrid,
   cardGrid,
+  sectionHead,
   unknown,
 }
 
@@ -47,6 +48,8 @@ ArticleBlockType _typeFromString(String? raw) {
       return ArticleBlockType.metricGrid;
     case 'cardGrid':
       return ArticleBlockType.cardGrid;
+    case 'sectionHead':
+      return ArticleBlockType.sectionHead;
     default:
       return ArticleBlockType.unknown;
   }
@@ -103,6 +106,25 @@ class ArticleBlock {
   String get src => (raw['src'] ?? '').toString();
   String get alt => (raw['alt'] ?? '').toString();
   String get caption => (raw['caption'] ?? '').toString();
+
+  /// figure: img width/height varsa backend w/h olarak gonderir. Null donerse
+  /// renderer fallback degeri (16/9) kullanir, boylece layout shift olmaz.
+  double? get aspectRatio {
+    final v = raw['aspectRatio'];
+    if (v is num) {
+      final d = v.toDouble();
+      if (d > 0 && d.isFinite) return d;
+      return null;
+    }
+    if (v == null) return null;
+    final parsed = double.tryParse(v.toString());
+    if (parsed != null && parsed > 0 && parsed.isFinite) return parsed;
+    return null;
+  }
+
+  /// sectionHead: numarali baslik bloku (sol badge + sag baslik).
+  /// number bos string olabilir — render edilirken badge gosterilmez.
+  String get number => (raw['number'] ?? '').toString();
 
   /// quote
   String get cite => (raw['cite'] ?? '').toString();

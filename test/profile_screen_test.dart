@@ -25,6 +25,7 @@ void main() {
       isOnboarded: true,
       birthDate: null,
       joinDate: null,
+      customWaterGoalMl: null,
       isStaff: true,
       isSuperuser: true,
       postCount: 8,
