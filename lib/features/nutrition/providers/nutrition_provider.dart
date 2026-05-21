@@ -86,7 +86,9 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
     final onceki = state.veri;
     final tarih = state.seciliTarih;
     if (onceki != null) {
-      state = state.copyWith(veri: onceki.copyWith(suMl: onceki.suMl + ml));
+      // 0'in altina dusmesin (negatif eksiltme isteklerinde clamp)
+      final yeni = (onceki.suMl + ml).clamp(0, 100000);
+      state = state.copyWith(veri: onceki.copyWith(suMl: yeni));
     }
     try {
       await _api.suEkle(tarih: tarih, miktarMl: ml);

@@ -96,8 +96,12 @@ class NutritionCalculator {
     final karbG = karbKcal / 4;
     final yagG = yagKcal / 9;
 
-    // Su hedefi: Kilo × 35ml (genel kural)
-    final suMl = (kilo * 35).round().clamp(1500, 5000);
+    // Su hedefi: kullanici manuel hedef belirlediyse onu kullan; aksi halde
+    // genel kural (kilo × 35 ml). Manuel deger 0 veya null ise formul devreye girer.
+    final customSu = profil.customWaterGoalMl;
+    final int suMl = (customSu != null && customSu > 0)
+        ? customSu.clamp(500, 10000)
+        : (kilo * 35).round().clamp(1500, 5000);
 
     return NutritionGoals(
       kaloriHedef: kaloriHedef,

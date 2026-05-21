@@ -17,6 +17,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _weightController;
   late final TextEditingController _targetWeightController;
   late final TextEditingController _goalController;
+  late final TextEditingController _waterGoalController;
   late DateTime? _birthDate;
   late String _gender;
   XFile? _selectedPhoto;
@@ -37,6 +38,12 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       text: _formatNumber(widget.profile.targetWeight),
     );
     _goalController = TextEditingController(text: widget.profile.goal);
+    _waterGoalController = TextEditingController(
+      text: widget.profile.customWaterGoalMl != null &&
+              widget.profile.customWaterGoalMl! > 0
+          ? widget.profile.customWaterGoalMl.toString()
+          : '',
+    );
     _birthDate = widget.profile.birthDate;
     _gender = widget.profile.gender;
   }
@@ -48,6 +55,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     _weightController.dispose();
     _targetWeightController.dispose();
     _goalController.dispose();
+    _waterGoalController.dispose();
     super.dispose();
   }
 
@@ -73,6 +81,12 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     setState(() => _saving = true);
 
     try {
+      // Su hedefi: bos -> null gonder (otomatik formul devreye girer)
+      final waterText = _waterGoalController.text.trim();
+      final int? waterGoal = waterText.isEmpty
+          ? null
+          : int.tryParse(waterText);
+
       final data = {
         'hakkinda': _bioController.text.trim(),
         'cinsiyet': _gender,
@@ -81,6 +95,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         'hedef_kilo': _parseNullableDouble(_targetWeightController.text),
         'fitness_hedefi': _goalController.text.trim(),
         'dogum_tarihi': _birthDate?.toIso8601String().split('T').first,
+        'gunluk_su_hedefi_ml': waterGoal,
       };
 
       if (widget.profile.isOnboarded && !_hasRequiredBiometrics(data)) {
@@ -217,6 +232,18 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               decoration: const InputDecoration(
                 labelText: 'Hedef',
                 prefixIcon: Icon(Icons.flag_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _waterGoalController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Günlük Su Hedefi',
+                helperText: 'Boş bırakırsan otomatik (kilo × 35 ml) hesaplanır.',
+                suffixText: 'ml',
+                prefixIcon: Icon(Icons.water_drop_outlined),
                 border: OutlineInputBorder(),
               ),
             ),

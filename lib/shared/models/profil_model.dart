@@ -20,6 +20,9 @@ class ProfilModel {
   final bool isOnboarded;
   final DateTime? birthDate;
   final DateTime? joinDate;
+  /// Kullanıcının belirlediği günlük su hedefi (ml). NULL/0 ise
+  /// `NutritionCalculator` kilo×35 ml formülünü kullanır.
+  final int? customWaterGoalMl;
   final bool isStaff;
   final bool isSuperuser;
   final int postCount;
@@ -44,6 +47,7 @@ class ProfilModel {
     required this.isOnboarded,
     required this.birthDate,
     required this.joinDate,
+    required this.customWaterGoalMl,
     required this.isStaff,
     required this.isSuperuser,
     required this.postCount,
@@ -112,6 +116,11 @@ class ProfilModel {
       joinDate: _asDate(
         read(['date_joined', 'join_date', 'joinDate', 'joined_at']),
       ),
+      customWaterGoalMl: _asInt(read([
+        'gunluk_su_hedefi_ml',
+        'daily_water_goal_ml',
+        'customWaterGoalMl',
+      ])),
       isStaff: _asBool(read(['is_staff', 'isStaff'])),
       isSuperuser: _asBool(read(['is_superuser', 'isSuperuser'])),
       postCount: _asInt(read(['post_count', 'postCount'])) ?? 0,
@@ -141,6 +150,7 @@ class ProfilModel {
       isOnboarded: false,
       birthDate: null,
       joinDate: null,
+      customWaterGoalMl: null,
       isStaff: false,
       isSuperuser: false,
       postCount: 0,
@@ -167,6 +177,7 @@ class ProfilModel {
     bool? isOnboarded,
     DateTime? birthDate,
     DateTime? joinDate,
+    int? customWaterGoalMl,
     bool? isStaff,
     bool? isSuperuser,
     int? postCount,
@@ -191,6 +202,7 @@ class ProfilModel {
       isOnboarded: isOnboarded ?? this.isOnboarded,
       birthDate: birthDate ?? this.birthDate,
       joinDate: joinDate ?? this.joinDate,
+      customWaterGoalMl: customWaterGoalMl ?? this.customWaterGoalMl,
       isStaff: isStaff ?? this.isStaff,
       isSuperuser: isSuperuser ?? this.isSuperuser,
       postCount: postCount ?? this.postCount,

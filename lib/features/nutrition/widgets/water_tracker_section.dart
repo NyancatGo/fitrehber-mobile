@@ -105,9 +105,33 @@ class WaterTrackerSection extends StatelessWidget {
               Expanded(
                 child: _SuButon(ml: 250, onEkle: onEkle, isLoading: isLoading),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _SuButon(ml: 500, onEkle: onEkle, isLoading: isLoading),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Geri alma butonları
+          Row(
+            children: [
+              Expanded(
+                child: _SuButon(
+                  ml: -250,
+                  onEkle: onEkle,
+                  isLoading: isLoading,
+                  negatif: true,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SuButon(
+                  ml: -500,
+                  onEkle: onEkle,
+                  isLoading: isLoading,
+                  negatif: true,
+                ),
               ),
             ],
           ),
@@ -118,14 +142,16 @@ class WaterTrackerSection extends StatelessWidget {
 }
 
 class _SuButon extends StatefulWidget {
-  final int ml;
+  final int ml; // pozitif = ekle, negatif = cikar
   final void Function(int ml) onEkle;
   final bool isLoading;
+  final bool negatif;
 
   const _SuButon({
     required this.ml,
     required this.onEkle,
     required this.isLoading,
+    this.negatif = false,
   });
 
   @override
@@ -166,6 +192,8 @@ class _SuButonState extends State<_SuButon>
 
   @override
   Widget build(BuildContext context) {
+    final isari = widget.ml > 0;
+    final etiket = isari ? '+${widget.ml} ml' : '${widget.ml} ml';
     return ScaleTransition(
       scale: _scale,
       child: GestureDetector(
@@ -174,17 +202,32 @@ class _SuButonState extends State<_SuButon>
           height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
-            ),
+            // Pozitif: cyan -> blue gradient (mevcut)
+            // Negatif: muted dark / cyan border (yumusak vurgu)
+            gradient: widget.negatif
+                ? null
+                : const LinearGradient(
+                    colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+                  ),
+            color: widget.negatif
+                ? Colors.white.withValues(alpha: 0.05)
+                : null,
             borderRadius: BorderRadius.circular(12),
+            border: widget.negatif
+                ? Border.all(
+                    color: const Color(0xFF06B6D4).withValues(alpha: 0.35),
+                    width: 1,
+                  )
+                : null,
           ),
           child: Text(
-            '+${widget.ml} ml',
-            style: const TextStyle(
+            etiket,
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: widget.negatif
+                  ? const Color(0xFF06B6D4)
+                  : Colors.white,
             ),
           ),
         ),
