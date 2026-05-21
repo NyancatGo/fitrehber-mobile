@@ -107,6 +107,10 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       if (_selectedPhoto != null) {
         await notifier.uploadProfilePhoto(_selectedPhoto!);
       }
+      // Session cache'ini de tazele - nutrition gibi diger feature'lar
+      // session.profile'i okuyor; updateProfile yalniz profileProvider'i
+      // gunceller, bu yuzden manuel sync.
+      await ref.read(sessionControllerProvider.notifier).refreshProfile();
 
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);

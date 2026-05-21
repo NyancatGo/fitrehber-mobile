@@ -48,6 +48,19 @@ class NutritionNotifier extends StateNotifier<NutritionState> {
       : super(NutritionState(seciliTarih: _bugunStr())) {
     _hesaplaHedefler();
     load(_bugunStr());
+    // Profil değişikliklerini dinle (su hedefi, kilo, boy, hedef vs.).
+    // Profile güncellenince hedefler anında recompute.
+    _ref.listen<SessionState>(sessionControllerProvider, (prev, next) {
+      final p = prev?.profile;
+      final n = next.profile;
+      final degisti = p?.customWaterGoalMl != n?.customWaterGoalMl ||
+          p?.weight != n?.weight ||
+          p?.height != n?.height ||
+          p?.goal != n?.goal ||
+          p?.gender != n?.gender ||
+          p?.birthDate != n?.birthDate;
+      if (degisti) _hesaplaHedefler();
+    });
   }
 
   /// Profil verilerinden dinamik hedefleri hesaplar.
