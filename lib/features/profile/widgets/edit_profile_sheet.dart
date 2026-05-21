@@ -21,7 +21,9 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   // Profilde legacy/serbest deger varsa null kalir, kullanici secmek zorunda.
   String? _goal;
   late DateTime? _birthDate;
-  late String _gender;
+  // Cinsiyet immutable — onboarding'de bir kez secilir, profilde degistirilemez.
+  // UI'da bu alan gosterilmiyor; API'ye payload'da 'cinsiyet' anahtari da
+  // gonderilmiyor. Mevcut DB degeri (E/K/legacy B) oldugu gibi kalir.
   XFile? _selectedPhoto;
   Uint8List? _selectedPhotoBytes;
   bool _saving = false;
@@ -50,12 +52,6 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
           : '',
     );
     _birthDate = widget.profile.birthDate;
-    // Mevcut profilden cinsiyet okunurken: yalnizca 'E' veya 'K' kabul,
-    // legacy 'B' veya bos -> kullanici acikca yeniden secsin.
-    final existingGender = widget.profile.gender;
-    _gender = (existingGender == 'E' || existingGender == 'K')
-        ? existingGender
-        : '';
   }
 
   @override
@@ -87,14 +83,6 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   Future<void> _save() async {
     if (_saving) return;
 
-    // Cinsiyet validasyonu — onboarding sonrasi profilde de E/K zorunlu.
-    if (_gender.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cinsiyet sec.')));
-      return;
-    }
-
     // Fitness hedefi sabit listeden — onboarding ile birebir tutarli.
     // Onboarded profilde zorunlu; serbest metin veya bos kabul edilmiyor.
     if (widget.profile.isOnboarded && _goal == null) {
@@ -113,9 +101,11 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
           ? null
           : int.tryParse(waterText);
 
+      // Cinsiyet payload'da YOK — onboarding'de bir kez secilir, sonradan
+      // degistirilemez. updateProfile bu alani yollamadigi icin DB'deki
+      // mevcut deger korunur.
       final data = {
         'hakkinda': _bioController.text.trim(),
-        'cinsiyet': _gender,
         'boy': _parseNullableDouble(_heightController.text),
         'kilo': _parseNullableDouble(_weightController.text),
         'hedef_kilo': _parseNullableDouble(_targetWeightController.text),
@@ -219,21 +209,8 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            // Cinsiyet zorunlu — 'Belirtmem' kabul edilmiyor. Boş ise kullanici
-            // explicit secim yapmali.
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'E', label: Text('Erkek')),
-                ButtonSegment(value: 'K', label: Text('Kadın')),
-              ],
-              selected: _gender.isEmpty ? <String>{} : {_gender},
-              emptySelectionAllowed: true,
-              onSelectionChanged: (values) {
-                if (values.isEmpty) return;
-                setState(() => _gender = values.first);
-              },
-            ),
-            const SizedBox(height: 12),
+            // Cinsiyet UI burada yok — immutable, onboarding'de secilen deger
+            // kalir. Boy/Kilo sıralamasi degismedi.
             Row(
               children: [
                 Expanded(
