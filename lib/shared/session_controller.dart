@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api_service.dart';
@@ -123,17 +124,27 @@ class SessionController extends StateNotifier<SessionState> {
         profile: profile,
       );
     } catch (error) {
-      if (logoutOnFailure) {
-        await _authService.logout();
-        state = SessionState(isLoading: false, error: error.toString());
-      } else {
+      // ApiService validateStatus = (_) => true; yani HTTP 401/403 gibi
+      // gercek auth hatalari DioException olarak DEGIL, _hataAyikla'dan
+      // dogan String/Exception olarak gelir. DioException ise yalniz ag
+      // kesintilerinde (timeout, connection error, DNS) firlatilir.
+      //
+      // Internet yokken kullaniciyi logout edip token'lari silmek hatali UX
+      // (metro/tunel vb. ortamlarda surekli zorla cikis). Bu yuzden:
+      //  - DioException (network) -> oturumu KORU, cached profili goster.
+      //  - Diger hatalar (auth) -> logoutOnFailure parametresi karar verir.
+      final isNetworkError = error is DioException;
+      if (isNetworkError || !logoutOnFailure) {
         state = SessionState(
           isLoading: false,
           isLoggedIn: true,
           profile: state.profile ?? ProfilModel.empty(),
           error: error.toString(),
         );
+        return;
       }
+      await _authService.logout();
+      state = SessionState(isLoading: false, error: error.toString());
     }
   }
 }
