@@ -67,12 +67,20 @@ class NutritionCalculator {
     const aktiviteCarpani = 1.375;
     double tdee = bmr * aktiviteCarpani;
 
-    // Hedefe göre kalori ayarlaması
+    // Hedefe göre kalori ayarlaması.
+    // Onboarding'deki uc sabit hedef ('Yağ kaybı', 'Kas kazanımı',
+    // 'Kondisyon ve genel sağlık') artik substring kontrolleriyle dogru
+    // sekilde tdee'yi -300 / +300 / nötr yönünde ayarliyor. Eski serbest
+    // metin yazimi (zayıfla, kilo ver, fat loss, ...) geri uyumluluk
+    // icin pattern'lerde tutuluyor.
     final hedef = profil.goal.toLowerCase();
     if (hedef.contains('zayıfla') ||
         hedef.contains('kilo ver') ||
         hedef.contains('cut') ||
-        hedef.contains('lose')) {
+        hedef.contains('lose') ||
+        hedef.contains('yağ kayb') ||   // 'Yağ kaybı' (sabit secim)
+        hedef.contains('yag kayb') ||   // ASCII fallback
+        hedef.contains('fat loss')) {
       tdee -= 300;
     } else if (hedef.contains('kas') ||
         hedef.contains('kilo al') ||
@@ -80,7 +88,7 @@ class NutritionCalculator {
         hedef.contains('gain')) {
       tdee += 300;
     }
-    // "koruma" / "maintain" ise tdee olduğu gibi kalır.
+    // "koruma" / "maintain" / "kondisyon" / "genel sağlık" -> tdee aynen kalir.
 
     final kaloriHedef = tdee.round().clamp(1200, 5000);
 

@@ -31,7 +31,7 @@ void main() {
     // API ONBOARDING_GOAL_CHOICES ile birebir ayni olmali.
     expect(onboardingGoalChoices, [
       'Yağ kaybı',
-      'Kas kazanimi',
+      'Kas kazanımı',
       'Kondisyon ve genel sağlık',
     ]);
   });

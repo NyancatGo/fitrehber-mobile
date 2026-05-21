@@ -45,7 +45,12 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
           : '',
     );
     _birthDate = widget.profile.birthDate;
-    _gender = widget.profile.gender;
+    // Mevcut profilden cinsiyet okunurken: yalnizca 'E' veya 'K' kabul,
+    // legacy 'B' veya bos -> kullanici acikca yeniden secsin.
+    final existingGender = widget.profile.gender;
+    _gender = (existingGender == 'E' || existingGender == 'K')
+        ? existingGender
+        : '';
   }
 
   @override
@@ -77,6 +82,14 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
 
   Future<void> _save() async {
     if (_saving) return;
+
+    // Cinsiyet validasyonu — onboarding sonrasi profilde de E/K zorunlu.
+    if (_gender.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cinsiyet sec.')));
+      return;
+    }
 
     setState(() => _saving = true);
 
@@ -193,14 +206,17 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               ),
             ),
             const SizedBox(height: 12),
+            // Cinsiyet zorunlu — 'Belirtmem' kabul edilmiyor. Boş ise kullanici
+            // explicit secim yapmali.
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'E', label: Text('Erkek')),
                 ButtonSegment(value: 'K', label: Text('Kadın')),
-                ButtonSegment(value: 'B', label: Text('Belirtmem')),
               ],
-              selected: {_gender},
+              selected: _gender.isEmpty ? <String>{} : {_gender},
+              emptySelectionAllowed: true,
               onSelectionChanged: (values) {
+                if (values.isEmpty) return;
                 setState(() => _gender = values.first);
               },
             ),

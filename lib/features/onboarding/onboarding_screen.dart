@@ -13,7 +13,7 @@ import '../profile/providers/profile_provider.dart';
 /// ile birebir ayni — uc taraf tek bir liste konusunda anlasmis.
 const List<String> onboardingGoalChoices = [
   'Yağ kaybı',
-  'Kas kazanimi',
+  'Kas kazanımı',
   'Kondisyon ve genel sağlık',
 ];
 
@@ -181,6 +181,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Expanded(
                 child: PageView(
                   controller: _pageController,
+                  // Kullanici step'leri kaydirarak atlamasin — gecis yalnizca
+                  // "Ileri" butonu uzerinden, validasyondan sonra gerceklesir.
+                  physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (value) => setState(() => _step = value),
                   children: [
                     _IdentityStep(
@@ -425,7 +428,7 @@ class _GoalStep extends StatelessWidget {
     switch (goal) {
       case 'Yağ kaybı':
         return Icons.local_fire_department_outlined;
-      case 'Kas kazanimi':
+      case 'Kas kazanımı':
         return Icons.bolt_outlined;
       case 'Kondisyon ve genel sağlık':
         return Icons.favorite_border;
