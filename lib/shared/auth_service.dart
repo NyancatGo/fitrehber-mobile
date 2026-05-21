@@ -26,15 +26,7 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      final kullaniciJson = response.data['kullanici'];
-      final kullanici = KullaniciModel.fromJson(
-        kullaniciJson,
-        response.data['access'],
-        response.data['refresh'],
-      );
-      await _tokenKaydet(kullanici.accessToken, kullanici.refreshToken);
-      await _kullaniciKaydet(kullaniciJson);
-      return kullanici;
+      return _oturumYanitiKaydet(response.data);
     }
 
     throw _hataAyikla(response.data, response.statusCode);
@@ -51,18 +43,43 @@ class AuthService {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      final kullaniciJson = response.data['kullanici'];
-      final kullanici = KullaniciModel.fromJson(
-        kullaniciJson,
-        response.data['access'],
-        response.data['refresh'],
-      );
-      await _tokenKaydet(kullanici.accessToken, kullanici.refreshToken);
-      await _kullaniciKaydet(kullaniciJson);
-      return kullanici;
+      return _oturumYanitiKaydet(response.data);
     }
 
     throw _hataAyikla(response.data, response.statusCode);
+  }
+
+  Future<KullaniciModel> exchangeGoogleCode({
+    required String code,
+    required String state,
+    required String codeVerifier,
+  }) async {
+    final response = await _dio.post(
+      ApiConstants.googleToken,
+      data: {'code': code, 'state': state, 'code_verifier': codeVerifier},
+    );
+
+    if (response.statusCode == 200) {
+      return _oturumYanitiKaydet(response.data);
+    }
+
+    throw _hataAyikla(response.data, response.statusCode);
+  }
+
+  Future<KullaniciModel> _oturumYanitiKaydet(dynamic data) async {
+    if (data is! Map<String, dynamic>) {
+      throw 'Sunucu oturum bilgilerini beklenen formatta döndürmedi.';
+    }
+
+    final kullaniciJson = data['kullanici'];
+    final kullanici = KullaniciModel.fromJson(
+      kullaniciJson,
+      data['access'],
+      data['refresh'],
+    );
+    await _tokenKaydet(kullanici.accessToken, kullanici.refreshToken);
+    await _kullaniciKaydet(kullaniciJson);
+    return kullanici;
   }
 
   Future<void> _tokenKaydet(String access, String refresh) async {

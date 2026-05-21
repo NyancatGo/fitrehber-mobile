@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -104,19 +106,19 @@ class _FoodSearchView extends ConsumerStatefulWidget {
   final String ogunTipi;
   final ValueChanged<LocalFoodItem> onFoodSelected;
 
-  const _FoodSearchView({
-    required this.ogunTipi,
-    required this.onFoodSelected,
-  });
+  const _FoodSearchView({required this.ogunTipi, required this.onFoodSelected});
 
   @override
   ConsumerState<_FoodSearchView> createState() => _FoodSearchViewState();
 }
 
 class _FoodSearchViewState extends ConsumerState<_FoodSearchView> {
+  static const _searchDebounceDuration = Duration(milliseconds: 180);
+
   final TextEditingController _searchCtrl = TextEditingController();
   List<LocalFoodItem> _results = [];
   bool _isInit = false;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -134,15 +136,32 @@ class _FoodSearchViewState extends ConsumerState<_FoodSearchView> {
     }
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   void _onSearchChanged(String query) {
-    if (query.trim().isEmpty) {
+    _searchDebounce?.cancel();
+    final normalizedQuery = query.trim();
+
+    if (normalizedQuery.isEmpty) {
       setState(() {
         _results = LocalFoodDatabase.instance.getAll();
       });
       return;
     }
-    setState(() {
-      _results = LocalFoodDatabase.instance.search(query);
+
+    // Klavye hizinda her karakterde 4k+ kaydi tarayip siralamak UI thread'i
+    // zorlayabiliyor; kisa debounce aramayi algisal olarak anlik tutar.
+    setState(() {});
+    _searchDebounce = Timer(_searchDebounceDuration, () {
+      if (!mounted || _searchCtrl.text.trim() != normalizedQuery) return;
+      setState(() {
+        _results = LocalFoodDatabase.instance.search(normalizedQuery);
+      });
     });
   }
 
@@ -193,7 +212,7 @@ class _FoodSearchViewState extends ConsumerState<_FoodSearchView> {
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close, color: Colors.white54),
-              )
+              ),
             ],
           ),
         ),
@@ -238,27 +257,32 @@ class _FoodSearchViewState extends ConsumerState<_FoodSearchView> {
         Expanded(
           child: !_isInit
               ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFF97316)))
+                  child: CircularProgressIndicator(color: Color(0xFFF97316)),
+                )
               : _results.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Sonuç bulunamadı.',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5)),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _results.length,
-                      padding: const EdgeInsets.only(
-                          bottom: 100, left: 20, right: 20),
-                      itemBuilder: (context, index) {
-                        final food = _results[index];
-                        return _FoodListTile(
-                          food: food,
-                          onTap: () => widget.onFoodSelected(food),
-                        );
-                      },
+              ? Center(
+                  child: Text(
+                    'Sonuç bulunamadı.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _results.length,
+                  padding: const EdgeInsets.only(
+                    bottom: 100,
+                    left: 20,
+                    right: 20,
+                  ),
+                  itemBuilder: (context, index) {
+                    final food = _results[index];
+                    return _FoodListTile(
+                      food: food,
+                      onTap: () => widget.onFoodSelected(food),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -293,8 +317,11 @@ class _FoodListTile extends StatelessWidget {
                 color: const Color(0xFFF97316).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.fastfood_rounded,
-                  color: Color(0xFFF97316), size: 22),
+              child: const Icon(
+                Icons.fastfood_rounded,
+                color: Color(0xFFF97316),
+                size: 22,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -318,8 +345,11 @@ class _FoodListTile extends StatelessWidget {
                       if (food.isVerified)
                         const Padding(
                           padding: EdgeInsets.only(left: 6),
-                          child: Icon(Icons.verified,
-                              color: Color(0xFF22C55E), size: 16),
+                          child: Icon(
+                            Icons.verified,
+                            color: Color(0xFF22C55E),
+                            size: 16,
+                          ),
                         ),
                     ],
                   ),
@@ -329,10 +359,13 @@ class _FoodListTile extends StatelessWidget {
                       if (food.brand.isNotEmpty) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3B82F6)
-                                .withValues(alpha: 0.15),
+                            color: const Color(
+                              0xFF3B82F6,
+                            ).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -467,8 +500,10 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
             children: [
               IconButton(
                 onPressed: widget.onBack,
-                icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                ),
               ),
               const Expanded(
                 child: Text(
@@ -486,7 +521,7 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
           ),
         ),
         const SizedBox(height: 24),
-        
+
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -530,7 +565,10 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
                         width: 2,
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -540,7 +578,8 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
                           child: TextField(
                             controller: _amountCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                              decimal: true,
+                            ),
                             textAlign: TextAlign.center,
                             onChanged: _updateGrams,
                             style: const TextStyle(
@@ -576,8 +615,9 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.03),
                     borderRadius: BorderRadius.circular(20),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -590,13 +630,17 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
                       ),
                       _MacroItem(
                         label: 'Protein',
-                        value: food.proteinForGram(_currentGram).toStringAsFixed(1),
+                        value: food
+                            .proteinForGram(_currentGram)
+                            .toStringAsFixed(1),
                         unit: 'g',
                         color: const Color(0xFF3B82F6),
                       ),
                       _MacroItem(
                         label: 'Karb',
-                        value: food.karbonhidratForGram(_currentGram).toStringAsFixed(1),
+                        value: food
+                            .karbonhidratForGram(_currentGram)
+                            .toStringAsFixed(1),
                         unit: 'g',
                         color: const Color(0xFFA855F7),
                       ),
@@ -617,8 +661,9 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.02),
                     borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.04)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.04),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,12 +681,33 @@ class _FoodDetailViewState extends ConsumerState<_FoodDetailView> {
                         spacing: 16,
                         runSpacing: 12,
                         children: [
-                          _MicroItem(label: 'Lif', value: food.lifForGram(_currentGram)),
-                          _MicroItem(label: 'Şeker', value: food.sekerForGram(_currentGram)),
-                          _MicroItem(label: 'Doymuş Yağ', value: food.doymusYagForGram(_currentGram)),
-                          _MicroItem(label: 'Sodyum', value: food.sodyumForGram(_currentGram), unit: 'mg'),
-                          _MicroItem(label: 'Potasyum', value: food.potasyumForGram(_currentGram), unit: 'mg'),
-                          _MicroItem(label: 'Kolesterol', value: food.kolesterolForGram(_currentGram), unit: 'mg'),
+                          _MicroItem(
+                            label: 'Lif',
+                            value: food.lifForGram(_currentGram),
+                          ),
+                          _MicroItem(
+                            label: 'Şeker',
+                            value: food.sekerForGram(_currentGram),
+                          ),
+                          _MicroItem(
+                            label: 'Doymuş Yağ',
+                            value: food.doymusYagForGram(_currentGram),
+                          ),
+                          _MicroItem(
+                            label: 'Sodyum',
+                            value: food.sodyumForGram(_currentGram),
+                            unit: 'mg',
+                          ),
+                          _MicroItem(
+                            label: 'Potasyum',
+                            value: food.potasyumForGram(_currentGram),
+                            unit: 'mg',
+                          ),
+                          _MicroItem(
+                            label: 'Kolesterol',
+                            value: food.kolesterolForGram(_currentGram),
+                            unit: 'mg',
+                          ),
                         ],
                       ),
                     ],
@@ -743,16 +809,12 @@ class _MicroItem extends StatelessWidget {
   final double value;
   final String unit;
 
-  const _MicroItem({
-    required this.label,
-    required this.value,
-    this.unit = 'g',
-  });
+  const _MicroItem({required this.label, required this.value, this.unit = 'g'});
 
   @override
   Widget build(BuildContext context) {
     if (value <= 0) return const SizedBox.shrink();
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

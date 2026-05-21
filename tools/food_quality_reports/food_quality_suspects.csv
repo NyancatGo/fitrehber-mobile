@@ -1,0 +1,314 @@
+source,index,id,isim,brand,status,reasons
+branded,2,8693374264141,1,,invalid,invalid_name_no_alpha
+branded,9,8699118017707,55,,invalid,invalid_name_no_alpha
+branded,24,8696368005850,Activia Mix Go,Activia,suspect,suspect_duplicate_name_brand
+branded,39,8697412876815,Ahinur Grüne Oliven mit Paprika,Ahinur,suspect,suspect_macro_kcal_mismatch
+branded,106,8690504059899,Alpella Bar cake chocolate al amir,Alpella,suspect,suspect_sugar_gt_carb
+branded,137,8682214715509,Amigos Kuru İncir,Amigos,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb|suspect_satfat_gt_fat
+branded,157,5061016831441,Antep Fistigi sosu,Antep,suspect,suspect_macro_kcal_mismatch
+branded,212,8690931005056,Ayran,,suspect,suspect_duplicate_name_brand
+branded,213,8697462731546,Ayran,,suspect,suspect_duplicate_name_brand
+branded,215,8692971423371,Ayran,,suspect,suspect_duplicate_name_brand
+branded,216,8690982016872,Ayran,,suspect,suspect_duplicate_name_brand
+branded,268,8691020006336,Balsa Karışık Meyve Aromalı Gazoz,Balsa,invalid,invalid_gram_range_seker100g
+branded,285,8690451704149,Banvit Piliç Yaprak Döner,Banvit,suspect,suspect_duplicate_name_brand
+branded,325,8694962011772,Beyaz peynir,,suspect,suspect_duplicate_name_brand
+branded,326,8690347010576,Beyaz peynir,,suspect,suspect_duplicate_name_brand
+branded,327,8695077027757,Beyaz peynir,,suspect,suspect_duplicate_name_brand
+branded,382,8682214704916,Bisto Tarçınlı Zencefilli Kurabiye,Bisto,invalid,invalid_gram_range_seker100g
+branded,396,8698720865256,black bruin,,suspect,suspect_macro_kcal_mismatch
+branded,401,8690504512868,Boisson,,suspect,suspect_macro_kcal_mismatch
+branded,424,8695077073839,Boza,,suspect,suspect_macro_kcal_mismatch
+branded,449,8690931011910,Buttermilk,,suspect,suspect_macro_kcal_mismatch
+branded,485,8690346376574,Carambar la sucette,Carambar,suspect,suspect_macro_kcal_mismatch
+branded,501,8690982031417,Carrefour Selection Hardal Sos,Carrefour,suspect,suspect_macro_kcal_mismatch
+branded,608,8693029032682,Croissant,,suspect,suspect_duplicate_name_brand
+branded,633,8696368943503,Danone Vişne Nektarı,Danone,suspect,suspect_sugar_gt_carb
+branded,698,8680205513264,Deran ICE tea,Deran,suspect,suspect_macro_kcal_mismatch
+branded,756,8695077000538,Dost süt,Dost,suspect,suspect_sugar_gt_carb
+branded,757,8695077092021,Dost Süt,Dost,suspect,suspect_duplicate_name_brand
+branded,815,8691316521079,Eker Ayran,Eker,suspect,suspect_duplicate_name_brand
+branded,816,8691316521420,eker ayran,Eker,suspect,suspect_macro_kcal_mismatch
+branded,818,8691316521802,Eker Ayran,Eker,suspect,suspect_duplicate_name_brand
+branded,822,8691316520294,Eker Homojenize Yarım Yağlı Yoğurt,Eker,suspect,suspect_duplicate_name_brand
+branded,832,8691316520744,Eker yoğurt,Eker,suspect,suspect_duplicate_name_brand
+branded,860,8697288505307,Ender Kek askim,Ender,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+branded,876,8690533024035,Eti Balik Kraker,Eti,suspect,suspect_satfat_gt_fat
+branded,880,8690533021133,Eti Cicibebe,Eti,suspect,suspect_duplicate_name_brand
+branded,889,8690526699615,Eti Frigo,Eti,suspect,suspect_sugar_gt_carb
+branded,891,2000000043477,Eti Gong,Eti,suspect,suspect_macro_kcal_mismatch
+branded,894,8690526669021,Eti Gong Pops,Eti,suspect,suspect_duplicate_name_brand
+branded,911,8690526847948,Eti pronot,Eti,suspect,suspect_duplicate_name_brand
+branded,916,8690526620343,ETI Tutku,ETI,suspect,suspect_duplicate_name_brand
+branded,918,8690526770345,Eti Tutku,Eti,suspect,suspect_duplicate_name_brand
+branded,919,3695526083254,Eti Tutku,Eti,suspect,suspect_duplicate_name_brand
+branded,927,86920131,ETİ KARIŞIK PUF,ETİ,suspect,suspect_macro_kcal_mismatch
+branded,970,8691405653315,Fide Light Ton Balığı,Fide,suspect,suspect_duplicate_name_brand
+branded,971,8691405653308,Fide Light Ton Balığı,Fide,suspect,suspect_duplicate_name_brand
+branded,1001,5708657219701,Flux,,suspect,suspect_macro_kcal_mismatch
+branded,1033,5449000002952,Fuze Peach Ice Tea 330ML,,suspect,suspect_macro_kcal_mismatch
+branded,1035,8682615100478,Fıstık Ezmesi,,suspect,suspect_duplicate_name_brand
+branded,1067,8682588742101,Glutensiz Fabrika Kaya tuzlu basmati pirinç patlağı,Glutensiz Fabrika,suspect,suspect_macro_kcal_mismatch
+branded,1149,8691216097193,Haribo Chamallows,Haribo,suspect,suspect_duplicate_name_brand
+branded,1150,8691216102743,Haribo chamallows,Haribo,suspect,suspect_duplicate_name_brand
+branded,1190,8684992004929,Harras Rendelenmiş Domates,Harras,suspect,suspect_duplicate_name_brand
+branded,1208,8695077031075,Harras Çavdarlı Ekmek,Harras,suspect,suspect_duplicate_name_brand
+branded,1215,8684252802685,Hasata Basmati pirinç,Hasata,suspect,suspect_duplicate_name_brand
+branded,1236,8696362805197,Heinz Mayonez,Heinz,suspect,suspect_duplicate_name_brand
+branded,1250,8680030811313,High Nutrition Whey Protein,High Nutrition,suspect,suspect_duplicate_name_brand
+branded,1272,8691020680406,Hot line energy drink,Hot Line,suspect,suspect_macro_kcal_mismatch
+branded,1278,8695077006196,Hyperbon Nane Aromalı Sakız,Hyperbon,suspect,suspect_macro_kcal_mismatch
+branded,1350,8692971024349,İçim Kaymaksız yoğurt,İçim,suspect,suspect_duplicate_name_brand
+branded,1363,8690504424703,İçim Süzme Yoğurt,İçim,suspect,suspect_duplicate_name_brand
+branded,1399,8699270011773,Kahve Dünyası Bonte sütlü,Kahve Dünyası,suspect,suspect_duplicate_name_brand
+branded,1438,86903462,Kayisi nektari,,suspect,suspect_macro_kcal_mismatch
+branded,1441,8692971430256,Kaşar peyniri,,suspect,suspect_duplicate_name_brand
+branded,1453,8682530221968,Kellogg'S Granola,Kellogg'S,suspect,suspect_duplicate_name_brand
+branded,1489,8693342005219,Keskinoğlu Piliç Yaprak Döner,Keskinoğlu,suspect,suspect_duplicate_name_brand
+branded,1550,8692971420608,Komagene Ayran,Komagene,suspect,suspect_duplicate_name_brand
+branded,1562,8695077002907,Krem peynir,,suspect,suspect_duplicate_name_brand
+branded,1581,8696027017910,Kühne Hardal,Kühne,suspect,suspect_duplicate_name_brand
+branded,1596,8699118024897,Labne,,suspect,suspect_duplicate_name_brand
+branded,1612,8690624105315,Lay's Fırından,Lay'S,suspect,suspect_duplicate_name_brand
+branded,1615,8690624101874,Lay'S Klasik,Lay'S,suspect,suspect_duplicate_name_brand
+branded,1641,8696425016058,Lezita Chicken breast,Lezita,suspect,suspect_macro_kcal_mismatch
+branded,1652,8695077138996,Lezzet-I Efsane Basmati Pirinç,Lezzet-I Efsane,suspect,suspect_duplicate_name_brand
+branded,1667,8690723383300,Limonata,,suspect,suspect_duplicate_name_brand
+branded,1673,8690574000821,Lipton ice tea (peach),Lipton,suspect,suspect_duplicate_name_brand
+branded,1710,8690637849312,Maras usulu,,suspect,suspect_macro_kcal_mismatch
+branded,1713,8697471729039,Maret Hindi Sosis,Maret,suspect,suspect_duplicate_name_brand
+branded,1737,8690508601834,Mayonez,,suspect,suspect_duplicate_name_brand
+branded,1745,8690504083313,Mcvities Saklıköy,Mcvities,suspect,suspect_duplicate_name_brand
+branded,1801,8691316526012,Migros Ayran,Migros,suspect,suspect_duplicate_name_brand
+branded,1814,8693374228884,Migros Jasmine Pirinç,Migros,suspect,suspect_duplicate_name_brand
+branded,1820,8690724060149,Migros Kaşar,Migros,suspect,suspect_duplicate_name_brand
+branded,1847,8690559007890,Migros Ton Balığı,Migros,suspect,suspect_duplicate_name_brand
+branded,1853,8692971429359,Migros Yarım Yağlı Süt,Migros,suspect,suspect_duplicate_name_brand
+branded,1859,8692462002528,Migros Yoğurt,Migros,suspect,suspect_duplicate_name_brand
+branded,1860,8684000450724,Migros Yoğurt,Migros,suspect,suspect_duplicate_name_brand
+branded,1861,8683771982014,Migros Yoğurt,Migros,suspect,suspect_duplicate_name_brand
+branded,1868,8690527110034,Milföy hamuru,,suspect,suspect_duplicate_name_brand
+branded,1916,8595685202235,Mixit Protein Müsli,Mixit,suspect,suspect_duplicate_name_brand
+branded,2018,8690632017839,Nestle,Nestle,suspect,suspect_duplicate_name_brand
+branded,2019,8690632018133,Nestle,Nestle,suspect,suspect_duplicate_name_brand
+branded,2022,8690632246406,Nestle 1927 Sütlü Çikolata,Nestle,suspect,suspect_duplicate_name_brand
+branded,2047,8697462700047,Netto Peach nectar,Netto,suspect,suspect_macro_kcal_mismatch
+branded,2068,8699118014102,Nimet Hamburger Ekmeği,Nimet,suspect,suspect_duplicate_name_brand
+branded,2097,8690576429439,Nuh'Un Ankara Makarnası Tam Buğday Makarna,Nuh'Un Ankara Makarnası,suspect,suspect_duplicate_name_brand
+branded,2162,8699118022732,Ovadan Osmancık Pirinç,Ovadan,suspect,suspect_duplicate_name_brand
+branded,2168,8691707062747,Ozmo Papita,Ozmo,suspect,suspect_macro_kcal_mismatch
+branded,2184,8690547193413,Pasta süsü,,suspect,suspect_duplicate_name_brand
+branded,2214,80785545,Perfetti Van Melle Vivident,Perfetti Van Melle,suspect,suspect_macro_kcal_mismatch
+branded,2224,8695876208555,Peyman Kajulu &frenk üzümlü & chiali bar,Peyman,suspect,suspect_sugar_gt_carb
+branded,2254,8690565012673,Pinar قشطة,Pinar,suspect,suspect_macro_kcal_mismatch
+branded,2288,8693407000869,Polonez Hindi füme,Polonez,suspect,suspect_duplicate_name_brand
+branded,2290,0693047002788,Polonez hindi füme eti,Polonez,suspect,suspect_duplicate_name_brand
+branded,2292,8693407005154,Polonez Hindi Füme Eti,Polonez,suspect,suspect_duplicate_name_brand
+branded,2307,8682304680502,Potamya Deniz Tuzlu Baklagil Cipsi,Potamya,suspect,suspect_duplicate_name_brand
+branded,2318,8692971435756,President Kaşar Peyniri,President,suspect,suspect_duplicate_name_brand
+branded,2334,8682696725430,Protein Ocean Cream Of Rice Blueberry Muffin,Protein Ocean,suspect,suspect_duplicate_name_brand
+branded,2347,8682696720374,Protein Ocn Cream Of Rice,Protein Ocn,suspect,suspect_duplicate_name_brand
+branded,2350,8682696559189,Protein Ocn Salted Caramel Whey,Protein Ocn,suspect,suspect_duplicate_name_brand
+branded,2352,8682696551039,Protein Ocn Whey Protein,Protein Ocn,suspect,suspect_duplicate_name_brand
+branded,2371,8682696720220,Proteinocn Cream Of Rice,Proteinocn,suspect,suspect_duplicate_name_brand
+branded,2375,8695077001955,Puding,,suspect,suspect_duplicate_name_brand
+branded,2399,8690565019276,Pınar organik yoğurt,,suspect,suspect_macro_kcal_mismatch
+branded,2494,8698720870489,Sariyer,,suspect,suspect_macro_kcal_mismatch
+branded,2504,8695077002297,Sayley peripella,Sayley,suspect,suspect_macro_kcal_mismatch
+branded,2550,8697669840226,Seyydler Şekerleme File fistikli paşa sucuģu 300gr,Seyydler Şekerleme,suspect,suspect_macro_kcal_mismatch
+branded,2565,8696881100407,Siri Shake Doğal Fermente Tahıl İçeceği,Siri Shake,suspect,suspect_macro_kcal_mismatch
+branded,2573,8695077044198,Sole Ayçiçek yağı,Sole,suspect,suspect_duplicate_name_brand
+branded,2575,8695077020406,Sole Ayçiçek Yağı,Sole,suspect,suspect_duplicate_name_brand
+branded,2602,8697403890882,Sucuk,,suspect,suspect_duplicate_name_brand
+branded,2632,8690612303013,Superfresh Süt Mısır,Superfresh,suspect,suspect_duplicate_name_brand
+branded,2637,8690612314200,Superfresh Ton Balığı,Superfresh,suspect,suspect_duplicate_name_brand
+branded,2638,7690651314156,Superfresh Ton Balığı,Superfresh,suspect,suspect_duplicate_name_brand
+branded,2639,8690612315740,Superfresh Ton Balığı,Superfresh,suspect,suspect_duplicate_name_brand
+branded,2663,8681763381227,Supplementler Whey Protein,Supplementler,suspect,suspect_duplicate_name_brand
+branded,2694,8699118010968,Süt,,suspect,suspect_macro_kcal_mismatch
+branded,2697,8681324002837,Sütaş Ayran,Sütaş,suspect,suspect_duplicate_name_brand
+branded,2699,8690767671081,Sütaş ayran,Sütaş,suspect,suspect_duplicate_name_brand
+branded,2700,8690767710537,Sütaş Ayran,Sütaş,suspect,suspect_duplicate_name_brand
+branded,2707,8690767673610,Sütaş Kaymaksız Yoğurt,Sütaş,suspect,suspect_duplicate_name_brand
+branded,2708,8690767710124,Sütaş Kaymaksız Yoğurt,Sütaş,suspect,suspect_duplicate_name_brand
+branded,2784,8691225156317,Tahsildaroğlu Ezine Peyniri,Tahsildaroğlu,suspect,suspect_duplicate_name_brand
+branded,2788,8690920337182,Takita Stevia,Takita,suspect,suspect_macro_kcal_mismatch
+branded,2789,8682353237535,Talia Hummus,Talia,suspect,suspect_macro_kcal_mismatch
+branded,2794,8690698509149,Tam buğday ekmeği,,suspect,suspect_duplicate_name_brand
+branded,2795,8699118014010,Tam buğday ekmeği,,suspect,suspect_duplicate_name_brand
+branded,2817,8694962012045,Tarim Kredi kaymaksiz yogurt,Tarim Kredi,suspect,suspect_duplicate_name_brand
+branded,2862,8690635061174,Tat Süt Mısır,Tat,suspect,suspect_duplicate_name_brand
+branded,2914,8697288509329,Togo,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+branded,2921,8690527130438,Ton balığı,,suspect,suspect_duplicate_name_brand
+branded,2931,8680181105705,Torku beyaz peynir 900,Torku,suspect,suspect_macro_kcal_mismatch
+branded,2946,8690120124391,Torku sütlü çikolata,,suspect,suspect_sugar_gt_carb
+branded,2957,8697433575001,Tost peyniri,,suspect,suspect_duplicate_name_brand
+branded,2998,8682615106098,Türkiye Tarim Kredi Kooperatifleri FINDIK PARÇACIKLI KAKAOLU KREMA,Türkiye Tarim Kredi Kooperatifleri,suspect,suspect_macro_sum_gt_105
+branded,3024,8699032006856,Unlüx lavaş,Unlüx,suspect,suspect_duplicate_name_brand
+branded,3052,8690698513115,Uno Tost Ekmeği,Uno,suspect,suspect_duplicate_name_brand
+branded,3053,8690698515355,Uno Tost Ekmeği,Uno,suspect,suspect_duplicate_name_brand
+branded,3054,8690698515652,Uno Tost Ekmeği,Uno,suspect,suspect_duplicate_name_brand
+branded,3096,8680518981385,Veggy Tütsü Aromalı Tofu,Veggy,suspect,suspect_duplicate_name_brand
+branded,3110,80826835,Vivident Gum,Vivident,suspect,suspect_macro_kcal_mismatch
+branded,3112,8699118025078,Vişneli meyve suyu,,suspect,suspect_macro_kcal_mismatch
+branded,3133,4770209047729,White cow evaporated milk,,suspect,suspect_macro_kcal_mismatch
+branded,3138,8682718434944,Wowz Elipsó,Wowz,suspect,suspect_satfat_gt_fat
+branded,3158,8693374239255,Yayla Basmati Pirinç,Yayla,suspect,suspect_duplicate_name_brand
+branded,3171,8693374011011,Yayla Gönen Baldo Pirinç,Yayla,suspect,suspect_duplicate_name_brand
+branded,3208,8699118009467,Yer fıstığı,,suspect,suspect_duplicate_name_brand
+branded,3219,8690158123557,Yoğurt,,suspect,suspect_duplicate_name_brand
+branded,3220,8692963151510,Yoğurt,,suspect,suspect_duplicate_name_brand
+branded,3221,8690504425441,Yoğurt,,suspect,suspect_duplicate_name_brand
+branded,3230,8684000451219,Yörsan Kaymaksız Doğal Yoğurt,Yörsan,suspect,suspect_duplicate_name_brand
+branded,3231,8684000451264,Yörsan Kaymaksız Doğal Yoğurt,Yörsan,suspect,suspect_duplicate_name_brand
+branded,3260,8690105014716,Çaykur Didi Soğuk Çay Şeftali Aromalı İçecek,Çaykur,suspect,suspect_macro_kcal_mismatch
+branded,3280,8682214702882,Çikolatalı süt,,suspect,suspect_duplicate_name_brand
+branded,3290,8696755965323,Çiğ badem,,suspect,suspect_duplicate_name_brand
+branded,3317,8690504157656,Ülker,Ülker,suspect,suspect_duplicate_name_brand
+branded,3362,8690504958710,Ülker Sütlü Salep,Ülker,suspect,suspect_macro_kcal_mismatch
+branded,3367,8690504020509,Ülker Çikolatalı Gofret,Ülker,suspect,suspect_duplicate_name_brand
+branded,3372,8690766131104,Ülker Çokomel,Ülker,suspect,suspect_duplicate_name_brand
+branded,3373,8690504131618,Ülker Çokomel,Ülker,suspect,suspect_duplicate_name_brand
+branded,3377,8690504018087,Ülker Солети дусам,Ülker,suspect,suspect_satfat_gt_fat
+branded,3420,8697426454191,يوروك سوت لبن سفن,يوروك سوت,suspect,suspect_macro_kcal_mismatch
+curated,3,-MbOnQV5bTiUb8iitvz_,Fettucine Makarna,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,8,-MbOnRr_hpNPEq0ybwmT,Lazanya,,invalid,invalid_kcal_range
+curated,15,-MbOmnh89HVa4a2pcF1b,Uskumru,,invalid,invalid_kcal_range
+curated,20,-MbOnXtg3YwJ_bI6xGaN,ada çayı,,suspect,suspect_sugar_gt_carb
+curated,25,-MbOo2fIfPEa7V3AQLoc,antrikot ya da but eti,,invalid,invalid_kcal_range
+curated,26,-MbOnABh3wPTPBVe3JIb,ançuez,,invalid,invalid_kcal_range
+curated,27,-MbOgPDTHdzn1VsTNzn5,arpa şehriye,,suspect,suspect_macro_kcal_mismatch
+curated,28,-MbOkEZD792uoXE6QtYk,arpacık soğan,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,29,-MbOjtmk1VO--WPqwS1J,asma yaprağı,,invalid,invalid_kcal_range
+curated,30,-MbOfnVO2Mk5B98caJyz,avokado,,invalid,invalid_kcal_range
+curated,31,-MbOhmygy31ZOnS3MhKW,ayak,,invalid,invalid_kcal_range
+curated,37,-MbOkCdlIfMLxmGfflD1,ayıklanmış şevketi bostan,,invalid,invalid_kcal_range
+curated,44,-MbOeilgBFcal3D1JRkj,bal,,invalid,invalid_kcal_range
+curated,48,-MbOh6ipkqJhRPEeUYjT,balzamik sirke,,invalid,invalid_kcal_range
+curated,50,-MbOmj2wokU4frOa5LxL,barbun balığı,,invalid,invalid_kcal_range
+curated,52,-MbOomeMwpcxnK_ZUEel,basmati veya yasmin pirinci,,suspect,suspect_macro_kcal_mismatch
+curated,55,-MbOnmBSYOnZ8YWt7rQW,bayat ekmek içi ya da galeta unu,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,68,-MbOl9_h9TSX0UTAkNFy,beyaz çikolata,,suspect,suspect_sugar_gt_carb
+curated,69,-MbOkTkgUh7mH8DKIfyK,beyaz şarap,,suspect,suspect_macro_kcal_mismatch
+curated,76,-MbOktaAVFabBjUiN0jq,biberli domates konservesi,,suspect,suspect_sugar_gt_carb
+curated,84,-MbOnljcynTPlanVyPa0,buz,,invalid,invalid_kcal_range
+curated,107,-MbOlwO_Nu4V2E1ov2oP,damla sakızlı vanilin,,suspect,suspect_missing_core_macro|suspect_sugar_gt_carb
+curated,109,-MbOny8ORh0TWyOnmNTX,dana antrikot,,invalid,invalid_kcal_range
+curated,110,-MbOo0NmlWf3I9uPmgaO,dana bonfile,,invalid,invalid_kcal_range
+curated,114,-MbOi50dN98vnJ5D1KgD,dana eti,,invalid,invalid_kcal_range
+curated,116,-MbOnQ28n0DQBTIFLdAk,dana gerdan,,invalid,invalid_kcal_range
+curated,120,-MbOo-tvDhFCXzFOPHLK,dana nuar,,invalid,invalid_kcal_range
+curated,122,-MbOnwHGg8_hQTLjkrxf,dana tranç eti,,invalid,invalid_kcal_range
+curated,124,-MbOfNXlKqMkwJrVsTL2,defne yaprağı,,invalid,invalid_kcal_range
+curated,127,-MbOgv6hJcW_fU4Iw8Oo,deniz tuzu,,invalid,invalid_kcal_range
+curated,131,-MbOkSoUa3pvRT9VD4mT,dolma baharatı,,invalid,invalid_kcal_range
+curated,133,-MbOh4kzJAYOjybnYjny,dolmalık fıstık,,invalid,invalid_kcal_range
+curated,145,-MbOnkPUtW5q4AsfgIy2,domates- biber salçası,,invalid,invalid_kcal_range
+curated,153,-MbOh9iHt2eQBqf0lin7,dut kurusu,,invalid,invalid_kcal_range
+curated,157,-MbOjhZM1F3rOErrFyeM,dövülmüş limon tuzu,,suspect,suspect_sugar_gt_carb
+curated,167,-MbOkbQ19RyZX05D1rnC,erik,,invalid,invalid_kcal_range
+curated,175,-MbOi25OfeIBJP7WtUEF,et suyu veya tavuk suyu,,suspect,suspect_sugar_gt_carb
+curated,177,-MbOjMvbbHLP0q9mFp4-,ezilmiş haşhaş,,invalid,invalid_kcal_range
+curated,184,-MbOlJ9sbhLfWuCfBbKU,file badem,,invalid,invalid_kcal_range
+curated,191,-MbOock4dxMQYKAD6aPG,frenk kimyonu,,invalid,invalid_kcal_range
+curated,196,-MbOoNChG0ZFvuwlTBiP,fındık kreması,,suspect,suspect_sugar_gt_carb
+curated,202,-MbOlbIn9yOWuGKV37un,ganaj,,invalid,invalid_kcal_range
+curated,203,-MbOkj2VLcTPsGqm9Lpg,garnitür,,invalid,invalid_kcal_range
+curated,204,-MbOjzQyo3ZeOHeBCCVZ,girit kabağı,,invalid,invalid_kcal_range
+curated,208,-MbOoLTdpbWu4GCWAvWf,gül suyu,,suspect,suspect_sugar_gt_carb
+curated,218,-MbOlWUvJlswOw3UaSyf,hazır rulo pasta,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,245,-MbOmpyxyUuVe4dQKv_g,ince tuz,,invalid,invalid_kcal_range
+curated,248,-MbOmgFMcid90Id4C89v,ince çekilmiş deniz tuzu,,invalid,invalid_kcal_range
+curated,250,-MbOo5Py9gSqFgL5Ccz7,ince çekilmiş tuz,,invalid,invalid_kcal_range
+curated,252,-MbOiln0zZSZ3B0zcfGp,instant maya,,invalid,invalid_kcal_range
+curated,255,-MbOmnAoDt5f5-Q-Wqpt,iri palamut,,invalid,invalid_kcal_range
+curated,257,-MbOmo9ovw9aBt4vL5_U,iri çekilmiş deniz tuzu,,invalid,invalid_kcal_range
+curated,266,-MbOeglPpPWD1ApAJA7l,kabartma tozu,,suspect,suspect_macro_kcal_mismatch
+curated,268,-MbOkpjEPdVDkEUfoLnx,kadayıf,,invalid,invalid_kcal_range
+curated,271,-MbOl_KyqTl7uOerzcay,kakaolu bisküvi,,suspect,suspect_macro_kcal_mismatch
+curated,272,-MbOlTZmy8vSON73u8kH,kakaolu hazır pandispanya keki,,suspect,suspect_macro_kcal_mismatch
+curated,273,-MbOm9ZM4f4r0bArwKYq,kakaolu krem şanti,,suspect,suspect_macro_kcal_mismatch
+curated,274,-MbOlDQbDbR897yryGjB,kakaolu petibör bisküvi,,suspect,suspect_macro_kcal_mismatch
+curated,276,-MbOlYOBs39GQB8UTraU,kakaolu puding,,suspect,suspect_macro_kcal_mismatch
+curated,278,-MbOmwlwMJG7XspuudEV,kapari,,invalid,invalid_kcal_range
+curated,283,-MbOj6f4P9NHIKMKNKPO,karabiber ve pulbiber,,suspect,suspect_macro_kcal_mismatch
+curated,284,-MbOohI0M46l291BgXL4,karabiber-tuz karışımı,,invalid,invalid_kcal_range
+curated,285,-MbOiEaYYncRp4nQWuMR,karalahana,,invalid,invalid_kcal_range
+curated,287,-MbOghxjTrIqlQNsDmVh,karbonat,,invalid,invalid_kcal_range
+curated,291,-MbOnnzaOzJIiVID6FjB,karışık köfte baharatı,,suspect,suspect_sugar_gt_carb
+curated,295,-MbOhyKkrZKx8a4YH5_u,kaya tuzu,,invalid,invalid_kcal_range
+curated,296,-MbOjekeeqb79_V6uqML,kaynar su,,invalid,invalid_kcal_range
+curated,300,-MbOm-CWFOIUmWTEhafP,kedi dili bisküvi,,suspect,suspect_duplicate_name_brand
+curated,303,-MbOhlziSSKtdRife5sw,kelle,,invalid,invalid_kcal_range
+curated,312,-MbOokntdGS0KHFYkk8S,kestane mantarı,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,320,-MbOjDHw5SGSWm7YFx2p,kireç kaymağı,,suspect,suspect_sugar_gt_carb
+curated,324,-MbOo7A8lktjKoqfRAei,kokoreç,,invalid,invalid_kcal_range
+curated,329,-MbOoBo7ilg_W3TOuBXF,kontrfile,,invalid,invalid_kcal_range
+curated,330,-MbOm21I2DzmJ28mO0JR,konyak,,suspect,suspect_missing_core_macro
+curated,336,-MbOgLTvbNONYEFPXOWJ,kruton,,invalid,invalid_kcal_range
+curated,343,-MbOezl2lLeSyzrK1aU8,kuru maya,,invalid,invalid_kcal_range
+curated,351,-MbOijqBlszvJtOIDBIz,kurutulmuş dana bağırsağı,,invalid,invalid_kcal_range
+curated,358,-MbOnuS5nt7rIdwQeK1V,kuyruk yağı,,invalid,invalid_kcal_range|normalized_clamped_yag100g
+curated,379,-MbOnme6dIBWE2LLoASp,köftelik bulgur,,suspect,suspect_macro_kcal_mismatch
+curated,380,-MbOnhfqZ1hxuSMc8D_g,köftelik ince bulgur,,suspect,suspect_macro_kcal_mismatch
+curated,416,-MbOiRmOIoYyCvEhHzNK,kırmızı şarap,,suspect,suspect_macro_kcal_mismatch
+curated,423,-MbOev1pXuwHs1F4ixSA,labne peyniri,,suspect,suspect_sugar_gt_carb
+curated,434,-MbOifzg_DIuHAMEj1qC,limon tuzu,,suspect,suspect_sugar_gt_carb
+curated,435,-MbOgWkh9Jn5wt8iF_mv,limonun suyu,,suspect,suspect_sugar_gt_carb
+curated,438,-MbOirReaCPfD3V7sszN,maden suyu,,invalid,invalid_kcal_range
+curated,439,-MbOnPYRJZwB0YBSVj1T,makarnanın haşlama suyu,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,448,-MbOja1dqlUM6Ewu-v1E,maya,,invalid,invalid_kcal_range
+curated,462,-MbOenVXpCulVx6E0aa9,muz,,invalid,invalid_kcal_range
+curated,463,-MbOnMDzxakJt0ugf1qe,mısır,,invalid,invalid_kcal_range
+curated,464,-MbOoWMw-TeT4f6SwGS7,mısır irmiği,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,467,-MbOiHWSbm1QaaRm586y,mısır unu,,invalid,invalid_kcal_range
+curated,471,-MbOgTxgwMShDTwSjdv5,nar ekşisi,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,472,-MbOfwzXpJ5Sni6uApRr,nişasta,,invalid,invalid_kcal_range
+curated,476,-MbOj8ZH3VYUPUMMAzyp,oda ısısında su,,invalid,invalid_kcal_range
+curated,479,-MbOlVYrjz8MdWl_L5dt,orman meyveli sos,,suspect,suspect_sugar_gt_carb
+curated,500,-MbOmhdV-LtJGbLtsRch,orta boy uskumru,,invalid,invalid_kcal_range
+curated,525,-MbOlAYA3hM2Qd8YvizW,pirinç fındık,,suspect,suspect_macro_kcal_mismatch
+curated,528,-MbOopJTfBEthUwcHEN4,pirinç yufkası,,suspect,suspect_macro_kcal_mismatch
+curated,534,-MbOivI3zzfxU7hinoKu,pratik macar salam,,invalid,invalid_kcal_range
+curated,539,-MbOoYgSr3Ug7i1goJ42,ramen,,invalid,invalid_kcal_range
+curated,541,-MbOlcGQqjDyorJirhXi,rendelenmiş beyaz çikolata,,suspect,suspect_sugar_gt_carb
+curated,569,-MbOh3ja4Sj9mm5LIJhC,roka,,invalid,invalid_kcal_range
+curated,575,-MbOnvlTytwaHFPyZinX,salçalı su,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,583,-MbOkZWZ4vKIlWpMG6gf,sarımsaklı yoğurt,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,587,-MbOkUj9qy3hrdAZsqsN,shallot soğan,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,597,-MbOo_6led9P9xLdiaPW,soya filizi,,invalid,invalid_kcal_range
+curated,598,-MbOfgaY6AVXMDDxnyW7,soya sosu,,invalid,invalid_kcal_range
+curated,600,-MbOo8QmbEbQzlrCwji0,soğan suyu,,suspect,suspect_sugar_gt_carb
+curated,601,-MbOhtaT5viS6lhx2ni8,soğuk su,,invalid,invalid_kcal_range
+curated,604,-MbOeYJ-2UTm9m9mhSfT,su,,invalid,invalid_kcal_range
+curated,607,-MbOiLFzSQ3A47QqAz3a,sumak ekşisi,,suspect,suspect_sugar_gt_carb
+curated,608,-MbOfEvXgo7pRpgWiPLV,susam,,invalid,invalid_kcal_range
+curated,620,-MbOeIE0OZR71enp54Sn,sıcak su,,invalid,invalid_kcal_range
+curated,674,-MbOlg612AtEwYy3Bbkq,toblerone çikolata,,suspect,suspect_sugar_gt_carb
+curated,693,-MbOmjWFg4DfLw3o1Xlv,toz sebze çeşni,,suspect,suspect_sugar_gt_carb
+curated,694,-MbOhZIbtyYMqsWcVS1Z,toz tarhana,,invalid,invalid_kcal_range
+curated,697,-MbOefpQKL04ADyTzQR2,toz şeker,,suspect,suspect_sugar_gt_carb
+curated,698,-MbOjiTscoB3Q-pampvZ,trabzon peyniri,,suspect,suspect_sugar_gt_carb
+curated,699,-MbOe9rTJr7aNiXBKCyp,tuz,,invalid,invalid_kcal_range
+curated,700,-MbOh7i8mMTxNnoJ220a,tuz-karabiber,,invalid,invalid_kcal_range
+curated,708,-MbOhzKvUeVv7GliW6my,un,,invalid,invalid_kcal_range
+curated,709,-MbOehlhahSax9Zi3wT4,vanilin,,invalid,invalid_kcal_range
+curated,710,-MbOemV8iDkZk8L3jFrK,vanilya,,suspect,suspect_macro_kcal_mismatch
+curated,711,-MbOjgc3ZDJ_ApUtUDOa,vanilya çubuğu,,suspect,suspect_macro_kcal_mismatch
+curated,712,-MbOh1mbHRJKNLfTzr0_,vanilya özütü,,suspect,suspect_macro_kcal_mismatch
+curated,714,-MbOlzGstJU8Z0hbQBSA,vanilyalı toz puding,,suspect,suspect_missing_core_macro|suspect_sugar_gt_carb
+curated,718,-MbOiGW0tKp6DQBKn4aZ,yarma,,invalid,invalid_kcal_range
+curated,721,-MbOnCTKITEboS9VbqU3,yağlı kağıt,,invalid,invalid_kcal_range
+curated,740,-MbOoXgEwMK-FuHNQb7a,yoğurt kaymağı,,suspect,suspect_sugar_gt_carb
+curated,744,-MbOg5HzW1puUZdYF9ny,yulaf sütü,,suspect,suspect_macro_kcal_mismatch|suspect_sugar_gt_carb
+curated,745,-MbOlkrBqnDz541RinnC,yulaflı bisküvi,,suspect,suspect_macro_kcal_mismatch
+curated,763,-MbOjGH5Gu0csaqpAJ5Z,çemen tozu,,invalid,invalid_kcal_range
+curated,766,-MbOlHCyTvk-VpO0wgsN,çikolata kremalı bisküvi,,suspect,suspect_sugar_gt_carb
+curated,767,-MbOlXQp68fGADgF-Omt,çikolata kreması,,suspect,suspect_sugar_gt_carb
+curated,768,-MbOlQiRaHYYTKf3cqsX,çikolatalı fındıklı puding,,suspect,suspect_sugar_gt_carb
+curated,771,-MbOmLtlLkmLF2dgqaPG,çinekop,,invalid,invalid_kcal_range
+curated,772,-MbOkY_4TedFO20CFcXT,çiçek enginar),,invalid,invalid_kcal_range
+curated,781,-MbOlh2U1qaNYBzzLIh7,çubuk vanilya,,suspect,suspect_macro_kcal_mismatch
+curated,782,-MbOmku4ULFXTJGYE2RK,çupra,,invalid,invalid_kcal_range
+curated,789,-MbOeymwkXCAEHpOpd5n,ılık su,,invalid,invalid_kcal_range
+curated,793,-MbOkqkHMOk-n1YwgvZ9,ısırgan yaprağı,,invalid,invalid_kcal_range

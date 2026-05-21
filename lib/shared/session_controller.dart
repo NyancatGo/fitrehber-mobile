@@ -93,6 +93,25 @@ class SessionController extends StateNotifier<SessionState> {
     }
   }
 
+  Future<void> loginWithGoogleCode({
+    required String code,
+    required String stateToken,
+    required String codeVerifier,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _authService.exchangeGoogleCode(
+        code: code,
+        state: stateToken,
+        codeVerifier: codeVerifier,
+      );
+      await _loadProfile(logoutOnFailure: false);
+    } catch (error) {
+      state = SessionState(isLoading: false, error: error.toString());
+      rethrow;
+    }
+  }
+
   Future<void> completeOnboarding(Map<String, dynamic> data) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {

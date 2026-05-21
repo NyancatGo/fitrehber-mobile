@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/onboarding_constants.dart';
 import '../../shared/session_controller.dart';
+import '../../shared/widgets/session_loading.dart';
 import '../profile/providers/profile_provider.dart';
 
 // onboardingGoalChoices artik shared/onboarding_constants.dart icinde;
@@ -167,55 +168,64 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              _Header(step: _step),
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  // Kullanici step'leri kaydirarak atlamasin — gecis yalnizca
-                  // "Ileri" butonu uzerinden, validasyondan sonra gerceklesir.
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (value) => setState(() => _step = value),
-                  children: [
-                    _IdentityStep(
-                      gender: _gender,
-                      birthDate: _birthDate,
-                      onGenderChanged: (value) =>
-                          setState(() => _gender = value),
-                      onPickBirthDate: _pickBirthDate,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  _Header(step: _step),
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      // Kullanici step'leri kaydirarak atlamasin — gecis yalnizca
+                      // "Ileri" butonu uzerinden, validasyondan sonra gerceklesir.
+                      physics: const NeverScrollableScrollPhysics(),
+                      onPageChanged: (value) => setState(() => _step = value),
+                      children: [
+                        _IdentityStep(
+                          gender: _gender,
+                          birthDate: _birthDate,
+                          onGenderChanged: (value) =>
+                              setState(() => _gender = value),
+                          onPickBirthDate: _pickBirthDate,
+                        ),
+                        _BiometricStep(
+                          heightController: _heightController,
+                          weightController: _weightController,
+                        ),
+                        _GoalStep(
+                          targetWeightController: _targetWeightController,
+                          goalController: _goalController,
+                          onSelectGoal: _selectGoal,
+                        ),
+                        _SummaryStep(
+                          heightController: _heightController,
+                          weightController: _weightController,
+                          targetWeightController: _targetWeightController,
+                          goalController: _goalController,
+                        ),
+                      ],
                     ),
-                    _BiometricStep(
-                      heightController: _heightController,
-                      weightController: _weightController,
-                    ),
-                    _GoalStep(
-                      targetWeightController: _targetWeightController,
-                      goalController: _goalController,
-                      onSelectGoal: _selectGoal,
-                    ),
-                    _SummaryStep(
-                      heightController: _heightController,
-                      weightController: _weightController,
-                      targetWeightController: _targetWeightController,
-                      goalController: _goalController,
-                    ),
-                  ],
-                ),
+                  ),
+                  _Footer(
+                    step: _step,
+                    saving: _saving,
+                    onBack: () => _goToStep(_step - 1),
+                    onNext: _onNextPressed,
+                    onSubmit: _submit,
+                  ),
+                ],
               ),
-              _Footer(
-                step: _step,
-                saving: _saving,
-                onBack: () => _goToStep(_step - 1),
-                onNext: _onNextPressed,
-                onSubmit: _submit,
-              ),
-            ],
+            ),
           ),
-        ),
+          if (_saving)
+            const SessionLoadingOverlay(
+              title: 'Profilin kaydediliyor',
+              subtitle: 'Hedeflerin senkronize ediliyor',
+            ),
+        ],
       ),
     );
   }

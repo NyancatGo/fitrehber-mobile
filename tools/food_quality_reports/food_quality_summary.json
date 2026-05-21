@@ -1,0 +1,42 @@
+{
+  "input_count": 4218,
+  "kept_count": 3905,
+  "suspect_count": 313,
+  "reason_counts": {
+    "invalid_gram_range_seker100g": 2,
+    "invalid_kcal_range": 81,
+    "invalid_name_no_alpha": 2,
+    "normalized_clamped_karbonhidrat100g": 1,
+    "normalized_clamped_seker100g": 1,
+    "normalized_clamped_yag100g": 7,
+    "suspect_duplicate_name_brand": 117,
+    "suspect_macro_kcal_mismatch": 74,
+    "suspect_macro_sum_gt_105": 1,
+    "suspect_missing_core_macro": 3,
+    "suspect_satfat_gt_fat": 4,
+    "suspect_sugar_gt_carb": 47
+  },
+  "source_counts": {
+    "curated": {
+      "candidate_valid": 657,
+      "suspect": 60,
+      "invalid": 81,
+      "kept": 656
+    },
+    "branded": {
+      "candidate_valid": 3365,
+      "invalid": 4,
+      "suspect": 168,
+      "kept": 3249
+    }
+  },
+  "mode": "write",
+  "files": {
+    "curated": "assets\\data\\foods_cleaned.json",
+    "branded": "assets\\data\\foods_brands_tr.json"
+  },
+  "written_counts": {
+    "curated": 656,
+    "branded": 3249
+  }
+}

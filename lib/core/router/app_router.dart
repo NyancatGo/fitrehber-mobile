@@ -15,18 +15,23 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/search/search_screen.dart';
 import '../../shared/session_controller.dart';
+import '../../shared/widgets/session_loading.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final session = ref.watch(sessionControllerProvider);
 
   return GoRouter(
-    initialLocation: '/giris',
+    initialLocation: '/session-loading',
     redirect: (context, state) {
       final path = state.uri.path;
+      final isLoadingPath = path == '/session-loading';
       final isAuthPath = path == '/giris' || path == '/kayit';
       final isOnboardingPath = path == '/onboarding';
 
-      if (session.isLoading) return null;
+      if (session.isLoading) {
+        if (isLoadingPath || isAuthPath || isOnboardingPath) return null;
+        return '/session-loading';
+      }
 
       if (!session.isLoggedIn) {
         return isAuthPath ? null : '/giris';
@@ -36,10 +41,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return isOnboardingPath ? null : '/onboarding';
       }
 
-      if (isAuthPath || isOnboardingPath) return '/';
+      if (isAuthPath || isOnboardingPath || isLoadingPath) return '/';
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/session-loading',
+        builder: (context, state) => const SessionLoadingScreen(),
+      ),
       GoRoute(path: '/giris', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/kayit',

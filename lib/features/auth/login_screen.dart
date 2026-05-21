@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../shared/google_oauth_flow.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/session_controller.dart';
+import '../../shared/widgets/session_loading.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,8 +21,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _sifreGizli = true;
   String? _hata;
+
+  bool get _isBusy => _isLoading || _isGoogleLoading;
 
   @override
   void dispose() {
@@ -52,122 +59,203 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _googleIleGirisYap() async {
+    final oauthRequest = GoogleOAuthFlow.createRequest();
+    setState(() {
+      _isGoogleLoading = true;
+      _hata = null;
+    });
+
+    try {
+      final callbackUrl = await FlutterWebAuth2.authenticate(
+        url: oauthRequest.authorizationUrl.toString(),
+        callbackUrlScheme: GoogleOAuthFlow.callbackScheme,
+      );
+      final callback = GoogleOAuthFlow.parseCallback(
+        callbackUrl,
+        expectedState: oauthRequest.state,
+      );
+
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .loginWithGoogleCode(
+            code: callback.code,
+            stateToken: callback.state,
+            codeVerifier: oauthRequest.codeVerifier,
+          );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hata = kullaniciDostuHata(e);
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 60),
-                // Logo ve başlık
-                const Icon(
-                  Icons.fitness_center,
-                  size: 64,
-                  color: Color(0xFFF5A623),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'FitRehber',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const Text(
-                  'Hesabına giriş yap',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
-                ),
-                const SizedBox(height: 48),
-                // Hata mesajı
-                if (_hata != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      _hata!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                // Kullanıcı adı
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Kullanıcı Adı',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Kullanıcı adı gerekli' : null,
-                ),
-                const SizedBox(height: 16),
-                // Şifre
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _sifreGizli,
-                  decoration: InputDecoration(
-                    labelText: 'Şifre',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _sifreGizli ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () =>
-                          setState(() => _sifreGizli = !_sifreGizli),
-                    ),
-                  ),
-                  validator: (v) => v == null || v.length < 6
-                      ? 'Şifre en az 6 karakter olmalı'
-                      : null,
-                ),
-                const SizedBox(height: 24),
-                // Giriş butonu
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _girisYap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF5A623),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Giriş Yap',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                ),
-                const SizedBox(height: 16),
-                // Kayıt ol linki
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('Hesabın yok mu?'),
-                    TextButton(
-                      onPressed: () => context.go('/kayit'),
-                      child: const Text(
-                        'Kayıt Ol',
-                        style: TextStyle(color: Color(0xFFF5A623)),
+                    const SizedBox(height: 60),
+                    const Icon(
+                      Icons.fitness_center,
+                      size: 64,
+                      color: Color(0xFFF5A623),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'FitRehber',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
+                    const Text(
+                      'Hesabına giriş yap',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                    const SizedBox(height: 48),
+                    if (_hata != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          _hata!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    TextFormField(
+                      controller: _usernameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Kullanıcı Adı',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) => v == null || v.isEmpty
+                          ? 'Kullanıcı adı gerekli'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _sifreGizli,
+                      decoration: InputDecoration(
+                        labelText: 'Şifre',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _sifreGizli
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () =>
+                              setState(() => _sifreGizli = !_sifreGizli),
+                        ),
+                      ),
+                      validator: (v) => v == null || v.length < 6
+                          ? 'Şifre en az 6 karakter olmalı'
+                          : null,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _isBusy ? null : _girisYap,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF5A623),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Giriş Yap',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _isBusy ? null : _googleIleGirisYap,
+                      icon: _isGoogleLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'G',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                      label: const Text('Google ile Giriş Yap'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF202124),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Hesabın yok mu?'),
+                        TextButton(
+                          onPressed: () => context.go('/kayit'),
+                          child: const Text(
+                            'Kayıt Ol',
+                            style: TextStyle(color: Color(0xFFF5A623)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          if (_isBusy)
+            SessionLoadingOverlay(
+              title: _isGoogleLoading
+                  ? 'Google ile giriş yapılıyor'
+                  : 'Giriş yapılıyor',
+              subtitle: _isGoogleLoading
+                  ? 'Güvenli oturum hazırlanıyor'
+                  : 'Profilin hazırlanıyor',
+            ),
+        ],
       ),
     );
   }
