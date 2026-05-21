@@ -16,8 +16,10 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _heightController;
   late final TextEditingController _weightController;
   late final TextEditingController _targetWeightController;
-  late final TextEditingController _goalController;
   late final TextEditingController _waterGoalController;
+  // Fitness hedefi artik sabit listeden dropdown; serbest text yok.
+  // Profilde legacy/serbest deger varsa null kalir, kullanici secmek zorunda.
+  String? _goal;
   late DateTime? _birthDate;
   late String _gender;
   XFile? _selectedPhoto;
@@ -37,7 +39,10 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     _targetWeightController = TextEditingController(
       text: _formatNumber(widget.profile.targetWeight),
     );
-    _goalController = TextEditingController(text: widget.profile.goal);
+    // Mevcut profil hedefi sabit listede mi? Degilse dropdown bos baslar.
+    _goal = onboardingGoalChoices.contains(widget.profile.goal)
+        ? widget.profile.goal
+        : null;
     _waterGoalController = TextEditingController(
       text: widget.profile.customWaterGoalMl != null &&
               widget.profile.customWaterGoalMl! > 0
@@ -59,7 +64,6 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     _heightController.dispose();
     _weightController.dispose();
     _targetWeightController.dispose();
-    _goalController.dispose();
     _waterGoalController.dispose();
     super.dispose();
   }
@@ -91,6 +95,15 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       return;
     }
 
+    // Fitness hedefi sabit listeden — onboarding ile birebir tutarli.
+    // Onboarded profilde zorunlu; serbest metin veya bos kabul edilmiyor.
+    if (widget.profile.isOnboarded && _goal == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Hedef sec.')));
+      return;
+    }
+
     setState(() => _saving = true);
 
     try {
@@ -106,7 +119,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         'boy': _parseNullableDouble(_heightController.text),
         'kilo': _parseNullableDouble(_weightController.text),
         'hedef_kilo': _parseNullableDouble(_targetWeightController.text),
-        'fitness_hedefi': _goalController.text.trim(),
+        'fitness_hedefi': _goal ?? '',
         'dogum_tarihi': _birthDate?.toIso8601String().split('T').first,
         'gunluk_su_hedefi_ml': waterGoal,
       };
@@ -247,13 +260,21 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               suffix: 'kg',
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _goalController,
+            // Sabit listeden secim — serbest metin yok. Onboarding ile
+            // birebir tutarli. Legacy degerler dropdown'da gosterilmez,
+            // kullanici 3 secenekten birini secmek zorunda.
+            DropdownButtonFormField<String>(
+              initialValue: _goal,
               decoration: const InputDecoration(
                 labelText: 'Hedef',
                 prefixIcon: Icon(Icons.flag_outlined),
                 border: OutlineInputBorder(),
               ),
+              items: [
+                for (final goal in onboardingGoalChoices)
+                  DropdownMenuItem(value: goal, child: Text(goal)),
+              ],
+              onChanged: (value) => setState(() => _goal = value),
             ),
             const SizedBox(height: 12),
             TextField(

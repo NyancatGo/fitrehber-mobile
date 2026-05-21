@@ -18,6 +18,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/profil_model.dart';
+import '../../shared/onboarding_constants.dart';
 import '../../shared/session_controller.dart';
 import 'providers/profile_provider.dart';
 import 'widgets/profile_content_tabs.dart';

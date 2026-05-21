@@ -10,6 +10,7 @@
 import 'package:fitrehber_mobile/features/onboarding/onboarding_screen.dart';
 import 'package:fitrehber_mobile/shared/api_service.dart';
 import 'package:fitrehber_mobile/shared/auth_service.dart';
+import 'package:fitrehber_mobile/shared/onboarding_constants.dart';
 import 'package:fitrehber_mobile/shared/session_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

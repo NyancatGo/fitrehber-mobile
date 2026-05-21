@@ -5,17 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/hata_yardimcilari.dart';
+import '../../shared/onboarding_constants.dart';
 import '../../shared/session_controller.dart';
 import '../profile/providers/profile_provider.dart';
 
-/// Onboarding ekraninda izin verilen fitness hedefleri.
-/// API'deki ONBOARDING_GOAL_CHOICES ve web forms.ONBOARDING_GOAL_CHOICES
-/// ile birebir ayni — uc taraf tek bir liste konusunda anlasmis.
-const List<String> onboardingGoalChoices = [
-  'Yağ kaybı',
-  'Kas kazanımı',
-  'Kondisyon ve genel sağlık',
-];
+// onboardingGoalChoices artik shared/onboarding_constants.dart icinde;
+// profil edit ekrani da ayni listeyi okuyor.
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
