@@ -8,6 +8,15 @@ import '../../shared/hata_yardimcilari.dart';
 import '../../shared/session_controller.dart';
 import '../profile/providers/profile_provider.dart';
 
+/// Onboarding ekraninda izin verilen fitness hedefleri.
+/// API'deki ONBOARDING_GOAL_CHOICES ve web forms.ONBOARDING_GOAL_CHOICES
+/// ile birebir ayni — uc taraf tek bir liste konusunda anlasmis.
+const List<String> onboardingGoalChoices = [
+  'Yağ kaybı',
+  'Kas kazanimi',
+  'Kondisyon ve genel sağlık',
+];
+
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -25,8 +34,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   int _step = 0;
   DateTime? _birthDate;
-  String _gender = 'B';
+  // Kullanici kesin secim yapmadan ileri gidemez — 'B' (Belirtmem) onboarding
+  // akisinda kabul edilmiyor; mevcut profilden de E/K disindaki degerleri
+  // bos sayiyoruz.
+  String _gender = '';
   bool _saving = false;
+
+  /// Dosya seviyesindeki [onboardingGoalChoices]'in yerel alias'i —
+  /// State icinde kisa erisim icin.
+  List<String> get _allowedGoals => onboardingGoalChoices;
 
   @override
   void initState() {
@@ -43,7 +59,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
     _goalController = TextEditingController(text: profile?.goal ?? '');
     _birthDate = profile?.birthDate;
-    _gender = profile?.gender ?? 'B';
+    // Mevcut profilden cinsiyet okunurken: yalnizca 'E' veya 'K' kabul,
+    // 'B' veya bos -> ekran kullaniciya secim yaptirir.
+    final existingGender = profile?.gender ?? '';
+    _gender = (existingGender == 'E' || existingGender == 'K')
+        ? existingGender
+        : '';
   }
 
   @override
@@ -57,10 +78,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _birthDate == null || _saving) {
-      if (_birthDate == null) {
-        _showMessage('Doğum tarihini seçmelisin.');
-      }
+    if (_saving) return;
+    if (!_formKey.currentState!.validate()) return;
+    // Form validate fitness_hedefi text input'unu kontrol etmiyor (kaldirildi);
+    // bunlar manuel kontrol:
+    if (_gender.isEmpty) {
+      _showMessage('Cinsiyet sec.');
+      _goToStep(0);
+      return;
+    }
+    if (_birthDate == null) {
+      _showMessage('Doğum tarihini sec.');
+      _goToStep(0);
+      return;
+    }
+    if (!_allowedGoals.contains(_goalController.text)) {
+      _showMessage('Fitness hedefi sec.');
+      _goToStep(2);
       return;
     }
 
@@ -102,6 +136,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  /// Ileri butonuna basildiginda once mevcut step'in zorunlu alanlarini
+  /// dogrular. Eksik varsa kullaniciya bildirir ve gecisi engeller.
+  void _onNextPressed() {
+    if (_step == 0) {
+      if (_gender.isEmpty) {
+        _showMessage('Cinsiyet sec.');
+        return;
+      }
+      if (_birthDate == null) {
+        _showMessage('Doğum tarihini sec.');
+        return;
+      }
+    } else if (_step == 2) {
+      if (!_allowedGoals.contains(_goalController.text)) {
+        _showMessage('Fitness hedefi sec.');
+        return;
+      }
+    }
+    _goToStep(_step + 1);
   }
 
   void _selectGoal(String goal) {
@@ -157,7 +212,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 step: _step,
                 saving: _saving,
                 onBack: () => _goToStep(_step - 1),
-                onNext: () => _goToStep(_step + 1),
+                onNext: _onNextPressed,
                 onSubmit: _submit,
               ),
             ],
@@ -242,14 +297,19 @@ class _IdentityStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Cinsiyet zorunlu — default secili degil, kullanici Erkek veya
+          // Kadın'i acikca secmeli. 'Belirtmem' onboarding'de kabul edilmiyor.
           SegmentedButton<String>(
             segments: const [
               ButtonSegment(value: 'E', label: Text('Erkek')),
               ButtonSegment(value: 'K', label: Text('Kadın')),
-              ButtonSegment(value: 'B', label: Text('Belirtmem')),
             ],
-            selected: {gender},
-            onSelectionChanged: (values) => onGenderChanged(values.first),
+            selected: gender.isEmpty ? <String>{} : {gender},
+            emptySelectionAllowed: true,
+            onSelectionChanged: (values) {
+              if (values.isEmpty) return;
+              onGenderChanged(values.first);
+            },
           ),
           const SizedBox(height: 18),
           InkWell(
@@ -323,6 +383,10 @@ class _GoalStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Serbest metin yok: kullanici Yağ kaybı / Kas kazanımı / Kondisyon ve
+    // genel sağlık secimlerinden BIRINI yapmali. Stringler API'deki
+    // ONBOARDING_GOAL_CHOICES ile birebir ayni.
+    final selectedGoal = goalController.text;
     return _StepShell(
       icon: Icons.flag_outlined,
       title: 'Hedefini sec',
@@ -333,39 +397,41 @@ class _GoalStep extends StatelessWidget {
             label: 'Hedef kilo',
             suffix: 'kg',
           ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: goalController,
-            decoration: const InputDecoration(
-              labelText: 'Fitness hedefi',
-              prefixIcon: Icon(Icons.ads_click),
-              border: OutlineInputBorder(),
+          const SizedBox(height: 18),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Fitness hedefi',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.62),
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? 'Hedef gerekli' : null,
           ),
-          const SizedBox(height: 14),
-          _GoalCard(
-            title: 'Yağ kaybı',
-            icon: Icons.local_fire_department_outlined,
-            selected: goalController.text == 'Yağ kaybı',
-            onTap: () => onSelectGoal('Yağ kaybı'),
-          ),
-          _GoalCard(
-            title: 'Kas kazanimi',
-            icon: Icons.bolt_outlined,
-            selected: goalController.text == 'Kas kazanimi',
-            onTap: () => onSelectGoal('Kas kazanimi'),
-          ),
-          _GoalCard(
-            title: 'Kondisyon ve genel sağlık',
-            icon: Icons.favorite_border,
-            selected: goalController.text == 'Kondisyon ve genel sağlık',
-            onTap: () => onSelectGoal('Kondisyon ve genel sağlık'),
-          ),
+          const SizedBox(height: 10),
+          for (final goal in onboardingGoalChoices)
+            _GoalCard(
+              title: goal,
+              icon: _iconForGoal(goal),
+              selected: selectedGoal == goal,
+              onTap: () => onSelectGoal(goal),
+            ),
         ],
       ),
     );
+  }
+
+  static IconData _iconForGoal(String goal) {
+    switch (goal) {
+      case 'Yağ kaybı':
+        return Icons.local_fire_department_outlined;
+      case 'Kas kazanimi':
+        return Icons.bolt_outlined;
+      case 'Kondisyon ve genel sağlık':
+        return Icons.favorite_border;
+      default:
+        return Icons.flag_outlined;
+    }
   }
 }
 
