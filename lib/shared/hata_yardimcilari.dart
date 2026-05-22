@@ -3,9 +3,30 @@
 // Dio'nun ham bağlantı/timeout hatalarının arayüze sızmasını engellemektir.
 
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
+
+import 'google_oauth_flow.dart';
 
 /// Yakalanan bir hatayı kullanıcı dostu, Türkçe bir mesaja dönüştürür.
 String kullaniciDostuHata(Object hata) {
+  if (hata is GoogleOAuthException) {
+    return hata.message;
+  }
+
+  if (hata is PlatformException) {
+    switch (hata.code) {
+      case 'CANCELED':
+        return 'Google giriş işlemi iptal edildi.';
+      case 'NO_BROWSER':
+        return 'Google girişi için uygun bir tarayıcı bulunamadı.';
+      case 'FAILED':
+        return 'Google giriş işlemi tamamlanamadı. Lütfen tekrar dene.';
+    }
+
+    final message = hata.message?.trim();
+    if (message != null && message.isNotEmpty) return message;
+  }
+
   if (hata is DioException) {
     switch (hata.type) {
       case DioExceptionType.connectionTimeout:
