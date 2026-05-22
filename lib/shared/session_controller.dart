@@ -127,11 +127,17 @@ class SessionController extends StateNotifier<SessionState> {
     }
   }
 
-  Future<void> register(String username, String password, String email) async {
+  Future<void> register(
+    String username,
+    String password,
+    String email,
+    String password2,
+  ) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _authService.register(username, password, email);
-      await _loadProfile(logoutOnFailure: false);
+      await _authService.register(username, password, email, password2);
+      await _authService.logout();
+      state = const SessionState(isLoading: false);
     } catch (error) {
       state = SessionState(isLoading: false, error: error.toString());
       rethrow;

@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../shared/google_oauth_flow.dart';
 import '../../shared/hata_yardimcilari.dart';
+import '../../shared/auth_service.dart';
 import '../../shared/session_controller.dart';
 import '../../shared/widgets/session_loading.dart';
 
@@ -50,6 +51,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(sessionControllerProvider.notifier)
           .login(_usernameController.text.trim(), _passwordController.text);
+    } on EmailVerificationRequiredException catch (e) {
+      if (mounted) {
+        context.go('/email-dogrulama?email=${Uri.encodeComponent(e.email)}');
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -260,7 +265,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? 'Şifre en az 6 karakter olmalı'
                           : null,
                     ),
-                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => context.push('/sifremi-unuttum'),
+                        child: const Text(
+                          'Şifremi Unuttum',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _isBusy ? null : _girisYap,
                       style: ElevatedButton.styleFrom(

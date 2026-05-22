@@ -14,8 +14,15 @@ class ApiConstants {
   static const String beslenmeEkle = '$baseUrl/beslenme/ekle/';
 
   static const String login = '$baseUrl/auth/login/';
-  static const String register = '$baseUrl/auth/register/';
   static const String googleToken = '$baseUrl/auth/google/token/';
+
+  // Web Auth JSON Endpoints
+  static const String register = '$webUrl/mobile/auth/register/';
+  static const String resendVerification =
+      '$webUrl/mobile/auth/verification/resend/';
+  static const String passwordResetRequest =
+      '$webUrl/mobile/auth/password-reset/request/';
+
   static const String tokenRefresh = '$baseUrl/auth/token/refresh/';
 
   static const String aiChat = '$baseUrl/ai/chat/';

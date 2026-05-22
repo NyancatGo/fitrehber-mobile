@@ -36,6 +36,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _kayitOl() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final email = _emailController.text.trim();
+
     setState(() {
       _isLoading = true;
       _hata = null;
@@ -46,8 +49,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           .register(
             _usernameController.text.trim(),
             _passwordController.text,
-            _emailController.text.trim(),
+            email,
+            _passwordConfirmController.text,
           );
+
+      if (mounted) {
+        context.go('/email-dogrulama?email=${Uri.encodeComponent(email)}');
+      }
     } catch (e) {
       if (mounted) {
         setState(() {

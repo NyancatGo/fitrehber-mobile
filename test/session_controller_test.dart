@@ -32,6 +32,20 @@ class _CountingAuthService extends AuthService {
   }
 }
 
+class _RegisterAuthService extends _CountingAuthService {
+  List<String>? registerArgs;
+
+  @override
+  Future<void> register(
+    String username,
+    String password,
+    String email,
+    String password2,
+  ) async {
+    registerArgs = [username, password, email, password2];
+  }
+}
+
 void main() {
   test(
     'restore() preserves session on DioException (offline) — no logout',
@@ -43,10 +57,7 @@ void main() {
       );
       final auth = _CountingAuthService();
       final api = _FakeApiService(dioErr);
-      final controller = SessionController(
-        authService: auth,
-        apiService: api,
-      );
+      final controller = SessionController(authService: auth, apiService: api);
 
       await controller.restore();
 
@@ -60,23 +71,49 @@ void main() {
     },
   );
 
+  test('restore() logs out on real auth error (non-DioException)', () async {
+    // ApiService gercek 401 durumunda String firlatir.
+    const authErr = 'Oturum süren doldu.';
+    final auth = _CountingAuthService();
+    final api = _FakeApiService(authErr);
+    final controller = SessionController(authService: auth, apiService: api);
+
+    await controller.restore();
+
+    // Auth hatasi -> logout cagrilmali.
+    expect(auth.logoutCalls, 1);
+    expect(controller.state.isLoggedIn, false);
+  });
+
   test(
-    'restore() logs out on real auth error (non-DioException)',
+    'register() sends password confirmation and clears stale session',
     () async {
-      // ApiService gercek 401 durumunda String firlatir.
-      const authErr = 'Oturum süren doldu.';
-      final auth = _CountingAuthService();
-      final api = _FakeApiService(authErr);
-      final controller = SessionController(
-        authService: auth,
-        apiService: api,
+      final auth = _RegisterAuthService();
+      final api = _FakeApiService('unused');
+      final controller = SessionController(authService: auth, apiService: api);
+      controller.state = SessionState(
+        isLoading: false,
+        isLoggedIn: true,
+        profile: ProfilModel.empty(),
       );
 
-      await controller.restore();
+      await controller.register(
+        'newuser',
+        'CorrectPass123!',
+        'new@example.com',
+        'CorrectPass123!',
+      );
 
-      // Auth hatasi -> logout cagrilmali.
+      expect(auth.registerArgs, [
+        'newuser',
+        'CorrectPass123!',
+        'new@example.com',
+        'CorrectPass123!',
+      ]);
       expect(auth.logoutCalls, 1);
+      expect(controller.state.isLoading, false);
       expect(controller.state.isLoggedIn, false);
+      expect(controller.state.profile, isNull);
     },
   );
 }

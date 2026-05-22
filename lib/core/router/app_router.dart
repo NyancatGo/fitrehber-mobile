@@ -6,6 +6,8 @@ import '../../features/article/article_screen.dart';
 import '../../features/article/focused_comment_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
+import '../../features/auth/email_verification_screen.dart';
+import '../../features/auth/forgot_password_screen.dart';
 import '../../features/categories/categories_screen.dart';
 import '../../features/forum/forum_screen.dart';
 import '../../features/forum/soru_sor_screen.dart';
@@ -25,7 +27,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final path = state.uri.path;
       final isLoadingPath = path == '/session-loading';
-      final isAuthPath = path == '/giris' || path == '/kayit';
+      final isAuthPath =
+          path == '/giris' ||
+          path == '/kayit' ||
+          path == '/email-dogrulama' ||
+          path == '/sifremi-unuttum';
       final isOnboardingPath = path == '/onboarding';
 
       if (session.isLoading) {
@@ -53,6 +59,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kayit',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/email-dogrulama',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return EmailVerificationScreen(email: email);
+        },
+      ),
+      GoRoute(
+        path: '/sifremi-unuttum',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/onboarding',

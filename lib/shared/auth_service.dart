@@ -32,18 +32,50 @@ class AuthService {
     throw _hataAyikla(response.data, response.statusCode);
   }
 
-  Future<KullaniciModel> register(
+  Future<void> register(
     String username,
     String password,
     String email,
+    String password2,
   ) async {
     final response = await _dio.post(
       ApiConstants.register,
-      data: {'username': username, 'password': password, 'email': email},
+      data: {
+        'username': username,
+        'email': email,
+        'password': password,
+        'password2': password2,
+      },
     );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return _oturumYanitiKaydet(response.data);
+    if (response.statusCode == 201) {
+      return; // Başarılı, doğrulama e-postası gönderildi.
+    }
+
+    throw _hataAyikla(response.data, response.statusCode);
+  }
+
+  Future<void> resendVerification(String email) async {
+    final response = await _dio.post(
+      ApiConstants.resendVerification,
+      data: {'email': email},
+    );
+
+    if (response.statusCode == 200) {
+      return;
+    }
+
+    throw _hataAyikla(response.data, response.statusCode);
+  }
+
+  Future<void> passwordResetRequest(String email) async {
+    final response = await _dio.post(
+      ApiConstants.passwordResetRequest,
+      data: {'email': email},
+    );
+
+    if (response.statusCode == 200) {
+      return;
     }
 
     throw _hataAyikla(response.data, response.statusCode);
@@ -191,15 +223,49 @@ class AuthService {
   String _hataAyikla(dynamic data, int? statusCode) {
     if (data is String) {
       if (statusCode == 401) return 'Kullanıcı adı veya şifre hatalı.';
+      if (statusCode == 403) return 'Bu işlem için izniniz yok.';
       if (statusCode == 400) return 'Geçersiz istek. Bilgilerini kontrol et.';
       return 'Sunucu hatası ($statusCode). Lütfen tekrar dene.';
     }
 
-    if (data is Map<String, dynamic>) {
-      if (data.containsKey('hata')) return data['hata'].toString();
-      if (data.containsKey('detail')) return data['detail'].toString();
+    if (data is Map) {
+      if (data['code'] == 'email_verification_required') {
+        throw EmailVerificationRequiredException(
+          data['email']?.toString() ?? '',
+        );
+      }
+
+      final directMessage =
+          data['hata'] ?? data['detail'] ?? data['message'] ?? data['mesaj'];
+      if (directMessage != null) return directMessage.toString();
+
+      final errorMessage = _errorsToMessage(data['errors']);
+      if (errorMessage != null) return errorMessage;
     }
 
     return 'Bilinmeyen hata oluştu.';
   }
+
+  String? _errorsToMessage(dynamic errors) {
+    if (errors is List && errors.isNotEmpty) {
+      return errors.first.toString();
+    }
+
+    if (errors is Map) {
+      for (final value in errors.values) {
+        final message = _errorsToMessage(value);
+        if (message != null && message.isNotEmpty) return message;
+      }
+    }
+
+    return null;
+  }
+}
+
+class EmailVerificationRequiredException implements Exception {
+  final String email;
+  EmailVerificationRequiredException(this.email);
+
+  @override
+  String toString() => 'E-posta doğrulaması gerekiyor.';
 }
