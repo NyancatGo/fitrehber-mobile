@@ -221,21 +221,30 @@ class _GunSeciciState extends ConsumerState<_GunSecici> {
             children: [
               _TakvimButonu(onTap: _takvimAc),
               const SizedBox(width: 8),
-              for (var i = 0; i < gunler.length; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                _GunChip(
-                  gun: gunler[i],
-                  secili: _tarihStr(gunler[i]) == widget.seciliTarih,
-                  isToday: _ayniGun(gunler[i], bugun),
-                  disabled:
-                      gunler[i].isBefore(start) || gunler[i].isAfter(end),
-                  onTap: (gunler[i].isBefore(start) || gunler[i].isAfter(end))
-                      ? null
-                      : () => ref
-                          .read(nutritionProvider.notifier)
-                          .load(_tarihStr(gunler[i])),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < gunler.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 8),
+                        _GunChip(
+                          gun: gunler[i],
+                          secili: _tarihStr(gunler[i]) == widget.seciliTarih,
+                          isToday: _ayniGun(gunler[i], bugun),
+                          disabled:
+                              gunler[i].isBefore(start) || gunler[i].isAfter(end),
+                          onTap: (gunler[i].isBefore(start) || gunler[i].isAfter(end))
+                              ? null
+                              : () => ref
+                                  .read(nutritionProvider.notifier)
+                                  .load(_tarihStr(gunler[i])),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
