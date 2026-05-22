@@ -86,6 +86,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (!_formKey.currentState!.validate()) return;
     // Form validate fitness_hedefi text input'unu kontrol etmiyor (kaldirildi);
     // bunlar manuel kontrol:
+    if (_firstNameController.text.trim().isEmpty ||
+        _lastNameController.text.trim().isEmpty) {
+      _showMessage('Ad ve soyad gerekli.');
+      _goToStep(0);
+      return;
+    }
     if (_gender.isEmpty) {
       _showMessage('Cinsiyet sec.');
       _goToStep(0);
@@ -148,6 +154,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   /// dogrular. Eksik varsa kullaniciya bildirir ve gecisi engeller.
   void _onNextPressed() {
     if (_step == 0) {
+      if (_firstNameController.text.trim().isEmpty) {
+        _showMessage('Adını gir.');
+        return;
+      }
+      if (_lastNameController.text.trim().isEmpty) {
+        _showMessage('Soyadını gir.');
+        return;
+      }
       if (_gender.isEmpty) {
         _showMessage('Cinsiyet sec.');
         return;

@@ -50,10 +50,30 @@ void main() {
     },
   );
 
+  testWidgets('next button blocks step 0 when name is empty', (tester) async {
+    await tester.pumpWidget(wrap());
+    await tester.pump();
+
+    // Ad/Soyad bos iken Ileri'ye basinca uyari gelmeli, step degismemeli.
+    await tester.tap(find.text('İleri'));
+    await tester.pump(); // snackbar frame
+    expect(find.text('Adını gir.'), findsOneWidget);
+  });
+
   testWidgets('next button blocks step 0 when gender is not selected',
       (tester) async {
     await tester.pumpWidget(wrap());
     await tester.pump();
+
+    // Ad/Soyad doldurulur ki bloklama cinsiyet eksikliginden gelsin.
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Ad'),
+      'Test',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Soyad'),
+      'Kullanici',
+    );
 
     // Ileri butonuna bas — cinsiyet secilmedigi icin uyari snackbar gelmeli
     // ve step degismemeli.
@@ -66,7 +86,7 @@ void main() {
 
   testWidgets('step 0 has Ad/Soyad fields and nothing else as TextFormField',
       (tester) async {
-    // Onboarding step 0'da Ad + Soyad (opsiyonel) + SegmentedButton + tarih
+    // Onboarding step 0'da Ad + Soyad (zorunlu) + SegmentedButton + tarih
     // secici var. Boy/kilo step 1'de, hedef kilo step 2'de — PageView lazy.
     await tester.pumpWidget(wrap());
     await tester.pump();
