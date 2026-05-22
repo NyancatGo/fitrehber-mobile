@@ -167,8 +167,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               setState(() => _sifreGizli = !_sifreGizli),
                         ),
                       ),
-                      validator: (v) => v == null || v.length < 6
-                          ? 'Şifre en az 6 karakter olmalı'
+                      // WEB tarafindaki Django MinimumLengthValidator 8
+                      // karakter zorunlu kilar; istemci dogrulamasi da ayni
+                      // esikte olmali — aksi halde sunucu reddedince UX bozulur.
+                      validator: (v) => v == null || v.length < 8
+                          ? 'Şifre en az 8 karakter olmalı'
                           : null,
                     ),
                     const SizedBox(height: 16),
