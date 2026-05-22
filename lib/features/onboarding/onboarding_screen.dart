@@ -23,6 +23,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _pageController = PageController();
+  late final TextEditingController _firstNameController;
+  late final TextEditingController _lastNameController;
   late final TextEditingController _heightController;
   late final TextEditingController _weightController;
   late final TextEditingController _targetWeightController;
@@ -44,6 +46,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void initState() {
     super.initState();
     final profile = ref.read(sessionControllerProvider).profile;
+    // Ad/Soyad: Google ile giris yapildiysa profil bu alanlari Google
+    // hesabindan dolu getirir; kullanici degistirebilir.
+    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
+    _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _heightController = TextEditingController(
       text: _formatNumber(profile?.height),
     );
@@ -66,6 +72,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _heightController.dispose();
     _weightController.dispose();
     _targetWeightController.dispose();
@@ -98,6 +106,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     try {
       await ref.read(sessionControllerProvider.notifier).completeOnboarding({
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
         'cinsiyet': _gender,
         'dogum_tarihi': _birthDate!.toIso8601String().split('T').first,
         'boy': _parseDouble(_heightController.text),
@@ -185,6 +195,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       onPageChanged: (value) => setState(() => _step = value),
                       children: [
                         _IdentityStep(
+                          firstNameController: _firstNameController,
+                          lastNameController: _lastNameController,
                           gender: _gender,
                           birthDate: _birthDate,
                           onGenderChanged: (value) =>
@@ -285,12 +297,16 @@ class _Header extends StatelessWidget {
 }
 
 class _IdentityStep extends StatelessWidget {
+  final TextEditingController firstNameController;
+  final TextEditingController lastNameController;
   final String gender;
   final DateTime? birthDate;
   final ValueChanged<String> onGenderChanged;
   final VoidCallback onPickBirthDate;
 
   const _IdentityStep({
+    required this.firstNameController,
+    required this.lastNameController,
     required this.gender,
     required this.birthDate,
     required this.onGenderChanged,
@@ -305,6 +321,27 @@ class _IdentityStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Ad/Soyad opsiyonel — Google ile giris yapildiysa dolu gelir.
+          Row(
+            children: [
+              Expanded(
+                child: _TextField(
+                  controller: firstNameController,
+                  label: 'Ad',
+                  textCapitalization: TextCapitalization.words,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _TextField(
+                  controller: lastNameController,
+                  label: 'Soyad',
+                  textCapitalization: TextCapitalization.words,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           // Cinsiyet zorunlu — default secili degil, kullanici Erkek veya
           // Kadın'i acikca secmeli. 'Belirtmem' onboarding'de kabul edilmiyor.
           SegmentedButton<String>(
@@ -532,6 +569,30 @@ class _NumberField extends StatelessWidget {
         if (parsed == null || parsed <= 0) return '$label gerekli';
         return null;
       },
+    );
+  }
+}
+
+class _TextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final TextCapitalization textCapitalization;
+
+  const _TextField({
+    required this.controller,
+    required this.label,
+    this.textCapitalization = TextCapitalization.none,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      textCapitalization: textCapitalization,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
     );
   }
 }

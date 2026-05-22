@@ -132,13 +132,19 @@ class ProfilModel {
     );
   }
 
-  factory ProfilModel.empty({int id = 0, String? username, String email = ''}) {
+  factory ProfilModel.empty({
+    int id = 0,
+    String? username,
+    String email = '',
+    String firstName = '',
+    String lastName = '',
+  }) {
     return ProfilModel(
       id: id,
       username: username ?? '',
       email: email,
-      firstName: '',
-      lastName: '',
+      firstName: firstName,
+      lastName: lastName,
       avatarUrl: null,
       bio: '',
       height: null,

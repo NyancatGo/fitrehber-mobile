@@ -451,10 +451,15 @@ class ApiService {
     }
 
     if (response.statusCode == 404 || _isOnboardingRequired(response.data)) {
+      // Onboarding tamamlanmamis: cached kullanici bilgisinden ad/soyad'i
+      // tasiyoruz — boylece Google ile giren kullanicinin onboarding ekrani
+      // isim alanlari Google'dan gelen degerle dolu acilir.
       final profile = ProfilModel.empty(
         id: userId,
         username: cachedProfile?.username,
         email: cachedProfile?.email ?? '',
+        firstName: cachedProfile?.firstName ?? '',
+        lastName: cachedProfile?.lastName ?? '',
       );
       await _writeCachedProfile(profile);
       return profile;

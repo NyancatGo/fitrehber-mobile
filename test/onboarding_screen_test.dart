@@ -64,16 +64,16 @@ void main() {
     expect(find.text('Erkek'), findsOneWidget);
   });
 
-  testWidgets('step 0 has 0 TextFormField — bio/numbers gelmedi henuz',
+  testWidgets('step 0 has Ad/Soyad fields and nothing else as TextFormField',
       (tester) async {
-    // Onboarding step 0'da yalnizca SegmentedButton + tarih secici var.
-    // (Boy/kilo step 1'de, hedef kilo step 2'de — PageView lazy.)
+    // Onboarding step 0'da Ad + Soyad (opsiyonel) + SegmentedButton + tarih
+    // secici var. Boy/kilo step 1'de, hedef kilo step 2'de — PageView lazy.
     await tester.pumpWidget(wrap());
     await tester.pump();
-    // Step 2'deki "Fitness hedefi" TextFormField'i artik yok; bunu
-    // dogrudan goremiyoruz (lazy build) ama _allowedGoals'in 3 oge
-    // tuttugunu API ile ayni siralamayla yukaridaki test kilitliyor.
-    expect(find.byType(TextFormField), findsNothing);
+    // Yalniz Ad ve Soyad: 2 TextFormField.
+    expect(find.byType(TextFormField), findsNWidgets(2));
+    expect(find.widgetWithText(TextFormField, 'Ad'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Soyad'), findsOneWidget);
   });
 }
 
