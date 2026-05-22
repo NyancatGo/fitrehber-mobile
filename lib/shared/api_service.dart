@@ -600,9 +600,10 @@ class ApiService {
       options: _authOptions(token),
     );
     if (response.statusCode == 201 || response.statusCode == 200) return;
-    debugPrint('[ogunEkle] FAIL ${response.statusCode}');
-    debugPrint('[ogunEkle] payload=${jsonEncode(payload)}');
-    debugPrint('[ogunEkle] body=${response.data}');
+    if (kDebugMode) {
+      debugPrint('[ogunEkle] FAIL ${response.statusCode}');
+      debugPrint('[ogunEkle] body=${response.data}');
+    }
     throw _hataAyikla(
       response.data,
       response.statusCode,
@@ -682,8 +683,10 @@ class ApiService {
         response.data as Map<String, dynamic>,
       );
     }
-    debugPrint('[suEkle] FAIL ${response.statusCode}');
-    debugPrint('[suEkle] body=${response.data}');
+    if (kDebugMode) {
+      debugPrint('[suEkle] FAIL ${response.statusCode}');
+      debugPrint('[suEkle] body=${response.data}');
+    }
     throw _hataAyikla(
       response.data,
       response.statusCode,
