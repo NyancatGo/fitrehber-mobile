@@ -18,9 +18,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordConfirmController = TextEditingController();
 
   bool _isLoading = false;
   bool _sifreGizli = true;
+  bool _sifreTekrarGizli = true;
   String? _hata;
 
   @override
@@ -28,6 +30,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordConfirmController.dispose();
     super.dispose();
   }
 
@@ -159,6 +162,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       validator: (v) => v == null || v.length < 6
                           ? 'Şifre en az 6 karakter olmalı'
                           : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordConfirmController,
+                      obscureText: _sifreTekrarGizli,
+                      decoration: InputDecoration(
+                        labelText: 'Şifre Tekrar',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _sifreTekrarGizli
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () => setState(
+                            () => _sifreTekrarGizli = !_sifreTekrarGizli,
+                          ),
+                        ),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return 'Şifreni tekrar gir';
+                        }
+                        if (v != _passwordController.text) {
+                          return 'Şifreler eşleşmiyor';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
