@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../shared/google_oauth_flow.dart';
 import '../../shared/hata_yardimcilari.dart';
@@ -19,6 +23,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _appLinks = AppLinks();
 
   bool _isLoading = false;
   bool _isGoogleLoading = false;
@@ -61,19 +66,62 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _googleIleGirisYap() async {
     final oauthRequest = GoogleOAuthFlow.createRequest();
+
     setState(() {
       _isGoogleLoading = true;
       _hata = null;
     });
 
+    if (kIsWeb) {
+      await _googleIleGirisYapWeb(oauthRequest);
+      return;
+    }
+
+    StreamSubscription<Uri>? linkSubscription;
+    final callbackCompleter = Completer<GoogleOAuthCallback>();
+
     try {
-      final callbackUrl = await FlutterWebAuth2.authenticate(
-        url: oauthRequest.authorizationUrl.toString(),
-        callbackUrlScheme: GoogleOAuthFlow.callbackScheme,
+      linkSubscription = _appLinks.uriLinkStream.listen(
+        (uri) {
+          if (uri.scheme != GoogleOAuthFlow.callbackScheme ||
+              callbackCompleter.isCompleted) {
+            return;
+          }
+
+          try {
+            callbackCompleter.complete(
+              GoogleOAuthFlow.parseCallback(
+                uri.toString(),
+                expectedState: oauthRequest.state,
+              ),
+            );
+          } catch (error, stackTrace) {
+            callbackCompleter.completeError(error, stackTrace);
+          }
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          if (!callbackCompleter.isCompleted) {
+            callbackCompleter.completeError(error, stackTrace);
+          }
+        },
       );
-      final callback = GoogleOAuthFlow.parseCallback(
-        callbackUrl,
-        expectedState: oauthRequest.state,
+
+      final opened = await launchUrl(
+        oauthRequest.authorizationUrl,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened) {
+        throw 'Google giriş sayfası açılamadı.';
+      }
+
+      final callback = await callbackCompleter.future.timeout(
+        const Duration(minutes: 5),
+        onTimeout: () {
+          throw const GoogleOAuthException(
+            'Google giriş süresi doldu. Lütfen tekrar dene.',
+          );
+        },
       );
 
       await ref
@@ -90,8 +138,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         });
       }
     } finally {
+      await linkSubscription?.cancel();
       if (mounted) {
         setState(() {
+          _isGoogleLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Web'de Google girişi: deep link yerine tüm sayfa Google'a yönlendirilir.
+  /// state + code_verifier kalıcı depoya yazılır; dönüşte uygulama yeniden
+  /// yüklenince SessionController.restore() token exchange'i tamamlar.
+  Future<void> _googleIleGirisYapWeb(GoogleOAuthRequest oauthRequest) async {
+    try {
+      await ref
+          .read(authServiceProvider)
+          .saveGooglePending(
+            state: oauthRequest.state,
+            codeVerifier: oauthRequest.codeVerifier,
+          );
+      final opened = await launchUrl(
+        oauthRequest.authorizationUrl,
+        webOnlyWindowName: '_self',
+      );
+      if (!opened) {
+        throw 'Google giriş sayfası açılamadı.';
+      }
+      // Başarılıysa sayfa yönleniyor; burada başka işlem yapılmaz.
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hata = kullaniciDostuHata(e);
           _isGoogleLoading = false;
         });
       }

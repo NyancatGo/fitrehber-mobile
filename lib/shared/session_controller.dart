@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api_service.dart';
 import 'auth_service.dart';
+import 'google_oauth_flow.dart';
 import 'models/profil_model.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -62,6 +64,12 @@ class SessionController extends StateNotifier<SessionState> {
        super(const SessionState());
 
   Future<void> restore() async {
+    // Web Google OAuth: tarayıcı Google'dan dönüp uygulamayı yeniden
+    // yüklediğinde URL'de code+state olur. Bunu burada işliyoruz.
+    if (kIsWeb && await _tryConsumeWebGoogleCallback()) {
+      return;
+    }
+
     final token = await _authService.getAccessToken();
     if (token == null || token.isEmpty) {
       state = const SessionState(isLoading: false);
@@ -69,6 +77,43 @@ class SessionController extends StateNotifier<SessionState> {
     }
 
     await _loadProfile();
+  }
+
+  /// Web akışında Google OAuth dönüşünü işler.
+  ///
+  /// URL'de `code`+`state` ve depoda bekleyen (state, code_verifier) varsa
+  /// token exchange yapar. İşlendiğinde (başarılı ya da hatayla) `true`,
+  /// işlenecek bir callback yoksa `false` döner — `false` durumunda normal
+  /// token tabanlı oturum geri yüklemesi devam eder.
+  Future<bool> _tryConsumeWebGoogleCallback() async {
+    final callback = GoogleOAuthFlow.webCallbackFromUri(Uri.base);
+    if (callback == null) return false;
+
+    final pending = await _authService.readGooglePending();
+    if (pending == null) {
+      // Bekleyen istek yok (ör. sayfa yenilendi, kod zaten tüketildi).
+      return false;
+    }
+
+    // Tek kullanımlık: sayfa yeniden yüklenirse aynı kod tekrar denenmesin.
+    await _authService.clearGooglePending();
+
+    // CSRF koruması: dönen state, başlatılan state ile birebir eşleşmeli.
+    if (pending.state != callback.state) {
+      return false;
+    }
+
+    try {
+      await _authService.exchangeGoogleCode(
+        code: callback.code,
+        state: callback.state,
+        codeVerifier: pending.codeVerifier,
+      );
+      await _loadProfile(logoutOnFailure: false);
+    } catch (error) {
+      state = SessionState(isLoading: false, error: error.toString());
+    }
+    return true;
   }
 
   Future<void> login(String username, String password) async {

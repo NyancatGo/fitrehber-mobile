@@ -111,6 +111,37 @@ class AuthService {
     await _storage.deleteAll();
   }
 
+  // --- Web Google OAuth: bekleyen istek (state + code_verifier) ---
+  // Web'de Google'a yönlendirme tüm sayfayı yeniden yüklediği için
+  // state ve code_verifier'ı kalıcı depoya yazıp dönüşte okuyoruz.
+  static const _googlePendingStateKey = 'google_oauth_pending_state';
+  static const _googlePendingVerifierKey = 'google_oauth_pending_verifier';
+
+  Future<void> saveGooglePending({
+    required String state,
+    required String codeVerifier,
+  }) async {
+    await _storage.write(key: _googlePendingStateKey, value: state);
+    await _storage.write(key: _googlePendingVerifierKey, value: codeVerifier);
+  }
+
+  Future<({String state, String codeVerifier})?> readGooglePending() async {
+    final state = await _storage.read(key: _googlePendingStateKey);
+    final verifier = await _storage.read(key: _googlePendingVerifierKey);
+    if (state == null ||
+        state.isEmpty ||
+        verifier == null ||
+        verifier.isEmpty) {
+      return null;
+    }
+    return (state: state, codeVerifier: verifier);
+  }
+
+  Future<void> clearGooglePending() async {
+    await _storage.delete(key: _googlePendingStateKey);
+    await _storage.delete(key: _googlePendingVerifierKey);
+  }
+
   String _hataAyikla(dynamic data, int? statusCode) {
     if (data is String) {
       if (statusCode == 401) return 'Kullanıcı adı veya şifre hatalı.';
