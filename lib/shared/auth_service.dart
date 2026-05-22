@@ -111,6 +111,52 @@ class AuthService {
     await _storage.deleteAll();
   }
 
+  // --- Access token yenileme ---
+  // Access token 1 gun, refresh token 30 gun yasiyor. Access token suresi
+  // dolunca (API 401) refresh token ile yeni access token alinir; boylece
+  // kullanici "durduk yere uygulamadan atildi" yasamaz.
+  //
+  // Single-flight: ayni anda birden cok istek 401 alirsa tek bir refresh
+  // cagrisi yapilir, hepsi ayni Future'i bekler.
+  Future<bool>? _refreshInFlight;
+
+  Future<bool> refreshAccessToken() {
+    return _refreshInFlight ??= _performTokenRefresh().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
+
+  Future<bool> _performTokenRefresh() async {
+    final refresh = await _storage.read(key: 'refresh_token');
+    if (refresh == null || refresh.isEmpty) return false;
+
+    try {
+      final response = await _dio.post(
+        ApiConstants.tokenRefresh,
+        data: {'refresh': refresh},
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map;
+        final access = data['access']?.toString();
+        if (access == null || access.isEmpty) return false;
+
+        await _storage.write(key: 'access_token', value: access);
+        // ROTATE_REFRESH_TOKENS=True → sunucu yeni bir refresh token da
+        // dondurebilir; varsa kalici depoyu guncelle.
+        final newRefresh = data['refresh']?.toString();
+        if (newRefresh != null && newRefresh.isNotEmpty) {
+          await _storage.write(key: 'refresh_token', value: newRefresh);
+        }
+        return true;
+      }
+      return false;
+    } catch (_) {
+      // Ag hatasi vb. — refresh basarisiz, cagiran taraf logout'a karar verir.
+      return false;
+    }
+  }
+
   // --- Web Google OAuth: bekleyen istek (state + code_verifier) ---
   // Web'de Google'a yönlendirme tüm sayfayı yeniden yüklediği için
   // state ve code_verifier'ı kalıcı depoya yazıp dönüşte okuyoruz.

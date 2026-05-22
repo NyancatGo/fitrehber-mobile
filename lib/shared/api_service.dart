@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../core/constants/api_constants.dart';
+import 'auth_service.dart';
 import 'models/beslenme_model.dart';
 import 'models/chat_message_model.dart';
 import 'models/icerik_model.dart';
@@ -15,6 +16,14 @@ import 'models/profil_model.dart';
 import 'models/yorum_model.dart';
 
 class ApiService {
+  ApiService() {
+    // 401 (access token suresi dolmus) yakalanir, refresh token ile yeni
+    // access token alinir ve istek bir kez tekrar denenir. Refresh
+    // basarisizsa 401 oldugu gibi cagiran metoda doner (logout'a karar
+    // verecek katman ust seviyededir).
+    _dio.interceptors.add(InterceptorsWrapper(onResponse: _onResponse));
+  }
+
   final Dio _dio = Dio(
     BaseOptions(
       validateStatus: (status) => true,
@@ -25,6 +34,53 @@ class ApiService {
   );
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final AuthService _authService = AuthService();
+
+  /// 401 yaniti gelince access token'i yenileyip istegi bir kez tekrar dener.
+  ///
+  /// `validateStatus: (_) => true` oldugu icin 401 normal `Response` olarak
+  /// `onResponse`'a duser (DioException olarak degil). Sonsuz donguyu
+  /// `__token_retried` bayragi engeller.
+  Future<void> _onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) async {
+    if (response.statusCode != 401) {
+      handler.next(response);
+      return;
+    }
+
+    final reqOpts = response.requestOptions;
+    // Zaten yenilenmis istek veya auth endpoint'i → tekrar deneme.
+    if (reqOpts.extra['__token_retried'] == true ||
+        reqOpts.path.contains('/auth/')) {
+      handler.next(response);
+      return;
+    }
+
+    final refreshed = await _authService.refreshAccessToken();
+    if (!refreshed) {
+      handler.next(response);
+      return;
+    }
+
+    final newToken = await _storage.read(key: 'access_token');
+    if (newToken == null || newToken.isEmpty) {
+      handler.next(response);
+      return;
+    }
+
+    reqOpts.headers['Authorization'] = 'Bearer $newToken';
+    reqOpts.extra['__token_retried'] = true;
+    try {
+      final retry = await _dio.fetch<dynamic>(reqOpts);
+      handler.resolve(retry);
+    } catch (_) {
+      // Tekrar deneme basarisiz (ag hatasi / multipart stream tuketilmis vb.)
+      // → orijinal 401 yanitiyla devam et.
+      handler.next(response);
+    }
+  }
 
   Future<List<KategoriModel>> getKategoriler() async {
     final response = await _dio.get(ApiConstants.kategoriler);
