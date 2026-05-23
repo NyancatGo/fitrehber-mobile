@@ -2,7 +2,7 @@ import 'package:fitrehber_mobile/shared/models/profil_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('parses flat and nested profile payload values', () {
+  test('düz ve iç içe profil gövde değerlerini ayrıştırır', () {
     final profile = ProfilModel.fromJson({
       'id': '7',
       'user': {
@@ -89,10 +89,10 @@ void main() {
     expect(profile.achievements.first.metrics.first.progress, 100);
     expect(profile.dailyActivity.averageMinutes, 12);
     expect(profile.dailyActivity.days.first.minutes, 32);
-    expect(profile.recentActivities.first.contentId, 9);
+    expect(profile.recentActivities.first.icerikId, 9);
   });
 
-  test('parses deployed profile api payload', () {
+  test('yayındaki profil API gövdesini ayrıştırır', () {
     final profile = ProfilModel.fromJson({
       'id': 3,
       'user': {
@@ -124,7 +124,7 @@ void main() {
     expect(profile.isOnboarded, isFalse);
   });
 
-  test('prefers nested user id over profile row id', () {
+  test('iç içe user id değerini profil satır id değerine tercih eder', () {
     final profile = ProfilModel.fromJson({
       'id': 99,
       'user': {'id': 7, 'username': 'mobile-user'},
@@ -135,7 +135,7 @@ void main() {
     expect(profile.username, 'mobile-user');
   });
 
-  test('empty profile can preserve authenticated user identity', () {
+  test('boş profil giriş yapan kullanıcı kimliğini koruyabilir', () {
     final profile = ProfilModel.empty(
       id: 12,
       username: 'new-user',

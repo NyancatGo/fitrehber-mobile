@@ -1,5 +1,5 @@
 // Anasayfa ve forum ekranlarının paylaştığı içerik kartı parçaları.
-// Daha önce home_content.dart ve forum_screen.dart içinde birebir
+// Daha önce ana_sayfa_icerigi.dart ve forum_ekrani.dart içinde birebir
 // kopyalanmış olan widget'lar burada tek noktada toplanmıştır.
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,14 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 /// İçerik kartlarındaki beğen/kaydet gibi hızlı aksiyon butonu.
-class QuickActionButton extends StatelessWidget {
+class HizliAksiyonButonu extends StatelessWidget {
   final String tooltip;
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
 
-  const QuickActionButton({
+  const HizliAksiyonButonu({
     super.key,
     required this.tooltip,
     required this.icon,

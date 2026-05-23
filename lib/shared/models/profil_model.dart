@@ -1,6 +1,23 @@
+// ---------------------------------------------------------------------------
+// PROFİL MODELLERİ
+// ---------------------------------------------------------------------------
+// Kullanıcı profili ekranının tüm veri yapıları burada toplanmıştır:
+//   * ProfilModel            → kullanıcının tüm profil bilgileri
+//   * RozetModel       → kazanılan/ilerlenen rozetler
+//   * GunlukAktiviteOzeti   → günlük aktivite ısı haritası verisi
+//   * ProfilAktiviteModel   → profildeki "son aktiviteler" akışı
+//
+// Backend yanıtları hem Türkçe hem İngilizce anahtar adları kullanabildiği
+// için, her alan birden fazla olası anahtar denenerek okunur (bkz. `read`).
+// ---------------------------------------------------------------------------
+
+/// Web sitesinin kök adresi — göreli medya yollarını tam URL'e çevirmede kullanılır.
 const _siteBaseUrl = 'https://fitrehber.com.tr';
+
+/// Medya dosyalarının (avatar, görsel vb.) bulunduğu kök adres.
 const _mediaBaseUrl = '$_siteBaseUrl/media/';
 
+/// Bir kullanıcının tüm profil bilgilerini temsil eden ana veri modeli.
 class ProfilModel {
   final int id;
   final String username;
@@ -12,6 +29,7 @@ class ProfilModel {
   final double? height;
   final double? weight;
   final double? targetWeight;
+
   /// Hedef belirlendiği veya değiştirildiği andaki kilo — ilerleme barının
   /// %0 referans noktası. Backend `baslangic_kilo` alanından gelir.
   final double? startWeight;
@@ -20,15 +38,16 @@ class ProfilModel {
   final bool isOnboarded;
   final DateTime? birthDate;
   final DateTime? joinDate;
+
   /// Kullanıcının belirlediği günlük su hedefi (ml). NULL/0 ise
-  /// `NutritionCalculator` kilo×35 ml formülünü kullanır.
+  /// `BeslenmeHesaplayici` kilo×35 ml formülünü kullanır.
   final int? customWaterGoalMl;
   final bool isStaff;
   final bool isSuperuser;
   final int postCount;
-  final List<AchievementModel> achievements;
-  final DailyActivitySummary dailyActivity;
-  final List<ProfileActivityModel> recentActivities;
+  final List<RozetModel> achievements;
+  final GunlukAktiviteOzeti dailyActivity;
+  final List<ProfilAktiviteModel> recentActivities;
 
   const ProfilModel({
     required this.id,
@@ -52,7 +71,7 @@ class ProfilModel {
     required this.isSuperuser,
     required this.postCount,
     this.achievements = const [],
-    this.dailyActivity = const DailyActivitySummary(),
+    this.dailyActivity = const GunlukAktiviteOzeti(),
     this.recentActivities = const [],
   });
 
@@ -116,19 +135,21 @@ class ProfilModel {
       joinDate: _asDate(
         read(['date_joined', 'join_date', 'joinDate', 'joined_at']),
       ),
-      customWaterGoalMl: _asInt(read([
-        'gunluk_su_hedefi_ml',
-        'daily_water_goal_ml',
-        'customWaterGoalMl',
-      ])),
+      customWaterGoalMl: _asInt(
+        read([
+          'gunluk_su_hedefi_ml',
+          'daily_water_goal_ml',
+          'customWaterGoalMl',
+        ]),
+      ),
       isStaff: _asBool(read(['is_staff', 'isStaff'])),
       isSuperuser: _asBool(read(['is_superuser', 'isSuperuser'])),
       postCount: _asInt(read(['post_count', 'postCount'])) ?? 0,
       achievements: _parseAchievements(achievementsPayload),
-      dailyActivity: DailyActivitySummary.fromJson(dailyActivityPayload),
+      dailyActivity: GunlukAktiviteOzeti.fromJson(dailyActivityPayload),
       recentActivities: _asList(
         recentActivitiesPayload,
-      ).map(ProfileActivityModel.fromJson).toList(),
+      ).map(ProfilAktiviteModel.fromJson).toList(),
     );
   }
 
@@ -161,7 +182,7 @@ class ProfilModel {
       isSuperuser: false,
       postCount: 0,
       achievements: const [],
-      dailyActivity: const DailyActivitySummary(),
+      dailyActivity: const GunlukAktiviteOzeti(),
       recentActivities: const [],
     );
   }
@@ -187,9 +208,9 @@ class ProfilModel {
     bool? isStaff,
     bool? isSuperuser,
     int? postCount,
-    List<AchievementModel>? achievements,
-    DailyActivitySummary? dailyActivity,
-    List<ProfileActivityModel>? recentActivities,
+    List<RozetModel>? achievements,
+    GunlukAktiviteOzeti? dailyActivity,
+    List<ProfilAktiviteModel>? recentActivities,
   }) {
     return ProfilModel(
       id: id ?? this.id,
@@ -267,16 +288,16 @@ class ProfilModel {
   }
 }
 
-class AchievementModel {
+class RozetModel {
   final String key;
   final String name;
   final String icon;
   final String description;
   final int progress;
   final bool isUnlocked;
-  final List<AchievementMetricModel> metrics;
+  final List<RozetMetrikModel> metrics;
 
-  const AchievementModel({
+  const RozetModel({
     required this.key,
     required this.name,
     required this.icon,
@@ -286,11 +307,11 @@ class AchievementModel {
     required this.metrics,
   });
 
-  factory AchievementModel.fromJson(Object? value) {
+  factory RozetModel.fromJson(Object? value) {
     final json = _asMap(value);
     final progress = ((_asInt(json['progress']) ?? 0).clamp(0, 100)).toInt();
 
-    return AchievementModel(
+    return RozetModel(
       key: _asString(json['key']),
       name: _asString(json['name']),
       icon: _asString(json['icon']),
@@ -298,21 +319,19 @@ class AchievementModel {
       progress: progress,
       isUnlocked:
           _asBool(json['is_unlocked'] ?? json['isUnlocked']) || progress >= 100,
-      metrics: _asList(
-        json['metrics'],
-      ).map(AchievementMetricModel.fromJson).toList(),
+      metrics: _asList(json['metrics']).map(RozetMetrikModel.fromJson).toList(),
     );
   }
 }
 
-class AchievementMetricModel {
+class RozetMetrikModel {
   final String key;
   final String label;
   final int current;
   final int target;
   final int progress;
 
-  const AchievementMetricModel({
+  const RozetMetrikModel({
     required this.key,
     required this.label,
     required this.current,
@@ -320,7 +339,7 @@ class AchievementMetricModel {
     required this.progress,
   });
 
-  factory AchievementMetricModel.fromJson(Object? value) {
+  factory RozetMetrikModel.fromJson(Object? value) {
     final json = _asMap(value);
     final current = _asInt(json['current']) ?? 0;
     final target = _asInt(json['target']) ?? 0;
@@ -328,7 +347,7 @@ class AchievementMetricModel {
         ? 0
         : (((current / target) * 100).floor().clamp(0, 100)).toInt();
 
-    return AchievementMetricModel(
+    return RozetMetrikModel(
       key: _asString(json['key']),
       label: _asString(json['label']),
       current: current,
@@ -341,16 +360,16 @@ class AchievementMetricModel {
   }
 }
 
-class DailyActivitySummary {
+class GunlukAktiviteOzeti {
   final int averageMinutes;
-  final List<DailyActivityDay> days;
+  final List<GunlukAktiviteGunu> days;
 
-  const DailyActivitySummary({this.averageMinutes = 0, this.days = const []});
+  const GunlukAktiviteOzeti({this.averageMinutes = 0, this.days = const []});
 
-  factory DailyActivitySummary.fromJson(Object? value) {
+  factory GunlukAktiviteOzeti.fromJson(Object? value) {
     final json = _asMap(value);
 
-    return DailyActivitySummary(
+    return GunlukAktiviteOzeti(
       averageMinutes:
           _asInt(
             json['average_minutes'] ??
@@ -360,19 +379,19 @@ class DailyActivitySummary {
           0,
       days: _asList(
         json['days'] ?? json['gunler'] ?? json['veriler'],
-      ).map(DailyActivityDay.fromJson).toList(),
+      ).map(GunlukAktiviteGunu.fromJson).toList(),
     );
   }
 }
 
-class DailyActivityDay {
+class GunlukAktiviteGunu {
   final String isoDate;
   final String label;
   final int day;
   final String month;
   final int minutes;
 
-  const DailyActivityDay({
+  const GunlukAktiviteGunu({
     required this.isoDate,
     required this.label,
     required this.day,
@@ -380,10 +399,10 @@ class DailyActivityDay {
     required this.minutes,
   });
 
-  factory DailyActivityDay.fromJson(Object? value) {
+  factory GunlukAktiviteGunu.fromJson(Object? value) {
     final json = _asMap(value);
 
-    return DailyActivityDay(
+    return GunlukAktiviteGunu(
       isoDate: _asString(json['iso_date'] ?? json['isoDate']),
       label: _asString(json['date'] ?? json['tarih']),
       day: _asInt(json['day'] ?? json['gun']) ?? 0,
@@ -393,46 +412,46 @@ class DailyActivityDay {
   }
 }
 
-class ProfileActivityModel {
+class ProfilAktiviteModel {
   final int id;
-  final String type;
-  final String detail;
-  final DateTime? date;
-  final int? contentId;
-  final String? contentTitle;
-  final int? commentId;
+  final String tur;
+  final String detay;
+  final DateTime? tarih;
+  final int? icerikId;
+  final String? icerikBaslik;
+  final int? yorumId;
 
-  const ProfileActivityModel({
+  const ProfilAktiviteModel({
     required this.id,
-    required this.type,
-    required this.detail,
-    required this.date,
-    required this.contentId,
-    required this.contentTitle,
-    required this.commentId,
+    required this.tur,
+    required this.detay,
+    required this.tarih,
+    required this.icerikId,
+    required this.icerikBaslik,
+    required this.yorumId,
   });
 
-  factory ProfileActivityModel.fromJson(Object? value) {
+  factory ProfilAktiviteModel.fromJson(Object? value) {
     final json = _asMap(value);
 
-    return ProfileActivityModel(
+    return ProfilAktiviteModel(
       id: _asInt(json['id']) ?? 0,
-      type: _asString(json['type'] ?? json['tur']),
-      detail: _asString(json['detail'] ?? json['detay']),
-      date: _asDate(json['date'] ?? json['tarih']),
-      contentId: _asInt(json['content_id'] ?? json['contentId']),
-      contentTitle: _asNullableString(
+      tur: _asString(json['type'] ?? json['tur']),
+      detay: _asString(json['detail'] ?? json['detay']),
+      tarih: _asDate(json['date'] ?? json['tarih']),
+      icerikId: _asInt(json['content_id'] ?? json['contentId']),
+      icerikBaslik: _asNullableString(
         json['content_title'] ?? json['contentTitle'],
       ),
-      commentId: _asInt(json['comment_id'] ?? json['commentId']),
+      yorumId: _asInt(json['comment_id'] ?? json['commentId']),
     );
   }
 }
 
-List<AchievementModel> _parseAchievements(Object? value) {
+List<RozetModel> _parseAchievements(Object? value) {
   final map = _asMap(value);
   final rawItems = map.isEmpty ? value : map['items'];
-  return _asList(rawItems).map(AchievementModel.fromJson).toList();
+  return _asList(rawItems).map(RozetModel.fromJson).toList();
 }
 
 Map<String, dynamic> _asMap(Object? value) {

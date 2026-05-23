@@ -3,7 +3,7 @@ import 'package:fitrehber_mobile/shared/models/beslenme_model.dart';
 
 void main() {
   group('Beslenme modelleri', () {
-    test('BesinModel API payloadunu parse eder', () {
+    test('BesinModel API gövdesini ayrıştırır', () {
       final besin = BesinModel.fromJson({
         'id': 5,
         'isim': 'Yulaf Ezmesi',
@@ -19,10 +19,10 @@ void main() {
       expect(besin.id, 5);
       expect(besin.isim, 'Yulaf Ezmesi');
       expect(besin.protein100g, 16.9);
-      expect(besin.isVerified, isTrue);
+      expect(besin.dogrulanmisMi, isTrue);
     });
 
-    test('GunlukBeslenmeModel yeni ogun payloadunu parse eder', () {
+    test('GunlukBeslenmeModel yeni öğün gövdesini ayrıştırır', () {
       final gunluk = GunlukBeslenmeModel.fromJson({
         'tarih': '2026-05-19',
         'su_ml': 1500,
@@ -56,7 +56,7 @@ void main() {
       expect(gunluk.ogunler['ogle'], isEmpty);
     });
 
-    test('GunlukBeslenmeModel eski beslenme-su payloaduyla uyumlu kalır', () {
+    test('GunlukBeslenmeModel eski beslenme-su gövdesiyle uyumlu kalır', () {
       final gunluk = GunlukBeslenmeModel.fromJson({
         'tarih': '2026-05-19',
         'su_ml': 500,

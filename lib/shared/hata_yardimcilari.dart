@@ -5,11 +5,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
-import 'google_oauth_flow.dart';
+import 'google_oauth_akisi.dart';
 
 /// Yakalanan bir hatayı kullanıcı dostu, Türkçe bir mesaja dönüştürür.
 String kullaniciDostuHata(Object hata) {
-  if (hata is GoogleOAuthException) {
+  if (hata is GoogleOAuthHatasi) {
     return hata.message;
   }
 

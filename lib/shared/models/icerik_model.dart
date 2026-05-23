@@ -3,7 +3,7 @@
 
 import 'package:html/parser.dart' as html_parser;
 
-import 'article_block.dart';
+import 'icerik_blok_model.dart';
 
 const _siteBaseUrl = 'https://fitrehber.com.tr';
 const _mediaBaseUrl = '$_siteBaseUrl/media/';
@@ -94,9 +94,10 @@ class IcerikModel {
   final String yazi;
   final String _rawYaziTemiz;
   String? _normalizedYaziTemiz;
+
   /// API'nin yeni `yazi_mobil_bloklar` cıktısı. Bos veya null ise mobil
   /// eski HTML renderer'ına (yaziTemiz) duser.
-  final List<ArticleBlock> mobilBloklar;
+  final List<IcerikBlok> mobilBloklar;
   final int yorumSayisi;
   final int begeniSayisi;
   final bool begendim;
@@ -132,10 +133,10 @@ class IcerikModel {
     final blokRaw = json['yazi_mobil_bloklar'];
     final mobilBloklar = blokRaw is List
         ? blokRaw
-            .whereType<Map>()
-            .map((m) => ArticleBlock.fromJson(Map<String, dynamic>.from(m)))
-            .toList()
-        : const <ArticleBlock>[];
+              .whereType<Map>()
+              .map((m) => IcerikBlok.fromJson(Map<String, dynamic>.from(m)))
+              .toList()
+        : const <IcerikBlok>[];
 
     return IcerikModel(
       id: json['id'],
@@ -177,7 +178,7 @@ class IcerikModel {
     Map<String, dynamic>? kategori,
     String? yazi,
     String? yaziTemiz,
-    List<ArticleBlock>? mobilBloklar,
+    List<IcerikBlok>? mobilBloklar,
     int? yorumSayisi,
     int? begeniSayisi,
     bool? begendim,

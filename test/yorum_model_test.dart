@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('YorumModel.fromJson', () {
-    test('parses a standard API payload', () {
+    test('standart API gövdesini ayrıştırır', () {
       final yorum = YorumModel.fromJson({
         'id': 12,
         'mesaj': 'Harika bir cevap.',
@@ -21,7 +21,7 @@ void main() {
       expect(yorum.yanitlar, isEmpty);
     });
 
-    test('handles string-typed parent/depth and missing yazar', () {
+    test('metin tipindeki parent/depth ve eksik yazarı işler', () {
       final yorum = YorumModel.fromJson({
         'id': 3,
         'mesaj': 'Cevap',
@@ -35,7 +35,7 @@ void main() {
       expect(yorum.yazarAdi, 'Anonim');
     });
 
-    test('defaults depth to 0 when unparseable', () {
+    test('depth ayrıştırılamazsa 0 varsayar', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'x',
@@ -57,7 +57,7 @@ void main() {
       'yazar': {'username': 'u$id'},
     };
 
-    test('builds a nested tree from a flat list', () {
+    test('düz listeden iç içe ağaç kurar', () {
       final duz = [
         YorumModel.fromJson(raw(1, null)),
         YorumModel.fromJson(raw(2, 1)),
@@ -76,7 +76,7 @@ void main() {
       expect(kokler[1].yanitlar, isEmpty);
     });
 
-    test('treats a comment with a missing parent as a root', () {
+    test('parent bulunamazsa yorumu kök kabul eder', () {
       final duz = [YorumModel.fromJson(raw(10, 999))];
 
       final kokler = YorumModel.agacKur(duz);
@@ -85,13 +85,13 @@ void main() {
       expect(kokler[0].id, 10);
     });
 
-    test('returns an empty list for empty input', () {
+    test('boş girdi için boş liste döner', () {
       expect(YorumModel.agacKur([]), isEmpty);
     });
   });
 
   group('YorumModel.toplamSayi', () {
-    test('counts a comment and all of its nested replies', () {
+    test('yorumu ve tüm iç içe yanıtlarını sayar', () {
       final duz = [
         YorumModel.fromJson({
           'id': 1,
@@ -121,7 +121,7 @@ void main() {
       expect(kokler.first.toplamSayi, 3);
     });
 
-    test('is 1 for a leaf comment', () {
+    test('yanıtsız yorum için 1 olur', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'm',
@@ -141,36 +141,36 @@ void main() {
       'depth': 0,
     });
 
-    test('renders "Az önce" for a very recent date', () {
+    test('çok yeni tarih için "Az önce" gösterir', () {
       final yorum = withDate(
         DateTime.now().subtract(const Duration(seconds: 10)),
       );
       expect(yorum.tarihGoreli, 'Az önce');
     });
 
-    test('renders minutes', () {
+    test('dakikayı gösterir', () {
       final yorum = withDate(
         DateTime.now().subtract(const Duration(minutes: 5)),
       );
       expect(yorum.tarihGoreli, '5 dk önce');
     });
 
-    test('renders hours', () {
+    test('saati gösterir', () {
       final yorum = withDate(DateTime.now().subtract(const Duration(hours: 3)));
       expect(yorum.tarihGoreli, '3 sa önce');
     });
 
-    test('renders days', () {
+    test('günü gösterir', () {
       final yorum = withDate(DateTime.now().subtract(const Duration(days: 4)));
       expect(yorum.tarihGoreli, '4 gün önce');
     });
 
-    test('renders months', () {
+    test('ayı gösterir', () {
       final yorum = withDate(DateTime.now().subtract(const Duration(days: 90)));
       expect(yorum.tarihGoreli, '3 ay önce');
     });
 
-    test('falls back to the raw string for an invalid date', () {
+    test('geçersiz tarih için ham metne döner', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'm',
@@ -181,8 +181,8 @@ void main() {
     });
   });
 
-  group('YorumModel like fields', () {
-    test('parses begeni_sayisi and begendim from the API payload', () {
+  group('YorumModel beğeni alanları', () {
+    test('API gövdesinden begeni_sayisi ve begendim alanlarını ayrıştırır', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'm',
@@ -195,7 +195,7 @@ void main() {
       expect(yorum.begendim, isTrue);
     });
 
-    test('parses reply metadata from the API payload', () {
+    test('API gövdesinden yanıt bilgisini ayrıştırır', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'm',
@@ -212,7 +212,7 @@ void main() {
       expect(yorum.toplamSayi, 5);
     });
 
-    test('defaults like fields when absent', () {
+    test('beğeni alanları yoksa varsayılanları kullanır', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'm',
@@ -223,7 +223,7 @@ void main() {
       expect(yorum.begendim, isFalse);
     });
 
-    test('like fields are mutable for toggle updates', () {
+    test('toggle güncellemeleri için beğeni alanları değiştirilebilir', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'm',
@@ -236,7 +236,7 @@ void main() {
       expect(yorum.begeniSayisi, 1);
     });
 
-    test('exposes the author id when present', () {
+    test('varsa yazar id değerini sunar', () {
       final yorum = YorumModel.fromJson({
         'id': 1,
         'mesaj': 'm',
@@ -249,7 +249,7 @@ void main() {
   });
 
   group('YorumOzetModel.fromJson', () {
-    test('parses the liked-comment summary payload', () {
+    test('beğenilen yorum özet gövdesini ayrıştırır', () {
       final ozet = YorumOzetModel.fromJson({
         'id': 9,
         'mesaj': 'Teşekkürler',
@@ -264,7 +264,7 @@ void main() {
       expect(ozet.yazarAdi, 'baran');
     });
 
-    test('handles a missing icerik reference', () {
+    test('eksik içerik referansını işler', () {
       final ozet = YorumOzetModel.fromJson({
         'id': 1,
         'mesaj': 'm',
