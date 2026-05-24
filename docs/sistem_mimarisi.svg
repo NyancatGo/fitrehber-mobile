@@ -1,0 +1,211 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="840" viewBox="0 0 1280 840" role="img" aria-labelledby="title desc">
+  <title id="title">FitRehber Mobil Sistem Mimarisi</title>
+  <desc id="desc">FitRehber mobil uygulamasının WEB, API, veritabanı ve dış servislerle ilişkisini gösteren mimari diyagram.</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #0f172a; }
+      .panel { fill: #111827; stroke: #334155; stroke-width: 1.5; }
+      .panel-mobile { stroke: #10b981; }
+      .panel-web { stroke: #f59e0b; }
+      .panel-api { stroke: #38bdf8; }
+      .panel-data { stroke: #a78bfa; }
+      .card { fill: #1f2937; stroke: #475569; stroke-width: 1; }
+      .card-mobile { fill: #052e2b; stroke: #10b981; }
+      .card-web { fill: #3a2608; stroke: #f59e0b; }
+      .card-api { fill: #082f49; stroke: #38bdf8; }
+      .card-data { fill: #2e1065; stroke: #a78bfa; }
+      .title { fill: #f8fafc; font: 800 30px Inter, Segoe UI, Arial, sans-serif; }
+      .subtitle { fill: #cbd5e1; font: 500 15px Inter, Segoe UI, Arial, sans-serif; }
+      .layer-title { fill: #f8fafc; font: 800 18px Inter, Segoe UI, Arial, sans-serif; letter-spacing: .3px; }
+      .layer-sub { fill: #94a3b8; font: 500 12px Inter, Segoe UI, Arial, sans-serif; }
+      .node-title { fill: #f8fafc; font: 800 14px Inter, Segoe UI, Arial, sans-serif; }
+      .node-text { fill: #cbd5e1; font: 500 12px Inter, Segoe UI, Arial, sans-serif; }
+      .mono { fill: #e2e8f0; font: 600 11px Consolas, Menlo, monospace; }
+      .note { fill: #94a3b8; font: 500 11px Inter, Segoe UI, Arial, sans-serif; }
+      .arrow { fill: none; stroke: #94a3b8; stroke-width: 2.2; }
+      .arrow-mobile { stroke: #10b981; }
+      .arrow-web { stroke: #f59e0b; }
+      .arrow-api { stroke: #38bdf8; }
+      .arrow-ai { stroke: #a78bfa; }
+      .arrow-label-bg { fill: #0f172a; stroke: #334155; stroke-width: 1; }
+      .arrow-label { fill: #e2e8f0; font: 700 11px Inter, Segoe UI, Arial, sans-serif; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa" />
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1280" height="840" rx="0" />
+
+  <text x="48" y="56" class="title">FitRehber Mobil Sistem Mimarisi</text>
+  <text x="48" y="84" class="subtitle">Flutter mobil istemci, WEB auth/portal katmanı, fitrehber-api REST katmanı, ortak veritabanı ve dış servisler.</text>
+
+  <rect x="40" y="122" width="280" height="590" rx="18" class="panel panel-mobile" />
+  <rect x="360" y="122" width="260" height="590" rx="18" class="panel panel-web" />
+  <rect x="660" y="122" width="280" height="590" rx="18" class="panel panel-api" />
+  <rect x="980" y="122" width="260" height="590" rx="18" class="panel panel-data" />
+
+  <text x="64" y="158" class="layer-title">fitrehber-mobile</text>
+  <text x="64" y="178" class="layer-sub">Flutter / Riverpod / Dio</text>
+
+  <text x="384" y="158" class="layer-title">WEB</text>
+  <text x="384" y="178" class="layer-sub">Django Portal / allauth / Resend</text>
+
+  <text x="684" y="158" class="layer-title">fitrehber-api</text>
+  <text x="684" y="178" class="layer-sub">Django REST Framework / SimpleJWT</text>
+
+  <text x="1004" y="158" class="layer-title">Veri &amp; Dış Servisler</text>
+  <text x="1004" y="178" class="layer-sub">MariaDB, cache, Google, MiMo</text>
+
+  <g id="mobile-ui">
+    <rect x="64" y="210" width="232" height="74" rx="12" class="card card-mobile" />
+    <text x="82" y="237" class="node-title">UI Ekranları</text>
+    <text x="82" y="258" class="node-text">Kimlik, beslenme, içerik,</text>
+    <text x="82" y="276" class="node-text">forum, profil ve asistan.</text>
+  </g>
+  <g id="mobile-state">
+    <rect x="64" y="310" width="232" height="78" rx="12" class="card card-mobile" />
+    <text x="82" y="337" class="node-title">Riverpod State</text>
+    <text x="82" y="358" class="node-text">OturumDenetleyici ve</text>
+    <text x="82" y="376" class="node-text">feature providerları.</text>
+  </g>
+  <g id="mobile-http">
+    <rect x="64" y="414" width="232" height="80" rx="12" class="card card-mobile" />
+    <text x="82" y="441" class="node-title">Dio ApiServisi</text>
+    <text x="82" y="462" class="node-text">Authorization header,</text>
+    <text x="82" y="480" class="node-text">401 refresh ve retry.</text>
+  </g>
+  <g id="mobile-storage">
+    <rect x="64" y="520" width="232" height="72" rx="12" class="card card-mobile" />
+    <text x="82" y="547" class="node-title">FlutterSecureStorage</text>
+    <text x="82" y="568" class="node-text">access / refresh token</text>
+    <text x="82" y="586" class="node-text">cihazda güvenli saklanır.</text>
+  </g>
+  <g id="mobile-calc">
+    <rect x="64" y="618" width="232" height="72" rx="12" class="card card-mobile" />
+    <text x="82" y="645" class="node-title">BeslenmeHesaplayici</text>
+    <text x="82" y="666" class="node-text">BMR, TDEE, makro ve</text>
+    <text x="82" y="684" class="node-text">su hedefini yerelde üretir.</text>
+  </g>
+
+  <g id="web-auth">
+    <rect x="384" y="224" width="212" height="84" rx="12" class="card card-web" />
+    <text x="402" y="251" class="node-title">Mobil Auth JSON</text>
+    <text x="402" y="272" class="node-text">Kayıt, mail tekrar gönderme,</text>
+    <text x="402" y="290" class="node-text">şifre sıfırlama endpointleri.</text>
+  </g>
+  <g id="web-mail">
+    <rect x="384" y="346" width="212" height="78" rx="12" class="card card-web" />
+    <text x="402" y="373" class="node-title">allauth + Resend</text>
+    <text x="402" y="394" class="node-text">Doğrulama ve reset maili</text>
+    <text x="402" y="412" class="node-text">WEB sahipliğinde kalır.</text>
+  </g>
+  <g id="web-portal">
+    <rect x="384" y="462" width="212" height="82" rx="12" class="card card-web" />
+    <text x="402" y="489" class="node-title">WEB Portal Guard</text>
+    <text x="402" y="510" class="node-text">Portal onboarding, ban ve</text>
+    <text x="402" y="528" class="node-text">oturum middlewareleri.</text>
+  </g>
+
+  <g id="api-auth">
+    <rect x="684" y="210" width="232" height="84" rx="12" class="card card-api" />
+    <text x="702" y="237" class="node-title">JWT Kimlik Doğrulama</text>
+    <text x="702" y="258" class="node-text">/api/auth/login/</text>
+    <text x="702" y="276" class="node-text">refresh ve Google token.</text>
+  </g>
+  <g id="api-perm">
+    <rect x="684" y="320" width="232" height="74" rx="12" class="card card-api" />
+    <text x="702" y="347" class="node-title">Permission Zinciri</text>
+    <text x="702" y="368" class="node-text">IsActiveUser, onboarding</text>
+    <text x="702" y="386" class="node-text">ve ban/timeout kontrolleri.</text>
+  </g>
+  <g id="api-views">
+    <rect x="684" y="420" width="232" height="82" rx="12" class="card card-api" />
+    <text x="702" y="447" class="node-title">DRF API Views</text>
+    <text x="702" y="468" class="node-text">Profil, beslenme, içerik,</text>
+    <text x="702" y="486" class="node-text">yorum ve forum endpointleri.</text>
+  </g>
+  <g id="api-ai">
+    <rect x="684" y="530" width="232" height="84" rx="12" class="card card-api" />
+    <text x="702" y="557" class="node-title">AI Bağlam Katmanı</text>
+    <text x="702" y="578" class="node-text">Profil/veri bağlamını</text>
+    <text x="702" y="596" class="node-text">system prompta ekler.</text>
+  </g>
+
+  <g id="data-db">
+    <rect x="1004" y="224" width="212" height="82" rx="12" class="card card-data" />
+    <text x="1022" y="251" class="node-title">MariaDB / MySQL</text>
+    <text x="1022" y="272" class="node-text">WEB kanonik şema, API</text>
+    <text x="1022" y="290" class="node-text">managed=False mirror model.</text>
+  </g>
+  <g id="data-cache">
+    <rect x="1004" y="334" width="212" height="72" rx="12" class="card card-data" />
+    <text x="1022" y="361" class="node-title">Django DatabaseCache</text>
+    <text x="1022" y="382" class="node-text">Rate limit ve cooldown</text>
+    <text x="1022" y="400" class="node-text">sayaçları.</text>
+  </g>
+  <g id="data-google">
+    <rect x="1004" y="452" width="212" height="74" rx="12" class="card card-data" />
+    <text x="1022" y="479" class="node-title">Google OAuth</text>
+    <text x="1022" y="500" class="node-text">PKCE state / code flow</text>
+    <text x="1022" y="518" class="node-text">WEB + API köprüsü.</text>
+  </g>
+  <g id="data-mimo">
+    <rect x="1004" y="572" width="212" height="74" rx="12" class="card card-data" />
+    <text x="1022" y="599" class="node-title">Xiaomi MiMo AI</text>
+    <text x="1022" y="620" class="node-text">OpenAI uyumlu</text>
+    <text x="1022" y="638" class="node-text">chat/completions servisi.</text>
+  </g>
+
+  <path class="arrow arrow-mobile" marker-end="url(#arrowGreen)" d="M296 454 C380 430 586 268 684 252" />
+  <rect x="414" y="341" width="174" height="22" rx="8" class="arrow-label-bg" />
+  <text x="501" y="356" text-anchor="middle" class="arrow-label">login / protected API</text>
+
+  <path class="arrow arrow-web" marker-end="url(#arrowAmber)" d="M296 440 C340 360 340 272 384 266" />
+  <rect x="292" y="318" width="134" height="22" rx="8" class="arrow-label-bg" />
+  <text x="359" y="333" text-anchor="middle" class="arrow-label">register / reset</text>
+
+  <path class="arrow arrow-mobile" marker-end="url(#arrowGreen)" d="M296 556 C412 556 552 458 684 458" />
+  <rect x="412" y="509" width="130" height="22" rx="8" class="arrow-label-bg" />
+  <text x="477" y="524" text-anchor="middle" class="arrow-label">token saklama</text>
+
+  <path class="arrow arrow-api" marker-end="url(#arrowBlue)" d="M916 252 C956 252 962 262 1004 264" />
+  <path class="arrow arrow-api" marker-end="url(#arrowBlue)" d="M916 460 C956 450 962 278 1004 272" />
+  <rect x="910" y="305" width="134" height="22" rx="8" class="arrow-label-bg" />
+  <text x="977" y="320" text-anchor="middle" class="arrow-label">ortak veri şeması</text>
+
+  <path class="arrow arrow-web" marker-end="url(#arrowAmber)" d="M596 266 C742 250 846 252 1004 264" />
+  <path class="arrow arrow-web" marker-end="url(#arrowAmber)" d="M490 308 C490 324 490 330 490 346" />
+  <path class="arrow arrow-web" marker-end="url(#arrowAmber)" d="M596 384 C744 374 856 370 1004 370" />
+
+  <path class="arrow arrow-ai" marker-end="url(#arrowPurple)" d="M916 572 C956 572 964 608 1004 608" />
+  <rect x="918" y="586" width="94" height="22" rx="8" class="arrow-label-bg" />
+  <text x="965" y="601" text-anchor="middle" class="arrow-label">AI isteği</text>
+
+  <path class="arrow arrow-ai" marker-end="url(#arrowPurple)" d="M596 384 C732 430 878 478 1004 488" />
+  <rect x="742" y="429" width="128" height="22" rx="8" class="arrow-label-bg" />
+  <text x="806" y="444" text-anchor="middle" class="arrow-label">Google köprüsü</text>
+
+  <path class="arrow arrow-mobile" marker-end="url(#arrowGreen)" d="M180 284 L180 310" />
+  <path class="arrow arrow-mobile" marker-end="url(#arrowGreen)" d="M180 388 L180 414" />
+  <path class="arrow arrow-mobile" marker-end="url(#arrowGreen)" d="M180 592 L180 618" />
+
+  <rect x="40" y="746" width="1200" height="54" rx="14" fill="#111827" stroke="#334155" />
+  <text x="64" y="770" class="mono">Kontrat sınırları:</text>
+  <text x="210" y="770" class="note">Endpoint pathleri, JSON keyleri ve OAuth/PKCE standart alanları backend/dış servis sözleşmesidir; mobil tarafta keyfi değiştirilemez.</text>
+  <text x="64" y="790" class="mono">Mobil sahipliği:</text>
+  <text x="210" y="790" class="note">UI, Riverpod state, yerel hesaplayıcı, hata gösterimi, token saklama ve API çağrısı düzeni mobil uygulama içinde yönetilir.</text>
+</svg>

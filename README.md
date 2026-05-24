@@ -1,13 +1,13 @@
 # FitRehber Mobil
 
-FitRehber Mobil, Flutter ile geliştirilmiş; beslenme takibi, kişisel hedef hesaplama,
-sağlık içerikleri, forum, profil yönetimi ve yapay zeka asistanı özelliklerini tek
-uygulamada birleştiren kapsamlı bir fitness rehberi uygulamasıdır.
+FitRehber Mobil; beslenme takibi, kişisel hedef hesaplama, sağlık içerikleri,
+forum, profil yönetimi ve yapay zeka asistanını tek uygulamada birleştiren Flutter
+tabanlı bir fitness rehberi uygulamasıdır.
 
-Bu repo yalnızca bir mobil arayüz değildir. Uygulama, WEB projesinin sahip olduğu
-e-posta doğrulama ve şifre sıfırlama akışlarıyla, `fitrehber-api` projesinin sunduğu
-JWT tabanlı mobil API katmanıyla birlikte çalışan üç parçalı bir sistemin mobil
-istemcisidir.
+Bu repo yalnızca bir mobil arayüz değildir. Mobil uygulama, WEB projesinin sahip
+olduğu kayıt/e-posta doğrulama/şifre sıfırlama akışlarıyla ve `fitrehber-api`
+projesinin sunduğu JWT tabanlı REST API katmanıyla birlikte çalışan üç parçalı
+FitRehber sisteminin mobil istemcisidir.
 
 ## İçindekiler
 
@@ -17,21 +17,20 @@ istemcisidir.
 - [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
 - [Proje Yapısı](#proje-yapısı)
 - [Kod Rehberi](#kod-rehberi)
-- [Canlı Revize Haritası](#canlı-revize-haritası)
+- [Geliştirme Rehberi](#geliştirme-rehberi)
 - [Kurulum](#kurulum)
 - [Test ve Doğrulama](#test-ve-doğrulama)
-- [Savunma Notları](#savunma-notları)
 
 ## Öne Çıkanlar
 
 | Alan | Açıklama |
 | --- | --- |
-| Kimlik doğrulama | E-posta/parola, Google OAuth 2.0 + PKCE, JWT access/refresh token, güvenli token saklama. |
+| Kimlik doğrulama | E-posta/parola, Google OAuth 2.0 + PKCE, JWT access/refresh token ve güvenli token saklama. |
 | E-posta doğrulama | Mobil kayıt WEB projesindeki `/mobile/auth/register/` endpointine gider; kullanıcı inactive açılır ve doğrulama maili gönderilir. |
 | Şifre sıfırlama | Mobil uygulama reset talebini WEB endpointine iletir; reset linki mevcut güvenli web reset sayfasına gider. |
 | Oturum yönetimi | Riverpod tabanlı `OturumDenetleyici`, token/profil/ilk kurulum durumuna göre uygulama yönünü belirler. |
 | Backend entegrasyonu | Dio tabanlı `ApiServisi`, token ekleme, 401 sonrası refresh ve kullanıcı dostu hata yönetimini merkezi olarak yürütür. |
-| Beslenme takibi | Günlük kalori, makro ve su hedefleri; Mifflin-St Jeor + sabit aktivite çarpanı ile hesaplanır. |
+| Beslenme takibi | Günlük kalori, makro ve su hedefleri Mifflin-St Jeor + sabit aktivite çarpanı ile hesaplanır. |
 | İçerik çizimi | Backend zengin HTML içeriği mobil-native `yazi_mobil_bloklar` formatına dönüştürülür ve Flutter widgetlarıyla çizilir. |
 | AI asistan | Mobil `/api/ai/chat/` endpointine gider; API kullanıcı profil/veri bağlamını system prompta ekleyip MiMo modelinden cevap alır. |
 | Offline deneyim | Ana sayfa içerikleri yerel önbellekten hızlı açılır, ağ yoksa kullanıcı boş ekranla bırakılmaz. |
@@ -39,32 +38,21 @@ istemcisidir.
 
 ## Sistem Mimarisi
 
-Bu proje üç ana sistemle birlikte çalışır:
+Aşağıdaki mimari FitRehber Mobil'in WEB, API, veritabanı ve dış servislerle
+ilişkisini gösterir. Diyagram repo içinde SVG olarak tutulur ve GitHub README'de
+doğrudan görüntülenir.
 
-```mermaid
-flowchart LR
-    Mobile["fitrehber-mobile\nFlutter / Riverpod / Dio"]
-    Web["WEB\nDjango Portal / allauth / Resend"]
-    Api["fitrehber-api\nDjango REST Framework / SimpleJWT"]
-    Db["MariaDB / MySQL\nOrtak veri şeması"]
-    Google["Google OAuth"]
-    Mimo["Xiaomi MiMo AI API"]
+![FitRehber Sistem Mimarisi](docs/sistem_mimarisi.svg)
 
-    Mobile -->|"JWT login, profil, beslenme, içerik, AI"| Api
-    Mobile -->|"kayıt, doğrulama maili, şifre sıfırlama"| Web
-    Web -->|"kullanıcı, profil, mail kayıtları"| Db
-    Api -->|"managed=False mirror modeller"| Db
-    Web -->|"OAuth/allauth köprüsü"| Google
-    Api -->|"system prompt + history"| Mimo
-```
+Mimari üç ana sahiplik sınırına ayrılır:
 
-Detaylı ve etkileşimli mimari diyagram repo içinde yer alır:
-
-[docs/sistem_mimarisi.html](docs/sistem_mimarisi.html)
-
-Bu HTML dosyası sunum için hazırlanmış bir blueprinttir. Mobil, WEB, API, veritabanı
-ve dış servisleri ayrı katmanlarda gösterir. GitHub üzerinde kaynak olarak görünür;
-görsel/etkileşimli hali için dosya tarayıcıda açılabilir.
+| Katman | Sorumluluk |
+| --- | --- |
+| `fitrehber-mobile` | Flutter UI, Riverpod state yönetimi, Dio istekleri, yerel hesaplama, token saklama. |
+| `WEB` | Kayıt, e-posta doğrulama, şifre sıfırlama, Resend/allauth akışları ve portal davranışları. |
+| `fitrehber-api` | JWT login/refresh, profil, beslenme, içerik, yorum, AI ve mobil REST endpointleri. |
+| `MariaDB / MySQL` | WEB tarafından yönetilen, API tarafından `managed=False` mirror modellerle okunan ortak veri şeması. |
+| Dış servisler | Google OAuth ve Xiaomi MiMo AI API entegrasyonları. |
 
 ## Temel Akışlar
 
@@ -98,8 +86,8 @@ KayitEkrani
 -> EpostaDogrulamaEkrani
 ```
 
-Bu akış özellikle WEB projesinin sahipliğinde bırakılmıştır. Çünkü e-posta doğrulama,
-allauth ve şifre sıfırlama linkleri WEB tarafındaki güvenli akışlarla yönetilir.
+Kayıt, doğrulama maili ve şifre sıfırlama akışları WEB projesinin sahipliğinde
+kalır. Mobil uygulama bu akışları JSON endpointleri üzerinden başlatır.
 
 ### 3. Normal API İsteği
 
@@ -207,7 +195,7 @@ lib/
     services/yerel_besin_veritabani.dart
     widgets/
 docs/
-  sistem_mimarisi.html
+  sistem_mimarisi.svg
 test/
   api_sabitleri_test.dart
   ...
@@ -215,8 +203,8 @@ test/
 
 ## Kod Rehberi
 
-Kod tabanı savunmada rahat okunabilmesi için Türkçe semantik isimlendirmeye
-yaklaştırılmıştır. Ancak üç sınır bilinçli olarak korunmuştur:
+Kod tabanı okunabilirlik için Türkçe semantik isimlendirmeye yaklaştırılmıştır.
+Ancak üç sınır bilinçli olarak korunmuştur:
 
 1. Flutter/Dart framework API isimleri:
    `build`, `initState`, `dispose`, `fromJson`, `toJson`, `copyWith`, `Widget`,
@@ -247,29 +235,20 @@ Türkçeleştirirse API kontratı bozulur.
 | `lib/shared/utils/beslenme_hesaplayici.dart` | Kalori, makro ve su hedefi formülleri. |
 | `lib/features/icerik/widgets/icerik_blok_cizici.dart` | Mobil-native içerik bloklarının çizimi. |
 
-## Canlı Revize Haritası
+## Geliştirme Rehberi
 
-Savunma sırasında bir değişiklik istenirse önce katman belirlenir:
+Bu bölüm, projede değişiklik yapılırken hangi katmana bakılması gerektiğini özetler.
 
-| Hoca isteği | Bakılacak yer | Dikkat edilecek sınır |
+| Değişiklik tipi | İlk bakılacak yer | Korunacak sınır |
 | --- | --- | --- |
-| Buton yazısı/rengi değişsin | İlgili `features/..._ekrani.dart` veya `uygulama_temasi.dart` | Sadece UI değişir. |
-| Giriş hata mesajı değişsin | `kimlik_servisi.dart`, `hata_yardimcilari.dart` | Backend status code değişmez. |
-| Yeni endpoint eklensin | `api_sabitleri.dart`, `api_servisi.dart` | Endpoint path backendle aynı kalmalı. |
-| Profil alanı eklensin | `profil_model.dart`, ilk kurulum, profil düzenleme paneli | JSON key backend kontratıdır. |
-| İlk kurulum adımı değişsin | `ilk_kurulum_ekrani.dart` | Adım sayısı, validasyon ve gönderilen JSON birlikte düşünülür. |
-| Beslenme formülü değişsin | `beslenme_hesaplayici.dart` | Testte beklenen değerler güncellenir. |
-| Login sonrası yön değişsin | `uygulama_yonlendirici.dart`, `oturum_denetleyici.dart` | Auth/onboarding öncelik sırası bozulmaz. |
-| AI mesaj formatı değişsin | `asistan_provider.dart`, `api_servisi.dart` | `message/history/answer` API kontratı korunur. |
-
-Canlıda güvenli değişiklikler: metin, renk, küçük validasyon eşiği, lokal UI düzeni.
-
-Canlıda dikkatli yapılacaklar: route değişikliği, profil alanı, onboarding akışı,
-provider invalidation.
-
-Canlıda girilmemesi gerekenler: token storage keylerini değiştirme, OAuth redirect
-URI değiştirme, JSON keylerini keyfi Türkçeleştirme, Riverpod yerine başka state
-yönetimine geçme.
+| Buton yazısı/rengi | İlgili `features/..._ekrani.dart` veya `uygulama_temasi.dart` | Sadece UI değişir. |
+| Giriş hata mesajı | `kimlik_servisi.dart`, `hata_yardimcilari.dart` | Backend status code değişmez. |
+| Yeni endpoint | `api_sabitleri.dart`, `api_servisi.dart` | Endpoint path backendle aynı kalmalı. |
+| Profil alanı | `profil_model.dart`, ilk kurulum, profil düzenleme paneli | JSON key backend kontratıdır. |
+| İlk kurulum adımı | `ilk_kurulum_ekrani.dart` | Adım sayısı, validasyon ve gönderilen JSON birlikte düşünülür. |
+| Beslenme formülü | `beslenme_hesaplayici.dart` | Testte beklenen değerler güncellenir. |
+| Login sonrası yön | `uygulama_yonlendirici.dart`, `oturum_denetleyici.dart` | Auth/onboarding öncelik sırası bozulmaz. |
+| AI mesaj formatı | `asistan_provider.dart`, `api_servisi.dart` | `message/history/answer` API kontratı korunur. |
 
 ## Kurulum
 
@@ -300,37 +279,14 @@ Endpoint regresyon kontrolü:
 flutter test test/api_sabitleri_test.dart
 ```
 
-Bu test özellikle şu hataları engeller:
+Bu test özellikle şu kontratların yanlışlıkla bozulmasını engeller:
 
 ```text
-/auth/login/               -> /auth/giris/ olmamalı
-/mobile/auth/register/     -> /mobile/auth/kayit/ olmamalı
-/auth/token/refresh/       -> değişmemeli
-/auth/google/token/        -> değişmemeli
-/profil/onboard/           -> ilk kurulum kontratı korunmalı
+/auth/login/
+/mobile/auth/register/
+/auth/token/refresh/
+/auth/google/token/
+/profil/onboard/
 ```
 
 Son doğrulama durumunda analiz temiz ve test paketi başarılıdır.
-
-## Savunma Notları
-
-Kısa proje anlatımı:
-
-> FitRehber Mobil, Flutter/Riverpod ile geliştirilmiş bir fitness rehberi
-> uygulamasıdır. Mobil taraf kullanıcı arayüzü, state yönetimi ve yerel hesaplama
-> katmanını üstlenir. Kayıt, e-posta doğrulama ve şifre sıfırlama WEB projesinin
-> sahipliğindedir. JWT login, profil, beslenme, içerik, yorum ve AI akışları ise
-> fitrehber-api üzerinden yürür. Endpoint ve JSON alanları backend kontratı olduğu
-> için korunmuş, uygulama içi isimler savunmada okunabilirlik için Türkçeleştirilmiştir.
-
-Hoca sorarsa:
-
-| Soru | Kısa cevap |
-| --- | --- |
-| Neden endpointler İngilizce kaldı? | Çünkü endpoint pathleri backend sözleşmesidir. Mobil tek başına değiştiremez. |
-| Neden JSON keyleri Türkçeleştirilmedi? | `fromJson` ve backend response kontratı bozulmasın diye. |
-| Token nerede saklanıyor? | `flutter_secure_storage` içinde, `KimlikServisi` üzerinden. |
-| Access token bitince ne oluyor? | `ApiServisi` 401 yanıtında refresh dener ve isteği bir kez tekrarlar. |
-| İnternet yokken neden çıkış yapılmıyor? | Ağ hatası auth hatası değildir; oturum ve varsa cached profil korunur. |
-| PKCE neden var? | Mobil uygulamada client secret saklanamayacağı için OAuth güvenliği PKCE ile sağlanır. |
-| Beslenme hedefi nasıl hesaplanıyor? | Profil verisi `BeslenmeHesaplayici` içine girer; Mifflin-St Jeor + hedef düzeltmesi uygulanır. |
