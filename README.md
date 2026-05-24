@@ -1,164 +1,336 @@
 # FitRehber Mobil
 
-FitRehber platformunun **Flutter** ile geliştirilmiş mobil uygulaması. Kullanıcılara
-beslenme takibi, sağlık içerikleri, forum ve yapay zekâ destekli bir asistan sunan
-kapsamlı bir fitness rehberi uygulamasıdır.
+FitRehber Mobil, Flutter ile geliştirilmiş; beslenme takibi, kişisel hedef hesaplama,
+sağlık içerikleri, forum, profil yönetimi ve yapay zeka asistanı özelliklerini tek
+uygulamada birleştiren kapsamlı bir fitness rehberi uygulamasıdır.
 
----
+Bu repo yalnızca bir mobil arayüz değildir. Uygulama, WEB projesinin sahip olduğu
+e-posta doğrulama ve şifre sıfırlama akışlarıyla, `fitrehber-api` projesinin sunduğu
+JWT tabanlı mobil API katmanıyla birlikte çalışan üç parçalı bir sistemin mobil
+istemcisidir.
 
 ## İçindekiler
 
-- [Özellikler](#özellikler)
+- [Öne Çıkanlar](#öne-çıkanlar)
+- [Sistem Mimarisi](#sistem-mimarisi)
+- [Temel Akışlar](#temel-akışlar)
 - [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
 - [Proje Yapısı](#proje-yapısı)
 - [Kod Rehberi](#kod-rehberi)
-- [Mimari](#mimari)
-- [Kurulum ve Çalıştırma](#kurulum-ve-çalıştırma)
-- [Testler](#testler)
+- [Canlı Revize Haritası](#canlı-revize-haritası)
+- [Kurulum](#kurulum)
+- [Test ve Doğrulama](#test-ve-doğrulama)
+- [Savunma Notları](#savunma-notları)
 
----
+## Öne Çıkanlar
 
-## Özellikler
+| Alan | Açıklama |
+| --- | --- |
+| Kimlik doğrulama | E-posta/parola, Google OAuth 2.0 + PKCE, JWT access/refresh token, güvenli token saklama. |
+| E-posta doğrulama | Mobil kayıt WEB projesindeki `/mobile/auth/register/` endpointine gider; kullanıcı inactive açılır ve doğrulama maili gönderilir. |
+| Şifre sıfırlama | Mobil uygulama reset talebini WEB endpointine iletir; reset linki mevcut güvenli web reset sayfasına gider. |
+| Oturum yönetimi | Riverpod tabanlı `OturumDenetleyici`, token/profil/ilk kurulum durumuna göre uygulama yönünü belirler. |
+| Backend entegrasyonu | Dio tabanlı `ApiServisi`, token ekleme, 401 sonrası refresh ve kullanıcı dostu hata yönetimini merkezi olarak yürütür. |
+| Beslenme takibi | Günlük kalori, makro ve su hedefleri; Mifflin-St Jeor + sabit aktivite çarpanı ile hesaplanır. |
+| İçerik çizimi | Backend zengin HTML içeriği mobil-native `yazi_mobil_bloklar` formatına dönüştürülür ve Flutter widgetlarıyla çizilir. |
+| AI asistan | Mobil `/api/ai/chat/` endpointine gider; API kullanıcı profil/veri bağlamını system prompta ekleyip MiMo modelinden cevap alır. |
+| Offline deneyim | Ana sayfa içerikleri yerel önbellekten hızlı açılır, ağ yoksa kullanıcı boş ekranla bırakılmaz. |
+| Kod okunabilirliği | Uygulamaya ait sınıf/dosya/değişken isimleri Türkçeleştirilmiş, framework ve backend kontratları korunmuştur. |
 
-| Bölüm | Açıklama |
-|-------|----------|
-| **Kimlik Doğrulama** | E-posta/parola ile giriş ve kayıt, Google ile giriş (OAuth 2.0 + PKCE), e-posta doğrulama, parola sıfırlama. Oturum token'ları cihazın şifreli alanında saklanır. |
-| **Onboarding** | Yeni kullanıcı için 4 adımlı profil kurulum sihirbazı (kimlik, ölçüler, hedef, özet). |
-| **Ana Sayfa** | Kategoriye göre filtrelenebilen, sonsuz kaydırmalı sağlık içerikleri akışı. Çevrimdışı önbellek desteği. |
-| **Beslenme Takibi** | Günlük kalori/makro takibi, öğün kayıtları, su takibi ve kişiye özel hedef hesaplama (Mifflin-St Jeor formülü). |
-| **Forum** | Kullanıcıların soru sorup tartıştığı, görsel ekleyebildiği bölüm. |
-| **Yapay Zekâ Asistanı** | Beslenme, antrenman ve sağlık konularında sohbet tabanlı AI asistanı. |
-| **Profil** | Kullanıcı profili, rozetler, aktivite ısı haritası, paylaşımlar/kaydedilenler/beğeniler. |
-| **Makale & Yorumlar** | Zengin biçimli makale görüntüleme, ağaç yapılı (iç içe) yorum sistemi. |
+## Sistem Mimarisi
 
----
+Bu proje üç ana sistemle birlikte çalışır:
+
+```mermaid
+flowchart LR
+    Mobile["fitrehber-mobile\nFlutter / Riverpod / Dio"]
+    Web["WEB\nDjango Portal / allauth / Resend"]
+    Api["fitrehber-api\nDjango REST Framework / SimpleJWT"]
+    Db["MariaDB / MySQL\nOrtak veri şeması"]
+    Google["Google OAuth"]
+    Mimo["Xiaomi MiMo AI API"]
+
+    Mobile -->|"JWT login, profil, beslenme, içerik, AI"| Api
+    Mobile -->|"kayıt, doğrulama maili, şifre sıfırlama"| Web
+    Web -->|"kullanıcı, profil, mail kayıtları"| Db
+    Api -->|"managed=False mirror modeller"| Db
+    Web -->|"OAuth/allauth köprüsü"| Google
+    Api -->|"system prompt + history"| Mimo
+```
+
+Detaylı ve etkileşimli mimari diyagram repo içinde yer alır:
+
+[docs/sistem_mimarisi.html](docs/sistem_mimarisi.html)
+
+Bu HTML dosyası sunum için hazırlanmış bir blueprinttir. Mobil, WEB, API, veritabanı
+ve dış servisleri ayrı katmanlarda gösterir. GitHub üzerinde kaynak olarak görünür;
+görsel/etkileşimli hali için dosya tarayıcıda açılabilir.
+
+## Temel Akışlar
+
+### 1. Login / JWT
+
+```text
+GirisEkrani
+-> OturumDenetleyici.girisYap
+-> KimlikServisi.girisYap
+-> POST https://api.fitrehber.com.tr/api/auth/login/
+-> access + refresh + kullanici
+-> FlutterSecureStorage
+-> profil yükleme
+-> router yönlendirmesi
+```
+
+Yanlış parola veya bilinmeyen kullanıcı `401` döner. Şifresi doğru ama e-postası
+doğrulanmamış inactive kullanıcı `403 email_verification_required` alır ve mobil
+e-posta doğrulama ekranına yönlendirilir.
+
+### 2. Kayıt / E-posta Doğrulama
+
+```text
+KayitEkrani
+-> KimlikServisi.kayitOl
+-> POST https://fitrehber.com.tr/mobile/auth/register/
+-> WEB KullaniciKayitFormu validasyonu
+-> user.is_active = False
+-> EmailAddress.send_confirmation(...)
+-> Resend / BrowserConsole backend
+-> EpostaDogrulamaEkrani
+```
+
+Bu akış özellikle WEB projesinin sahipliğinde bırakılmıştır. Çünkü e-posta doğrulama,
+allauth ve şifre sıfırlama linkleri WEB tarafındaki güvenli akışlarla yönetilir.
+
+### 3. Normal API İsteği
+
+```text
+Ekran
+-> Provider / Denetleyici
+-> ApiServisi
+-> Authorization: Bearer <access>
+-> fitrehber-api DRF view
+-> JSON model dönüşümü
+-> Riverpod state update
+-> Flutter rebuild
+```
+
+Access token süresi dolarsa `ApiServisi` 401 yanıtını yakalar, `KimlikServisi`
+üzerinden refresh token ile yeni access token alır ve isteği bir kez daha dener.
+
+### 4. Beslenme Hedefi
+
+```text
+ProfilModel
+-> BeslenmeHesaplayici.calculate(...)
+-> BMR / TDEE
+-> hedefe göre -300 / +300 / nötr
+-> makro dağılımı
+-> su hedefi
+-> Beslenme ekranı
+```
+
+Formüller UI içinde dağınık değildir; `lib/shared/utils/beslenme_hesaplayici.dart`
+dosyasında merkezi tutulur ve testlerle korunur.
+
+### 5. Google OAuth + PKCE
+
+```text
+Mobil state + code_verifier üretir
+-> WEB /accounts/mobile-google/start/
+-> Google/allauth doğrulaması
+-> WEB MobileOAuthCode üretir
+-> fitrehber://oauth/callback veya web callback
+-> API /api/auth/google/token/
+-> state + code_verifier kontrolü
+-> JWT üretimi
+```
+
+PKCE kullanılır çünkü mobil uygulama içinde `client_secret` güvenli biçimde
+saklanamaz. `state` değeri ise CSRF ve sahte callback riskine karşı kullanılır.
 
 ## Kullanılan Teknolojiler
 
-- **Flutter / Dart** — çapraz platform mobil uygulama çatısı
-- **Riverpod** — durum yönetimi (state management)
-- **go_router** — sayfa yönlendirme ve oturum tabanlı yönlendirme koruması
-- **Dio** — HTTP istemcisi (token yenileme interceptor'ı ile)
-- **flutter_secure_storage** — token'ların güvenli (şifreli) saklanması
-- **shared_preferences / Hive** — yerel önbellekleme
-- **cached_network_image, shimmer, google_fonts** — arayüz bileşenleri
-
----
+| Teknoloji | Rol |
+| --- | --- |
+| Flutter / Dart | Mobil uygulama geliştirme |
+| Riverpod | State management |
+| go_router | Route ve auth guard yönetimi |
+| Dio | HTTP istemcisi, interceptor, retry |
+| flutter_secure_storage | Access/refresh token saklama |
+| shared_preferences | İçerik/kategori önbelleği ve kullanıcı tercihleri |
+| cached_network_image | Ağ görselleri için cache destekli görüntüleme |
+| app_links / url_launcher | Google OAuth deep link ve dış tarayıcı akışı |
+| flutter_markdown | AI asistan mesajlarının markdown çizimi |
 
 ## Proje Yapısı
 
-Proje, **özellik bazlı (feature-first)** bir klasör mimarisi kullanır. Her özellik
-kendi ekranlarını, durum yöneticilerini ve widget'larını kendi klasöründe barındırır:
+Proje feature-first klasör düzeni kullanır. Uygulamaya ait dosya, sınıf ve değişken
+isimleri Türkçe tutulmuştur.
 
-```
+```text
 lib/
-├── main.dart                 # Uygulamanın giriş noktası
-├── core/                     # Uygulama genelinde temel yapı taşları
-│   ├── constants/api_sabitleri.dart
-│   ├── router/uygulama_yonlendirici.dart
-│   └── theme/uygulama_temasi.dart
-├── features/                 # Her biri bağımsız bir özellik (modül)
-│   ├── kimlik/               # Giriş, kayıt, e-posta doğrulama, parola sıfırlama
-│   ├── ilk_kurulum/          # İlk kurulum sihirbazı
-│   ├── ana_sayfa/            # Ana sayfa ve alt gezinme kabuğu
-│   ├── beslenme/             # Beslenme ve su takibi
-│   ├── icerik/               # Makale detayı ve yorumlar
-│   ├── forum/                # Forum ve soru sorma
-│   ├── asistan/              # Yapay zekâ asistanı
-│   ├── profil/               # Kullanıcı profili
-│   ├── kategoriler/          # İçerik kategorileri
-│   └── arama/                # İçerik arama
-└── shared/                   # Özellikler arası paylaşılan kod
-    ├── models/               # Veri modelleri (JSON dönüşümleri)
-    ├── services/             # Yerel besin veritabanı vb.
-    ├── widgets/              # Tekrar kullanılabilir widget'lar
-    ├── utils/                # Yardımcı hesaplama sınıfları
-    ├── sayfalama/            # Sayfalama yardımcıları
-    ├── api_servisi.dart      # Tüm backend isteklerinin merkezi
-    ├── kimlik_servisi.dart   # Kimlik doğrulama servisi
-    ├── google_oauth_akisi.dart
-    └── oturum_denetleyici.dart
+  main.dart
+  core/
+    constants/api_sabitleri.dart
+    router/uygulama_yonlendirici.dart
+    theme/uygulama_temasi.dart
+  features/
+    kimlik/
+      giris_ekrani.dart
+      kayit_ekrani.dart
+      eposta_dogrulama_ekrani.dart
+      sifremi_unuttum_ekrani.dart
+    ilk_kurulum/
+      ilk_kurulum_ekrani.dart
+    ana_sayfa/
+    beslenme/
+      providers/beslenme_provider.dart
+      widgets/
+    icerik/
+      widgets/icerik_blok_cizici.dart
+    forum/
+    asistan/
+      providers/asistan_provider.dart
+    profil/
+      providers/profil_provider.dart
+      widgets/profil_duzenleme_paneli.dart
+    kategoriler/
+    arama/
+  shared/
+    api_servisi.dart
+    kimlik_servisi.dart
+    oturum_denetleyici.dart
+    google_oauth_akisi.dart
+    hata_yardimcilari.dart
+    models/
+    utils/beslenme_hesaplayici.dart
+    services/yerel_besin_veritabani.dart
+    widgets/
+docs/
+  sistem_mimarisi.html
+test/
+  api_sabitleri_test.dart
+  ...
 ```
-
-Her özellik klasörü kendi içinde `providers` (durum yöneticileri) ve `widgets`
-(parça widget'lar) alt klasörlerini kullanabilir. Ekran dosyaları doğrudan ilgili
-özellik klasörünün içinde durur; örnek: `features/kimlik/giris_ekrani.dart`.
-
----
 
 ## Kod Rehberi
 
-Kod tabanı savunmada rahat okunabilmesi için uygulamaya ait isimlerde Türkçe
-semantik adlandırma kullanır. Flutter/Dart yaşam döngüsü metotları ve paket API'leri
-bilerek değiştirilmemiştir: `build`, `initState`, `dispose`, `fromJson`, `toJson`,
-`copyWith`, `Widget`, `Provider`, `Dio`, `GoRouter` gibi isimler framework
-sözleşmesidir.
+Kod tabanı savunmada rahat okunabilmesi için Türkçe semantik isimlendirmeye
+yaklaştırılmıştır. Ancak üç sınır bilinçli olarak korunmuştur:
 
-- `KimlikServisi`: giriş, kayıt, Google OAuth, e-posta doğrulama maili tekrar gönderme
-  ve şifre sıfırlama isteklerini yönetir.
-- `OturumDenetleyici`: uygulama açılışında token okur, profili yükler, router'ın
-  hangi ekrana gideceğini belirleyen oturum durumunu tutar.
-- `ApiServisi`: backend ile konuşan merkezi servis katmanıdır. Token yenileme,
-  hata ayıklama ve profil/beslenme/içerik/forum istekleri burada toplanır.
-- `BeslenmeHesaplayici`: kalori, makro ve su hedefi hesaplarını içerir; formüller
-  testlerle korunur.
-- `SayfaliYanit` ve `SayfalamaTetikleyici`: sonsuz kaydırmalı listelerde yeni sayfa
-  yükleme kararını ve gelen sayfalı API yanıtını düzenler.
+1. Flutter/Dart framework API isimleri:
+   `build`, `initState`, `dispose`, `fromJson`, `toJson`, `copyWith`, `Widget`,
+   `TextEditingController`.
 
-Backend JSON alanları ve uç nokta isimleri kontrat olduğu için korunur. Örneğin
-`username`, `email`, `password`, `access`, `refresh`, `is_onboarded`, `message` ve
-`answer` alanları API ile birebir uyum için İngilizce kalır.
+2. Backend JSON kontratı:
+   `username`, `email`, `password`, `access`, `refresh`, `is_onboarded`,
+   `message`, `history`, `answer`.
 
-Uç nokta adresleri ayrıca `test/api_sabitleri_test.dart` ile korunur. Bu test,
-Türkçeleştirme sırasında değişken adları çevrilse bile `/auth/login/`,
-`/mobile/auth/register/`, `/verification/resend/` ve `/password-reset/request/`
-gibi backend sözleşmelerinin yanlışlıkla Türkçeleşmesini engeller.
+3. Endpoint pathleri:
+   `/auth/login/`, `/mobile/auth/register/`, `/auth/google/token/`,
+   `/auth/token/refresh/`.
 
----
+Bu ayrımın sebebi şudur: Kod içi isimler mobil uygulamanın kontrolündedir, fakat
+JSON keyleri ve URL pathleri backend sözleşmesidir. Mobil taraf bunları tek başına
+Türkçeleştirirse API kontratı bozulur.
 
-## Mimari
+Önemli merkez dosyalar:
 
-Uygulama üç katmanlı bir akışa dayanır:
+| Dosya | Görev |
+| --- | --- |
+| `lib/core/constants/api_sabitleri.dart` | Tüm backend endpointlerinin merkezi adres defteri. |
+| `lib/shared/kimlik_servisi.dart` | Login, kayıt, refresh, Google token exchange, secure storage. |
+| `lib/shared/api_servisi.dart` | Profil, içerik, beslenme, yorum ve AI API çağrıları. |
+| `lib/shared/oturum_denetleyici.dart` | Oturum state, profil yükleme, offline durumda token koruma. |
+| `lib/core/router/uygulama_yonlendirici.dart` | Auth, ilk kurulum ve ana uygulama yönlendirme öncelikleri. |
+| `lib/shared/google_oauth_akisi.dart` | OAuth 2.0 + PKCE state/code_verifier/code_challenge üretimi. |
+| `lib/shared/utils/beslenme_hesaplayici.dart` | Kalori, makro ve su hedefi formülleri. |
+| `lib/features/icerik/widgets/icerik_blok_cizici.dart` | Mobil-native içerik bloklarının çizimi. |
 
-1. **Sunum katmanı (`features/`)** — Kullanıcının gördüğü ekranlar ve widget'lar.
-2. **Durum katmanı (Riverpod provider'ları)** — Ekranların verisini ve iş akışını yönetir.
-3. **Servis katmanı (`shared/`)** — Backend ile iletişim (`ApiServisi`, `KimlikServisi`).
+## Canlı Revize Haritası
 
-**Veri akışı örneği:** Bir ekran → ilgili provider'ı çağırır → provider `ApiServisi`
-üzerinden backend'e istek atar → gelen JSON modele dönüştürülür → durum güncellenir →
-ekran otomatik olarak yeniden çizilir.
+Savunma sırasında bir değişiklik istenirse önce katman belirlenir:
 
-**Hata yönetimi:** Tüm ağ hataları servis katmanında yakalanır ve kullanıcıya
-gösterilebilecek anlaşılır Türkçe mesajlara dönüştürülür (`hata_yardimcilari.dart`).
-Erişim token'ı süresi dolduğunda araya giren bir interceptor token'ı sessizce
-yeniler ve isteği tekrar dener.
+| Hoca isteği | Bakılacak yer | Dikkat edilecek sınır |
+| --- | --- | --- |
+| Buton yazısı/rengi değişsin | İlgili `features/..._ekrani.dart` veya `uygulama_temasi.dart` | Sadece UI değişir. |
+| Giriş hata mesajı değişsin | `kimlik_servisi.dart`, `hata_yardimcilari.dart` | Backend status code değişmez. |
+| Yeni endpoint eklensin | `api_sabitleri.dart`, `api_servisi.dart` | Endpoint path backendle aynı kalmalı. |
+| Profil alanı eklensin | `profil_model.dart`, ilk kurulum, profil düzenleme paneli | JSON key backend kontratıdır. |
+| İlk kurulum adımı değişsin | `ilk_kurulum_ekrani.dart` | Adım sayısı, validasyon ve gönderilen JSON birlikte düşünülür. |
+| Beslenme formülü değişsin | `beslenme_hesaplayici.dart` | Testte beklenen değerler güncellenir. |
+| Login sonrası yön değişsin | `uygulama_yonlendirici.dart`, `oturum_denetleyici.dart` | Auth/onboarding öncelik sırası bozulmaz. |
+| AI mesaj formatı değişsin | `asistan_provider.dart`, `api_servisi.dart` | `message/history/answer` API kontratı korunur. |
 
----
+Canlıda güvenli değişiklikler: metin, renk, küçük validasyon eşiği, lokal UI düzeni.
 
-## Kurulum ve Çalıştırma
+Canlıda dikkatli yapılacaklar: route değişikliği, profil alanı, onboarding akışı,
+provider invalidation.
 
-Gereksinim: [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.11+).
+Canlıda girilmemesi gerekenler: token storage keylerini değiştirme, OAuth redirect
+URI değiştirme, JSON keylerini keyfi Türkçeleştirme, Riverpod yerine başka state
+yönetimine geçme.
+
+## Kurulum
+
+Flutter SDK kurulu olmalıdır.
 
 ```bash
-# Bağımlılıkları yükle
 flutter pub get
-
-# Uygulamayı bağlı bir cihazda/emülatörde çalıştır
 flutter run
 ```
 
----
-
-## Testler
-
-Proje, model dönüşümleri, hesaplamalar, yönlendirme ve widget davranışları için
-birim ve widget testleri içerir. `api_sabitleri_test.dart` kritik backend
-uç nokta adresleri için regresyon testi görevi görür.
+WEB build/ön test için:
 
 ```bash
-# Tüm testleri çalıştır
-flutter test
-
-# Kod analizini çalıştır
-flutter analyze
+flutter run -d chrome
 ```
+
+## Test ve Doğrulama
+
+```bash
+dart format lib test
+flutter analyze
+flutter test
+```
+
+Endpoint regresyon kontrolü:
+
+```bash
+flutter test test/api_sabitleri_test.dart
+```
+
+Bu test özellikle şu hataları engeller:
+
+```text
+/auth/login/               -> /auth/giris/ olmamalı
+/mobile/auth/register/     -> /mobile/auth/kayit/ olmamalı
+/auth/token/refresh/       -> değişmemeli
+/auth/google/token/        -> değişmemeli
+/profil/onboard/           -> ilk kurulum kontratı korunmalı
+```
+
+Son doğrulama durumunda analiz temiz ve test paketi başarılıdır.
+
+## Savunma Notları
+
+Kısa proje anlatımı:
+
+> FitRehber Mobil, Flutter/Riverpod ile geliştirilmiş bir fitness rehberi
+> uygulamasıdır. Mobil taraf kullanıcı arayüzü, state yönetimi ve yerel hesaplama
+> katmanını üstlenir. Kayıt, e-posta doğrulama ve şifre sıfırlama WEB projesinin
+> sahipliğindedir. JWT login, profil, beslenme, içerik, yorum ve AI akışları ise
+> fitrehber-api üzerinden yürür. Endpoint ve JSON alanları backend kontratı olduğu
+> için korunmuş, uygulama içi isimler savunmada okunabilirlik için Türkçeleştirilmiştir.
+
+Hoca sorarsa:
+
+| Soru | Kısa cevap |
+| --- | --- |
+| Neden endpointler İngilizce kaldı? | Çünkü endpoint pathleri backend sözleşmesidir. Mobil tek başına değiştiremez. |
+| Neden JSON keyleri Türkçeleştirilmedi? | `fromJson` ve backend response kontratı bozulmasın diye. |
+| Token nerede saklanıyor? | `flutter_secure_storage` içinde, `KimlikServisi` üzerinden. |
+| Access token bitince ne oluyor? | `ApiServisi` 401 yanıtında refresh dener ve isteği bir kez tekrarlar. |
+| İnternet yokken neden çıkış yapılmıyor? | Ağ hatası auth hatası değildir; oturum ve varsa cached profil korunur. |
+| PKCE neden var? | Mobil uygulamada client secret saklanamayacağı için OAuth güvenliği PKCE ile sağlanır. |
+| Beslenme hedefi nasıl hesaplanıyor? | Profil verisi `BeslenmeHesaplayici` içine girer; Mifflin-St Jeor + hedef düzeltmesi uygulanır. |
