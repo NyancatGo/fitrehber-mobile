@@ -7,6 +7,7 @@
 // yapılmışken erişilebilir kalır.
 // ---------------------------------------------------------------------------
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,12 +34,22 @@ import '../../shared/widgets/oturum_yukleme.dart';
 /// Oturum durumunu (`oturumDenetleyiciProvider`) izler; oturum bilgisi
 /// değiştiğinde router yeniden oluşturulur ve koruma kuralları tekrar işler.
 final uygulamaYonlendiriciProvider = Provider<GoRouter>((ref) {
-  // Güncel oturum durumu: yükleniyor mu, giriş var mı, ilk kurulum tamam mı?
-  final session = ref.watch(oturumDenetleyiciProvider);
+  // Router'ı oturum her değiştiğinde yeniden YARATMIYORUZ. Bunun yerine tek bir
+  // GoRouter örneği tutup, oturum değişince yalnızca "yenile" sinyali veriyoruz.
+  // Aksi halde her state değişiminde router sıfırlanır, açık ekran (ör. kayıt
+  // sonrası `context.go('/email-dogrulama')` çağırması beklenen ekran) parçalanıp
+  // `mounted == false` olur ve yönlendirme sessizce kaybolur.
+  final yenileyici = ValueNotifier<int>(0);
+  ref.listen(oturumDenetleyiciProvider, (_, _) => yenileyici.value++);
+  ref.onDispose(yenileyici.dispose);
 
   return GoRouter(
     // İlk açılışta token/profil henüz okunmadığı için yükleme ekranıyla başlanır.
     initialLocation: '/session-loading',
+
+    // Oturum durumu değişince GoRouter redirect kurallarını yeniden değerlendirir
+    // (router'ı yeniden yaratmadan).
+    refreshListenable: yenileyici,
 
     // -----------------------------------------------------------------------
     // YÖNLENDİRME KORUMASI
@@ -46,6 +57,8 @@ final uygulamaYonlendiriciProvider = Provider<GoRouter>((ref) {
     // `null` geçişe izin verir; string dönerse kullanıcı o adrese alınır.
     // -----------------------------------------------------------------------
     redirect: (context, state) {
+      // Güncel oturum durumu redirect anında okunur (watch değil, read).
+      final session = ref.read(oturumDenetleyiciProvider);
       final path = state.uri.path;
 
       // E-posta doğrulama ve şifremi unuttum ekranları da auth akışıdır;
