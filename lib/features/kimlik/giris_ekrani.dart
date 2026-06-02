@@ -235,12 +235,14 @@ class _GirisEkraniDurumu extends ConsumerState<GirisEkrani> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 60),
+                    // [REV-LOGO] -> Logo İkonu (İkon Tipi / Boyut / Renk)
                     const Icon(
                       Icons.fitness_center,
                       size: 64,
                       color: Color(0xFFF5A623),
                     ),
                     const SizedBox(height: 16),
+                    // [REV-BASLIK] -> Başlık Metinleri ve Açıklamalar
                     const Text(
                       'FitRehber',
                       textAlign: TextAlign.center,
@@ -271,6 +273,7 @@ class _GirisEkraniDurumu extends ConsumerState<GirisEkrani> {
                           style: const TextStyle(color: Colors.red),
                         ),
                       ),
+                    // [REV-KULLANICI-ADI] -> Kullanıcı Adı Giriş Kutusu (Input)
                     TextFormField(
                       controller: _usernameController,
                       decoration: const InputDecoration(
@@ -283,6 +286,7 @@ class _GirisEkraniDurumu extends ConsumerState<GirisEkrani> {
                           : null,
                     ),
                     const SizedBox(height: 16),
+                    // [REV-SIFRE] -> Şifre Giriş Kutusu (Şifre Maskeleme / Göz İkonu)
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _sifreGizli,
@@ -304,6 +308,7 @@ class _GirisEkraniDurumu extends ConsumerState<GirisEkrani> {
                           ? 'Şifre en az 6 karakter olmalı'
                           : null,
                     ),
+                    // [REV-SIFREMI-UNUTTUM] -> Şifremi Unuttum Metin Butonu
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -315,6 +320,7 @@ class _GirisEkraniDurumu extends ConsumerState<GirisEkrani> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // [REV-GIRIS-YAP-BUTON] -> Giriş Yap Butonu (Renk / Kenar Yuvarlaklığı / Padding)
                     ElevatedButton(
                       onPressed: _isBusy ? null : _girisYap,
                       style: ElevatedButton.styleFrom(
@@ -335,6 +341,7 @@ class _GirisEkraniDurumu extends ConsumerState<GirisEkrani> {
                             ),
                     ),
                     const SizedBox(height: 12),
+                    // [REV-GOOGLE-BUTON] -> Google ile Giriş Yap Butonu (Açık Tema Buton / SVG Logo)
                     ElevatedButton.icon(
                       onPressed: _isBusy ? null : _googleIleGirisYap,
                       icon: _isGoogleLoading
@@ -372,6 +379,7 @@ class _GirisEkraniDurumu extends ConsumerState<GirisEkrani> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // [REV-KAYIT-OL-LINK] -> Kayıt Ol Yönlendirme Alanı ("Hesabın yok mu? Kayıt Ol")
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
