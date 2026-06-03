@@ -6,8 +6,6 @@
 // sorma ekranına geçilir.
 // ---------------------------------------------------------------------------
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +30,6 @@ class ForumEkrani extends ConsumerStatefulWidget {
 class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
   final ApiServisi _api = ApiServisi();
   final ScrollController _scrollController = ScrollController();
-  final TextEditingController _aramaController = TextEditingController();
   final SayfalamaTetikleyici _sayfalamaTetikleyici = SayfalamaTetikleyici();
 
   List<KategoriModel> _kategoriler = [];
@@ -48,20 +45,16 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
   int _page = 1;
   int _totalCount = 0;
   String? _hata;
-  Timer? _aramaDebounce;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _aramaController.addListener(_aramaDegisti);
     _verileriYukle(kategorileriYenile: true);
   }
 
   @override
   void dispose() {
-    _aramaDebounce?.cancel();
-    _aramaController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -70,14 +63,6 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
     if (_sayfalamaTetikleyici.yuklemeliMi(_scrollController)) {
       _dahaYukle();
     }
-  }
-
-  void _aramaDegisti() {
-    _aramaDebounce?.cancel();
-    _aramaDebounce = Timer(
-      const Duration(milliseconds: 360),
-      () => _verileriYukle(),
-    );
   }
 
   Future<void> _verileriYukle({bool kategorileriYenile = false}) async {
@@ -99,7 +84,6 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
       final response = await _api.icerikleriGetir(
         kategoriId: _secilenKategoriId,
         tur: 'soru',
-        arama: _aramaController.text.trim(),
         page: 1,
         pageSize: ApiSabitleri.pageSize,
       );
@@ -138,7 +122,6 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
       final response = await _api.icerikleriGetir(
         kategoriId: _secilenKategoriId,
         tur: 'soru',
-        arama: _aramaController.text.trim(),
         page: _page + 1,
         pageSize: ApiSabitleri.pageSize,
       );
@@ -277,7 +260,6 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
       floatingActionButton: _SoruSorFab(onTap: _soruSor),
       body: Column(
         children: [
-          _aramaKutusu(),
           _kategoriCubugu(),
           // İnce gösterge: arama/kategori sırasında liste korunurken görünür.
           _yenidenYukleniyor
@@ -285,40 +267,6 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
               : const SizedBox(height: 2),
           Expanded(child: _forumAlani(canModerate, currentUserId)),
         ],
-      ),
-    );
-  }
-
-  Widget _aramaKutusu() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: TextField(
-          controller: _aramaController,
-          decoration: InputDecoration(
-            hintText: 'Forumda ara',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _aramaController.text.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Temizle',
-                    onPressed: () {
-                      _aramaDebounce?.cancel();
-                      _aramaController.clear();
-                      _verileriYukle();
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-          ),
-        ),
       ),
     );
   }
