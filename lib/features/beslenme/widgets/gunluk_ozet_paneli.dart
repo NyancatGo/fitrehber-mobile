@@ -26,10 +26,14 @@ class GunlukOzetPaneli extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kalanKalori = (hedefler.kaloriHedef - veri.kaloriKcal).clamp(
-      0,
-      99999,
-    );
+    // Hedef asilinca "kalan" 0'da takilmasin; asim miktarini kirmizi gosteririz.
+    final fark = hedefler.kaloriHedef - veri.kaloriKcal;
+    final asimVar = fark < 0;
+    final gosterilenDeger = asimVar ? -fark : fark;
+    const asimRengi = Color(0xFFEF4444);
+    final oran = hedefler.kaloriHedef > 0
+        ? veri.kaloriKcal / hedefler.kaloriHedef
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -53,18 +57,16 @@ class GunlukOzetPaneli extends StatelessWidget {
                 height: 72,
                 child: CustomPaint(
                   painter: _MiniHalkaPainter(
-                    yuzde: (veri.kaloriKcal / hedefler.kaloriHedef).clamp(
-                      0.0,
-                      1.0,
-                    ),
+                    yuzde: oran.clamp(0.0, 1.0),
+                    asimVar: asimVar,
                   ),
                   child: Center(
                     child: Text(
-                      '${(veri.kaloriKcal / hedefler.kaloriHedef * 100).clamp(0, 999).toStringAsFixed(0)}%',
-                      style: const TextStyle(
+                      '${(oran * 100).clamp(0, 999).toStringAsFixed(0)}%',
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: asimVar ? asimRengi : Colors.white,
                       ),
                     ),
                   ),
@@ -77,20 +79,22 @@ class GunlukOzetPaneli extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$kalanKalori',
-                      style: const TextStyle(
+                      '$gosterilenDeger',
+                      style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: asimVar ? asimRengi : Colors.white,
                         height: 1.1,
                       ),
                     ),
                     Text(
-                      'Kalan Kalori',
+                      asimVar ? 'Kalori Aşıldı' : 'Kalan Kalori',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: asimVar
+                            ? asimRengi.withValues(alpha: 0.8)
+                            : Colors.white.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -206,7 +210,11 @@ class _MiniMakroBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final asimVar = hedef > 0 && deger > hedef;
     final yuzde = hedef > 0 ? (deger / hedef).clamp(0.0, 1.0) : 0.0;
+    // Makro hedefi asilinca bar ve sayac kirmiziya doner.
+    const asimRengi = Color(0xFFEF4444);
+    final barRenk = asimVar ? asimRengi : renk;
 
     return Expanded(
       child: Column(
@@ -228,7 +236,9 @@ class _MiniMakroBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: asimVar
+                      ? asimRengi.withValues(alpha: 0.9)
+                      : Colors.white.withValues(alpha: 0.4),
                 ),
               ),
             ],
@@ -244,7 +254,7 @@ class _MiniMakroBar extends StatelessWidget {
                 ),
                 FractionallySizedBox(
                   widthFactor: yuzde,
-                  child: Container(height: 6, color: renk),
+                  child: Container(height: 6, color: barRenk),
                 ),
               ],
             ),
@@ -257,8 +267,9 @@ class _MiniMakroBar extends StatelessWidget {
 
 class _MiniHalkaPainter extends CustomPainter {
   final double yuzde;
+  final bool asimVar;
 
-  const _MiniHalkaPainter({required this.yuzde});
+  const _MiniHalkaPainter({required this.yuzde, this.asimVar = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -266,33 +277,39 @@ class _MiniHalkaPainter extends CustomPainter {
     final yaricap = (size.width - 8) / 2;
     final rect = Rect.fromCircle(center: merkez, radius: yaricap);
 
-    // Arka plan halkası
+    // Arka plan halkası — aşımda kırmızımsı zemin, kullanıcı tam doluyu hisseder.
     final bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
+      ..color = asimVar
+          ? const Color(0xFFEF4444).withValues(alpha: 0.18)
+          : Colors.white.withValues(alpha: 0.06)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round;
     canvas.drawCircle(merkez, yaricap, bgPaint);
 
-    // İlerleme halkası
+    // İlerleme halkası — aşımda tam kırmızı, normalde turuncu→kırmızı gradient.
     if (yuzde > 0) {
-      final shader = SweepGradient(
-        startAngle: -math.pi / 2,
-        endAngle: 3 * math.pi / 2,
-        colors: const [Color(0xFFF97316), Color(0xFFEF4444)],
-        tileMode: TileMode.clamp,
-      ).createShader(rect);
-
       final fgPaint = Paint()
-        ..shader = shader
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6
         ..strokeCap = StrokeCap.round;
+
+      if (asimVar) {
+        fgPaint.color = const Color(0xFFEF4444);
+      } else {
+        fgPaint.shader = SweepGradient(
+          startAngle: -math.pi / 2,
+          endAngle: 3 * math.pi / 2,
+          colors: const [Color(0xFFF97316), Color(0xFFEF4444)],
+          tileMode: TileMode.clamp,
+        ).createShader(rect);
+      }
 
       canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * yuzde, false, fgPaint);
     }
   }
 
   @override
-  bool shouldRepaint(_MiniHalkaPainter old) => old.yuzde != yuzde;
+  bool shouldRepaint(_MiniHalkaPainter old) =>
+      old.yuzde != yuzde || old.asimVar != asimVar;
 }

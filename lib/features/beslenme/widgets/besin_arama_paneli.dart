@@ -168,7 +168,10 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
 
     // Klavye hizinda her karakterde 4k+ kaydi tarayip siralamak UI thread'i
     // zorlayabiliyor; kisa debounce aramayi algisal olarak anlik tutar.
-    setState(() {});
+    // NOT: Eskiden burada bos bir setState(() {}) vardi; her tus vurusunda tum
+    // arama gorunumunu (ListView dahil) yeniden ciziyordu. Temizleme ikonu artik
+    // ValueListenableBuilder ile izole edildigi icin o rebuild'e gerek kalmadi —
+    // liste yalniz debounce sonrasi sonuc degisince yeniden cizilir.
     _searchDebounce = Timer(_searchDebounceDuration, () {
       if (!mounted || _searchCtrl.text.trim() != temizSorgu) return;
       setState(() {
@@ -245,15 +248,21 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
               hintText: 'Besin, marka veya yemek ara',
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 16),
               prefixIcon: const Icon(Icons.search, color: Color(0xFFF97316)),
-              suffixIcon: _searchCtrl.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.white54),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        _aramaDegisti('');
-                      },
-                    )
-                  : null,
+              // Temizleme ikonu yalnizca kendisi yeniden cizilir; metin alanini
+              // ve sonuc listesini her tus vurusunda rebuild etmez.
+              suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _searchCtrl,
+                builder: (context, value, _) {
+                  if (value.text.isEmpty) return const SizedBox.shrink();
+                  return IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.white54),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      _aramaDegisti('');
+                    },
+                  );
+                },
+              ),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
               border: OutlineInputBorder(
@@ -440,12 +449,44 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
   final TextEditingController _amountCtrl = TextEditingController(text: '100');
   double _currentGram = 100.0;
 
+  // Hizli miktar secimi icin pratik porsiyon presetleri. Etiket referans
+  // porsiyonu (1x = 100g) uzerinden, kullanici gramaj sezgisi olmadan da
+  // hizlica ekleyebilsin diye.
+  static const List<({String etiket, double gram})> _porsiyonPresetleri = [
+    (etiket: '½ (50g)', gram: 50.0),
+    (etiket: '1× (100g)', gram: 100.0),
+    (etiket: '1½ (150g)', gram: 150.0),
+    (etiket: '2× (200g)', gram: 200.0),
+    (etiket: '3× (300g)', gram: 300.0),
+  ];
+
+  static const double _adim = 25.0;
+  static const double _maxGram = 5000.0;
+
   void _updateGrams(String val) {
     final normalized = val.trim().replaceAll(',', '.');
     final parsed = double.tryParse(normalized);
     setState(() {
       _currentGram = parsed ?? 0.0;
     });
+  }
+
+  /// Gramaji programatik olarak ayarlar: hem state'i hem metin alanini gunceller
+  /// ve imleci sona alir (chip/adim butonlari icin tek dogru kaynak).
+  void _setGram(double gram) {
+    final clamped = gram.clamp(0.0, _maxGram).toDouble();
+    final metin = clamped == clamped.roundToDouble()
+        ? clamped.toStringAsFixed(0)
+        : clamped.toStringAsFixed(1);
+    _amountCtrl.text = metin;
+    _amountCtrl.selection = TextSelection.collapsed(offset: metin.length);
+    setState(() => _currentGram = clamped);
+  }
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _kaydet() async {
@@ -566,61 +607,92 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                 ],
                 const SizedBox(height: 40),
 
-                // Gramaj Girişi
-                Center(
-                  child: Container(
-                    width: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: const Color(0xFFF97316).withValues(alpha: 0.5),
-                        width: 2,
+                // Gramaj Girişi (− adım | kutu | + adım)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _AdimButonu(
+                      ikon: Icons.remove_rounded,
+                      onTap: _currentGram > 0
+                          ? () => _setGram(_currentGram - _adim)
+                          : null,
+                    ),
+                    const SizedBox(width: 14),
+                    Container(
+                      width: 168,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFFF97316).withValues(alpha: 0.5),
+                          width: 2,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Flexible(
+                            child: TextField(
+                              controller: _amountCtrl,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              textAlign: TextAlign.center,
+                              onChanged: _updateGrams,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 44,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'g',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
+                    const SizedBox(width: 14),
+                    _AdimButonu(
+                      ikon: Icons.add_rounded,
+                      onTap: () => _setGram(_currentGram + _adim),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        IntrinsicWidth(
-                          child: TextField(
-                            controller: _amountCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            textAlign: TextAlign.center,
-                            onChanged: _updateGrams,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 48,
-                              fontWeight: FontWeight.w900,
-                            ),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'g',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
+
+                // Hızlı porsiyon presetleri
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: _porsiyonPresetleri.map((p) {
+                    return _MiktarChip(
+                      etiket: p.etiket,
+                      secili: (_currentGram - p.gram).abs() < 0.01,
+                      onTap: () => _setGram(p.gram),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 36),
 
                 // Temel Makrolar
                 Container(
@@ -813,6 +885,84 @@ class _MakroOgesi extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Gramaji sabit adimla artiran/azaltan dairesel buton.
+/// onTap null ise (orn. 0g'da eksi) pasif gorunur.
+class _AdimButonu extends StatelessWidget {
+  final IconData ikon;
+  final VoidCallback? onTap;
+
+  const _AdimButonu({required this.ikon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final aktif = onTap != null;
+    return Material(
+      color: Colors.white.withValues(alpha: aktif ? 0.06 : 0.02),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(
+            ikon,
+            color: aktif
+                ? const Color(0xFFF97316)
+                : Colors.white.withValues(alpha: 0.2),
+            size: 24,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hizli porsiyon secim cipi. Secili olan turuncu vurgulanir.
+class _MiktarChip extends StatelessWidget {
+  final String etiket;
+  final bool secili;
+  final VoidCallback onTap;
+
+  const _MiktarChip({
+    required this.etiket,
+    required this.secili,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: secili
+              ? const Color(0xFFF97316).withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: secili
+                ? const Color(0xFFF97316)
+                : Colors.white.withValues(alpha: 0.08),
+            width: secili ? 1.4 : 1,
+          ),
+        ),
+        child: Text(
+          etiket,
+          style: TextStyle(
+            color: secili ? const Color(0xFFF97316) : Colors.white70,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }
