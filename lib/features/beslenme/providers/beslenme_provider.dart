@@ -98,9 +98,10 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
 
   /// Verilen tarihin beslenme verisini sunucudan yükler.
   Future<void> load(String tarih) async {
+    final normalTarih = normalizeBeslenmeTarih(tarih);
     state = state.copyWith(
       isLoading: true,
-      seciliTarih: tarih,
+      seciliTarih: normalTarih,
       clearHata: true,
     );
 
@@ -108,14 +109,14 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     _hesaplaHedefler();
 
     try {
-      final veri = await _api.beslenmeSuyuGetir(tarih);
+      final veri = await _api.beslenmeSuyuGetir(normalTarih);
       state = state.copyWith(isLoading: false, veri: veri);
     } catch (e) {
       debugPrint('[BeslenmeDenetleyici.load] $e');
       // Veri yoksa UI'ı boş modelle ayakta tut, ama hatayı kullanıcıya göster.
       state = state.copyWith(
         isLoading: false,
-        veri: GunlukBeslenmeModel(tarih: tarih),
+        veri: GunlukBeslenmeModel(tarih: normalTarih),
         hata: _mesaj(e),
       );
     }
@@ -279,6 +280,20 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
 }
 
 /// Beslenme ekranının durumunu sağlayan provider.
+@visibleForTesting
+String normalizeBeslenmeTarih(String tarih) {
+  final now = DateTime.now();
+  final bugun = DateTime(now.year, now.month, now.day);
+  try {
+    final parsed = DateTime.parse(tarih);
+    final gun = DateTime(parsed.year, parsed.month, parsed.day);
+    if (gun.isAfter(bugun)) return BeslenmeDenetleyici._bugunStr();
+    return '${gun.year}-${gun.month.toString().padLeft(2, '0')}-${gun.day.toString().padLeft(2, '0')}';
+  } catch (_) {
+    return BeslenmeDenetleyici._bugunStr();
+  }
+}
+
 final beslenmeProvider =
     StateNotifierProvider<BeslenmeDenetleyici, BeslenmeDurumu>((ref) {
       return BeslenmeDenetleyici(ref);

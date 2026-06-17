@@ -97,7 +97,7 @@ class _GovdeParcasi extends ConsumerWidget {
 // ---------- Gün Seçici ----------
 //
 // UX:
-//   - Sinirlar: [profil.joinDate, bugun + 30 gun]. Yoksa 6 ay geri fallback.
+//   - Sinirlar: [profil.joinDate, bugun]. Yoksa 6 ay geri fallback.
 //   - Pencere: secili tarih ORTADA, 3 gun once + 3 gun sonra = 7 chip.
 //   - Sinir disindaki chip'ler disabled (gri, tap edilemez).
 //   - Soldaki takvim ikonu showDatePicker'i acar - 1 haftadan uzak siçramalar.
@@ -158,7 +158,7 @@ class _GunSeciciState extends ConsumerState<_GunSecici> {
 
   DateTime _bitis() {
     final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day).add(const Duration(days: 30));
+    return DateTime(now.year, now.month, now.day);
   }
 
   DateTime _seciliDt() {
