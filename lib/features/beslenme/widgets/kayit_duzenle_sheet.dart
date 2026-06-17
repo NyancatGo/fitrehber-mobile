@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/models/beslenme_model.dart';
+import '../../../shared/services/yerel_besin_veritabani.dart';
 import '../providers/beslenme_provider.dart';
 
 /// Mevcut bir öğün kaydının gramajını düzenleyen veya kaydı silen alt sayfayı açar.
@@ -40,49 +41,75 @@ class _KayitDuzenleSheet extends ConsumerStatefulWidget {
 
 class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
   late final TextEditingController _amountCtrl;
-  late double _currentGram;
+  late double _quantity;
+  BesinPorsiyonModel? _selectedPortion;
+  List<BesinPorsiyonModel> _porsiyonlar = [];
   bool _isBusy = false;
 
   @override
   void initState() {
     super.initState();
-    _currentGram = widget.kayit.miktar;
+    _quantity = widget.kayit.miktar;
+    _selectedPortion = widget.kayit.porsiyon;
     _amountCtrl = TextEditingController(
       text: _formatMiktar(widget.kayit.miktar),
     );
+
+    // Fetch all portions of this food from local DB
+    if (widget.kayit.besinId != null) {
+      YerelBesin? food;
+      for (final f in YerelBesinVeritabani.instance.tumunuGetir()) {
+        if (f.besinId == widget.kayit.besinId) {
+          food = f;
+          break;
+        }
+      }
+      if (food != null) {
+        _porsiyonlar = food.porsiyonlar;
+      }
+    }
   }
 
-  @override
-  void dispose() {
-    _amountCtrl.dispose();
-    super.dispose();
+  double get _currentGram {
+    if (_selectedPortion == null) {
+      return _quantity;
+    } else {
+      return _quantity * _selectedPortion!.gramEsdegeri;
+    }
   }
+
+  double get _originalWeight => widget.kayit.porsiyon != null
+      ? widget.kayit.miktar * widget.kayit.porsiyon!.gramEsdegeri
+      : widget.kayit.miktar;
 
   void _updateGrams(String val) {
     final normalized = val.trim().replaceAll(',', '.');
     final parsed = double.tryParse(normalized);
     setState(() {
-      _currentGram = parsed ?? 0.0;
+      _quantity = parsed ?? 0.0;
     });
   }
 
   /// Orijinal kayıttaki "100g başına" değerlerine geri normalize edip
   /// yeni gramajla yeniden ölçekle. Önizleme için.
   double _scale(double original) {
-    if (widget.kayit.miktar <= 0) return 0;
-    return original * (_currentGram / widget.kayit.miktar);
+    if (_originalWeight <= 0) return 0;
+    return original * (_currentGram / _originalWeight);
   }
 
   Future<void> _kaydet() async {
-    if (_isBusy || _currentGram <= 0) return;
-    if (_currentGram == widget.kayit.miktar) {
+    if (_isBusy || _quantity <= 0) return;
+    if (_quantity == widget.kayit.miktar &&
+        _selectedPortion?.id == widget.kayit.porsiyon?.id) {
       Navigator.pop(context);
       return;
     }
     setState(() => _isBusy = true);
-    final ok = await ref
-        .read(beslenmeProvider.notifier)
-        .ogunGuncelle(eski: widget.kayit, yeniMiktar: _currentGram);
+    final ok = await ref.read(beslenmeProvider.notifier).ogunGuncelle(
+          eski: widget.kayit,
+          yeniMiktar: _quantity,
+          porsiyonId: _selectedPortion?.id,
+        );
     if (!mounted) return;
     setState(() => _isBusy = false);
     if (ok) {
@@ -259,7 +286,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        kayit.miktarBirimi,
+                        _selectedPortion != null ? (_selectedPortion!.isim.length > 8 ? _selectedPortion!.isim.substring(0, 8) : _selectedPortion!.isim) : 'g',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 20,
@@ -270,7 +297,62 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                   ),
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 12),
+
+              // Birim Seçici Dropdown
+              if (_porsiyonlar.isNotEmpty) ...[
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<BesinPorsiyonModel?>(
+                        value: _selectedPortion,
+                        dropdownColor: const Color(0xFF1E222B),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFFF97316)),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        items: [
+                          const DropdownMenuItem<BesinPorsiyonModel?>(
+                            value: null,
+                            child: Text('Gram (g)'),
+                          ),
+                          ..._porsiyonlar.map((p) {
+                            return DropdownMenuItem<BesinPorsiyonModel?>(
+                              value: p,
+                              child: Text('${p.isim} (${p.gramEsdegeri == p.gramEsdegeri.roundToDouble() ? p.gramEsdegeri.toStringAsFixed(0) : p.gramEsdegeri.toStringAsFixed(1)}g)'),
+                            );
+                          }),
+                        ],
+                        onChanged: (newPortion) {
+                          setState(() {
+                            _selectedPortion = newPortion;
+                            if (newPortion == null) {
+                              _quantity = 100.0;
+                              _amountCtrl.text = '100';
+                            } else {
+                              _quantity = 1.0;
+                              _amountCtrl.text = '1';
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              const SizedBox(height: 10),
               // Önizleme makroları
               Container(
                 padding: const EdgeInsets.all(16),
@@ -286,12 +368,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                   children: [
                     _MacroPreview(
                       label: 'Kalori',
-                      value:
-                          (kayit.kalori *
-                                  (_currentGram /
-                                      (kayit.miktar == 0 ? 1 : kayit.miktar)))
-                              .round()
-                              .toString(),
+                      value: _scale(kayit.kalori.toDouble()).round().toString(),
                       unit: 'kcal',
                       color: const Color(0xFFF97316),
                     ),

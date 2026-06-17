@@ -737,6 +737,7 @@ class ApiServisi {
     double protein = 0,
     double karbonhidrat = 0,
     double yag = 0,
+    int? porsiyonId,
   }) async {
     final token = await _accessTokenYoksaHataVer(
       'Öğün eklemek için giriş yapmalısın.',
@@ -751,6 +752,7 @@ class ApiServisi {
       'protein': protein,
       'karbonhidrat': karbonhidrat,
       'yag': yag,
+      'porsiyon_id': porsiyonId,
     };
     if (besinId != null) payload['besin_id'] = besinId;
     if (besinIsim != null && besinIsim.trim().isNotEmpty) {
@@ -804,11 +806,15 @@ class ApiServisi {
     double? protein,
     double? karbonhidrat,
     double? yag,
+    int? porsiyonId,
   }) async {
     final token = await _accessTokenYoksaHataVer(
       'Öğün güncellemek için giriş yapmalısın.',
     );
-    final payload = <String, dynamic>{'miktar': miktar};
+    final payload = <String, dynamic>{
+      'miktar': miktar,
+      'porsiyon_id': porsiyonId,
+    };
     if (kalori != null) payload['kalori'] = kalori;
     if (protein != null) payload['protein'] = protein;
     if (karbonhidrat != null) payload['karbonhidrat'] = karbonhidrat;

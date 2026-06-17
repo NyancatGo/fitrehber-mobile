@@ -446,41 +446,73 @@ class _BesinDetayGorunumu extends ConsumerStatefulWidget {
 }
 
 class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
-  final TextEditingController _amountCtrl = TextEditingController(text: '100');
-  double _currentGram = 100.0;
+  late final TextEditingController _amountCtrl;
+  double _quantity = 100.0;
+  BesinPorsiyonModel? _selectedPortion;
 
-  // Hizli miktar secimi icin pratik porsiyon presetleri. Etiket referans
-  // porsiyonu (1x = 100g) uzerinden, kullanici gramaj sezgisi olmadan da
-  // hizlica ekleyebilsin diye.
-  static const List<({String etiket, double gram})> _porsiyonPresetleri = [
-    (etiket: '½ (50g)', gram: 50.0),
-    (etiket: '1× (100g)', gram: 100.0),
-    (etiket: '1½ (150g)', gram: 150.0),
-    (etiket: '2× (200g)', gram: 200.0),
-    (etiket: '3× (300g)', gram: 300.0),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    if (widget.food.porsiyonlar.isNotEmpty) {
+      _selectedPortion = widget.food.porsiyonlar.first;
+      _quantity = 1.0;
+      _amountCtrl = TextEditingController(text: '1');
+    } else {
+      _selectedPortion = null;
+      _quantity = 100.0;
+      _amountCtrl = TextEditingController(text: '100');
+    }
+  }
 
-  static const double _adim = 25.0;
-  static const double _maxGram = 5000.0;
+  double get _currentGram {
+    if (_selectedPortion == null) {
+      return _quantity;
+    } else {
+      return _quantity * _selectedPortion!.gramEsdegeri;
+    }
+  }
+
+  double get _adim => _selectedPortion == null ? 25.0 : 1.0;
+  double get _maxQuantity => _selectedPortion == null ? 5000.0 : 100.0;
+
+  List<({String etiket, double miktar})> get _dynamicPresets {
+    if (_selectedPortion == null) {
+      return const [
+        (etiket: '½ (50g)', miktar: 50.0),
+        (etiket: '1× (100g)', miktar: 100.0),
+        (etiket: '1½ (150g)', miktar: 150.0),
+        (etiket: '2× (200g)', miktar: 200.0),
+        (etiket: '3× (300g)', miktar: 300.0),
+      ];
+    } else {
+      final birim = _selectedPortion!.isim;
+      final truncatedBirim = birim.length > 8 ? birim.substring(0, 8) : birim;
+      return [
+        (etiket: '½ $truncatedBirim', miktar: 0.5),
+        (etiket: '1 $truncatedBirim', miktar: 1.0),
+        (etiket: '1½ $truncatedBirim', miktar: 1.5),
+        (etiket: '2 $truncatedBirim', miktar: 2.0),
+        (etiket: '3 $truncatedBirim', miktar: 3.0),
+      ];
+    }
+  }
 
   void _updateGrams(String val) {
     final normalized = val.trim().replaceAll(',', '.');
     final parsed = double.tryParse(normalized);
     setState(() {
-      _currentGram = parsed ?? 0.0;
+      _quantity = parsed ?? 0.0;
     });
   }
 
-  /// Gramaji programatik olarak ayarlar: hem state'i hem metin alanini gunceller
-  /// ve imleci sona alir (chip/adim butonlari icin tek dogru kaynak).
-  void _setGram(double gram) {
-    final clamped = gram.clamp(0.0, _maxGram).toDouble();
+  void _setQuantity(double qty) {
+    final clamped = qty.clamp(0.0, _maxQuantity).toDouble();
     final metin = clamped == clamped.roundToDouble()
         ? clamped.toStringAsFixed(0)
         : clamped.toStringAsFixed(1);
     _amountCtrl.text = metin;
     _amountCtrl.selection = TextSelection.collapsed(offset: metin.length);
-    setState(() => _currentGram = clamped);
+    setState(() => _quantity = clamped);
   }
 
   @override
@@ -490,21 +522,19 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
   }
 
   Future<void> _kaydet() async {
-    if (_currentGram <= 0) return;
+    if (_quantity <= 0) return;
     final notifier = ref.read(beslenmeProvider.notifier);
 
     final ok = await notifier.ogunEkle(
       ogunTipi: widget.ogunTipi,
-      // Senkronlanmış besinde server PK'si gönderilir -> makroları sunucu
-      // hesaplar, kayıt "doğrulanmış" olur. Bundled seed'de (henüz senkron
-      // olmamış) besinId null -> custom kayıt (geriye dönük davranış).
       besinId: widget.food.besinId,
       besinIsim: widget.food.isim,
-      miktar: _currentGram,
+      miktar: _quantity,
       kalori: widget.food.gramKalori(_currentGram).toInt(),
       protein: widget.food.gramProtein(_currentGram),
       karbonhidrat: widget.food.gramKarbonhidrat(_currentGram),
       yag: widget.food.gramYag(_currentGram),
+      porsiyonId: _selectedPortion?.id,
     );
 
     if (!mounted) return;
@@ -606,23 +636,19 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                       fontWeight: FontWeight.w500,
                       color: Colors.white.withValues(alpha: 0.5),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 40),
-
-                // Gramaj Girişi (− adım | kutu | + adım)
+                          // Miktar Girişi (− adım | kutu | + adım)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _AdimButonu(
                       ikon: Icons.remove_rounded,
-                      onTap: _currentGram > 0
-                          ? () => _setGram(_currentGram - _adim)
+                      onTap: _quantity > 0
+                          ? () => _setQuantity(_quantity - _adim)
                           : null,
                     ),
                     const SizedBox(width: 14),
                     Container(
-                      width: 168,
+                      width: 180,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(24),
@@ -651,7 +677,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                               onChanged: _updateGrams,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 44,
+                                fontSize: 36,
                                 fontWeight: FontWeight.w900,
                               ),
                               decoration: const InputDecoration(
@@ -662,11 +688,11 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text(
-                            'g',
-                            style: TextStyle(
+                          Text(
+                            _selectedPortion != null ? (_selectedPortion!.isim.length > 6 ? _selectedPortion!.isim.substring(0, 6) : _selectedPortion!.isim) : 'g',
+                            style: const TextStyle(
                               color: Colors.white70,
-                              fontSize: 22,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -676,9 +702,60 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                     const SizedBox(width: 14),
                     _AdimButonu(
                       ikon: Icons.add_rounded,
-                      onTap: () => _setGram(_currentGram + _adim),
+                      onTap: () => _setQuantity(_quantity + _adim),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+
+                // Birim Seçici Dropdown
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<BesinPorsiyonModel?>(
+                        value: _selectedPortion,
+                        dropdownColor: const Color(0xFF1E222B),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFFF97316)),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        items: [
+                          const DropdownMenuItem<BesinPorsiyonModel?>(
+                            value: null,
+                            child: Text('Gram (g)'),
+                          ),
+                          ...widget.food.porsiyonlar.map((p) {
+                            return DropdownMenuItem<BesinPorsiyonModel?>(
+                              value: p,
+                              child: Text('${p.isim} (${p.gramEsdegeri == p.gramEsdegeri.roundToDouble() ? p.gramEsdegeri.toStringAsFixed(0) : p.gramEsdegeri.toStringAsFixed(1)}g)'),
+                            );
+                          }),
+                        ],
+                        onChanged: (newPortion) {
+                          setState(() {
+                            _selectedPortion = newPortion;
+                            if (newPortion == null) {
+                              _quantity = 100.0;
+                              _amountCtrl.text = '100';
+                            } else {
+                              _quantity = 1.0;
+                              _amountCtrl.text = '1';
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -687,11 +764,11 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                   spacing: 8,
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
-                  children: _porsiyonPresetleri.map((p) {
+                  children: _dynamicPresets.map((p) {
                     return _MiktarChip(
                       etiket: p.etiket,
-                      secili: (_currentGram - p.gram).abs() < 0.01,
-                      onTap: () => _setGram(p.gram),
+                      secili: (_quantity - p.miktar).abs() < 0.01,
+                      onTap: () => _setQuantity(p.miktar),
                     );
                   }).toList(),
                 ),

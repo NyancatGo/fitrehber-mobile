@@ -7,6 +7,27 @@
 //   * GunlukBeslenmeModel → bir günün tamamı: toplam kalori/makro + su + öğünler
 // ---------------------------------------------------------------------------
 
+/// Bir besine ait porsiyon birimini temsil eder.
+class BesinPorsiyonModel {
+  final int id;
+  final String isim;
+  final double gramEsdegeri;
+
+  const BesinPorsiyonModel({
+    required this.id,
+    required this.isim,
+    required this.gramEsdegeri,
+  });
+
+  factory BesinPorsiyonModel.fromJson(Map<String, dynamic> json) {
+    return BesinPorsiyonModel(
+      id: _parseInt(json['id']) ?? 0,
+      isim: (json['isim'] ?? '').toString(),
+      gramEsdegeri: _parseDouble(json['gram_esdegeri']) ?? 0.0,
+    );
+  }
+}
+
 /// Besin (yiyecek) veritabanındaki bir kaydı temsil eder.
 ///
 /// Tüm besin değerleri **100 gram** referansına göre tutulur; kullanıcının
@@ -39,6 +60,9 @@ class BesinModel {
   /// Besinin editörlerce doğrulanıp doğrulanmadığı (güvenilirlik rozeti).
   final bool dogrulanmisMi;
 
+  /// Bu besine ait porsiyon birimleri.
+  final List<BesinPorsiyonModel> porsiyonlar;
+
   const BesinModel({
     required this.id,
     required this.isim,
@@ -49,10 +73,18 @@ class BesinModel {
     required this.karbonhidrat100g,
     required this.yag100g,
     required this.dogrulanmisMi,
+    this.porsiyonlar = const [],
   });
 
   /// API'den gelen JSON'u `BesinModel`e dönüştürür.
   factory BesinModel.fromJson(Map<String, dynamic> json) {
+    var pList = <BesinPorsiyonModel>[];
+    if (json['porsiyonlar'] is List) {
+      pList = (json['porsiyonlar'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((item) => BesinPorsiyonModel.fromJson(item))
+          .toList();
+    }
     return BesinModel(
       id: _parseInt(json['id']) ?? 0,
       isim: (json['isim'] ?? '').toString(),
@@ -63,6 +95,7 @@ class BesinModel {
       karbonhidrat100g: _parseDouble(json['karbonhidrat_100g']) ?? 0.0,
       yag100g: _parseDouble(json['yag_100g']) ?? 0.0,
       dogrulanmisMi: json['is_verified'] as bool? ?? false,
+      porsiyonlar: pList,
     );
   }
 }
@@ -105,6 +138,9 @@ class OgunKaydiModel {
   /// Bu kaydın toplam yağı (g).
   final double yag;
 
+  /// Varsa bu kayıtta kullanılan porsiyon birimi.
+  final BesinPorsiyonModel? porsiyon;
+
   const OgunKaydiModel({
     required this.id,
     required this.tarih,
@@ -117,6 +153,7 @@ class OgunKaydiModel {
     required this.protein,
     required this.karbonhidrat,
     required this.yag,
+    this.porsiyon,
   });
 
   /// API'den gelen JSON'u `OgunKaydiModel`e dönüştürür.
@@ -133,6 +170,7 @@ class OgunKaydiModel {
       protein: _parseDouble(json['protein']) ?? 0.0,
       karbonhidrat: _parseDouble(json['karbonhidrat']) ?? 0.0,
       yag: _parseDouble(json['yag']) ?? 0.0,
+      porsiyon: json['porsiyon'] != null ? BesinPorsiyonModel.fromJson(Map<String, dynamic>.from(json['porsiyon'])) : null,
     );
   }
 }

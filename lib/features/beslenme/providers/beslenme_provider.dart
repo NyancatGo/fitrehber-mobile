@@ -164,6 +164,7 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     double protein = 0,
     double karbonhidrat = 0,
     double yag = 0,
+    int? porsiyonId,
   }) async {
     final tarih = state.seciliTarih;
     state = state.copyWith(isLoading: true, clearHata: true);
@@ -178,6 +179,7 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
         protein: protein,
         karbonhidrat: karbonhidrat,
         yag: yag,
+        porsiyonId: porsiyonId,
       );
       await load(tarih);
       return true;
@@ -197,18 +199,23 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
   Future<bool> ogunGuncelle({
     required OgunKaydiModel eski,
     required double yeniMiktar,
+    int? porsiyonId,
   }) async {
     if (yeniMiktar <= 0) {
       state = state.copyWith(hata: 'Miktar sıfırdan büyük olmalı.');
       return false;
     }
-    if (yeniMiktar == eski.miktar) return true; // Değişiklik yok.
+    if (yeniMiktar == eski.miktar && porsiyonId == eski.porsiyon?.id) return true; // Değişiklik yok.
 
     final tarih = state.seciliTarih;
     state = state.copyWith(isLoading: true, clearHata: true);
 
     try {
-      await _api.ogunGuncelle(id: eski.id, miktar: yeniMiktar);
+      await _api.ogunGuncelle(
+        id: eski.id,
+        miktar: yeniMiktar,
+        porsiyonId: porsiyonId,
+      );
       // Günlük toplamlar sunucuda hesaplandığı için güncel modeli tekrar çek.
       await load(tarih);
       return true;

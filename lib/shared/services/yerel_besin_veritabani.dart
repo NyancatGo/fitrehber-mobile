@@ -12,6 +12,8 @@ import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/beslenme_model.dart';
+
 /// Yerel JSON veritabanından besin araması yapan servis.
 /// Uygulama başlatıldığında dosya bir kez okunup bellekte tutulur.
 /// Tüm aramalar offline (milisaniye düzeyinde) gerçekleşir.
@@ -225,7 +227,7 @@ class YerelBesin {
 
   /// Sunucudaki Besin PK'si. Senkronlanmis kayitta dolu, bundled seed'de null.
   /// Doluysa ogun eklerken `besin_id` olarak gonderilir -> kayit dogrulanmis
-  /// olur ve makrolari sunucu hesaplar (web ile birebir tutarli).
+  /// olur and makrolari sunucu hesaplar (web ile birebir tutarli).
   final int? besinId;
   final String isim;
   final String isimIngilizce;
@@ -250,6 +252,9 @@ class YerelBesin {
   final double doymusYag100g;
 
   final bool dogrulanmisMi;
+  
+  /// Bu besine ait porsiyon birimleri.
+  final List<BesinPorsiyonModel> porsiyonlar;
 
   const YerelBesin({
     required this.id,
@@ -272,6 +277,7 @@ class YerelBesin {
     required this.seker100g,
     required this.doymusYag100g,
     required this.dogrulanmisMi,
+    this.porsiyonlar = const [],
   });
 
   factory YerelBesin.fromJson(Map<String, dynamic> json) {
@@ -302,6 +308,7 @@ class YerelBesin {
       seker100g: _d(json['seker100g']),
       doymusYag100g: _d(json['doymus_yag100g']),
       dogrulanmisMi: json['isVerified'] as bool? ?? false,
+      porsiyonlar: const [],
     );
   }
 
@@ -315,6 +322,14 @@ class YerelBesin {
     final aramaAdi = YerelBesinVeritabani._turkceKucult(isim);
     final aramaIngilizceAdi = YerelBesinVeritabani._turkceKucult(isimIngilizce);
     final aramaMarkasi = YerelBesinVeritabani._turkceKucult(marka);
+
+    var pList = <BesinPorsiyonModel>[];
+    if (json['porsiyonlar'] is List) {
+      pList = (json['porsiyonlar'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((item) => BesinPorsiyonModel.fromJson(item))
+          .toList();
+    }
 
     return YerelBesin(
       id: (json['kaynak_id'] ?? '').toString(),
@@ -337,6 +352,7 @@ class YerelBesin {
       seker100g: _d(json['seker_100g']),
       doymusYag100g: _d(json['doymus_yag_100g']),
       dogrulanmisMi: json['is_verified'] as bool? ?? false,
+      porsiyonlar: pList,
     );
   }
 
