@@ -1040,38 +1040,6 @@
     "isVerified": true
   },
   {
-    "id": "-MbOoMKlbkY57bVTokiN",
-    "isim": "büyük boy yumurta",
-    "isim_ingilizce": "large egg",
-    "kalori100g": 145.7,
-    "protein100g": 12.7,
-    "karbonhidrat100g": 0.7,
-    "yag100g": 9.4,
-    "sodyum100g": 144.0,
-    "potasyum100g": 201.0,
-    "kolesterol100g": 372.0,
-    "lif100g": 0.0,
-    "seker100g": 0.4,
-    "doymus_yag100g": 3.1,
-    "isVerified": true
-  },
-  {
-    "id": "-MbOlqbwmzxwd5KQJPsX",
-    "isim": "büyük boy yumurta akı",
-    "isim_ingilizce": "large egg",
-    "kalori100g": 145.7,
-    "protein100g": 12.7,
-    "karbonhidrat100g": 0.0,
-    "yag100g": 9.4,
-    "sodyum100g": 144.0,
-    "potasyum100g": 201.0,
-    "kolesterol100g": 372.0,
-    "lif100g": 0.0,
-    "seker100g": 0.4,
-    "doymus_yag100g": 3.1,
-    "isVerified": true
-  },
-  {
     "id": "-MbOoA4mnmw1aqJQXRsn",
     "isim": "büyük kuru soğan",
     "isim_ingilizce": "onion",
@@ -4973,22 +4941,6 @@
     "lif100g": 2.2,
     "seker100g": 1.2,
     "doymus_yag100g": 0.0,
-    "isVerified": true
-  },
-  {
-    "id": "-MbOoVTwxWckCIKRTKn0",
-    "isim": "küçük boy yumurta",
-    "isim_ingilizce": "egg",
-    "kalori100g": 147.0,
-    "protein100g": 12.5,
-    "karbonhidrat100g": 0.7,
-    "yag100g": 9.7,
-    "sodyum100g": 139.0,
-    "potasyum100g": 199.0,
-    "kolesterol100g": 371.0,
-    "lif100g": 0.0,
-    "seker100g": 0.4,
-    "doymus_yag100g": 3.1,
     "isVerified": true
   },
   {

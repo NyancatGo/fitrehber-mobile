@@ -23,7 +23,7 @@ class YerelBesinVeritabani {
 
   // Senkron cache anahtarlari (BesinSenkronServisi de ayni anahtarlari yazar).
   /// Sunucudan senkronlanmis besin listesi (JSON dizisi).
-  static const String cacheKey = 'besin_cache_v1';
+  static const String cacheKey = 'besin_cache_v2';
 
   /// En son senkronun sunucu zamani (bir sonraki ?since= delta icin).
   static const String lastSyncKey = 'besin_cache_last_sync';
