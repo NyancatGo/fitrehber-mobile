@@ -46,8 +46,19 @@ class ApiSabitleri {
   /// Besin (yiyecek) veritabanında arama.
   static const String besinler = '$baseUrl/besinler/';
 
+  /// Yerel besin veritabanını sunucuyla senkronlama (offline arama için tek
+  /// kaynak). `?since=` ile yalnız değişenler (delta), `offset`/`limit` ile
+  /// sayfalı çekilir.
+  static const String besinlerSync = '$baseUrl/besinler/sync/';
+
   /// Bir öğüne yeni besin kaydı ekleme.
   static const String beslenmeEkle = '$baseUrl/beslenme/ekle/';
+
+  /// Bir önceki günün öğünlerini seçili (boş) güne kopyalama.
+  static const String beslenmeKopyala = '$baseUrl/beslenme/kopyala/';
+
+  /// Son kullanılan besinler (hızlı yeniden ekleme için).
+  static const String sonBesinler = '$baseUrl/beslenme/son-besinler/';
 
   // --- Kimlik doğrulama uç noktaları ---------------------------------------
 

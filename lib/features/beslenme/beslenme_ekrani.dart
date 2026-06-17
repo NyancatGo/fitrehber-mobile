@@ -66,6 +66,12 @@ class _GovdeParcasi extends ConsumerWidget {
           const SizedBox(height: 14),
         ],
 
+        // --- Gün boşsa: önceki günü kopyala (web paritesi) ---
+        if (veri.ogunler.values.every((l) => l.isEmpty)) ...[
+          _OncekiGunKopyalaButonu(isLoading: state.isLoading),
+          const SizedBox(height: 14),
+        ],
+
         // --- Öğün Blokları (FatSecret tarzı) ---
         ...ogunSirasi.map(
           (ogunTipi) => OgunBolumuKarti(
@@ -403,6 +409,62 @@ class _HataKutusu extends StatelessWidget {
           color: Colors.redAccent,
           fontSize: 13,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------- Önceki Günü Kopyala ----------
+//
+// Gün boşken gösterilir; bir önceki günün öğünlerini bu güne kopyalar
+// (web'deki "öğünleri kopyala" özelliğinin mobil karşılığı).
+
+class _OncekiGunKopyalaButonu extends ConsumerWidget {
+  final bool isLoading;
+  const _OncekiGunKopyalaButonu({required this.isLoading});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: isLoading
+            ? null
+            : () async {
+                final ok = await ref
+                    .read(beslenmeProvider.notifier)
+                    .ogunleriKopyala();
+                if (!context.mounted) return;
+                final mesaj = ok
+                    ? 'Önceki günün öğünleri kopyalandı.'
+                    : (ref.read(beslenmeProvider).hata ??
+                          'Kopyalanacak öğün bulunamadı.');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(mesaj),
+                    backgroundColor: ok
+                        ? const Color(0xFF22C55E)
+                        : const Color(0xFFDC2626),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              },
+        icon: const Icon(Icons.copy_all_outlined, size: 18),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF22D3EE),
+          side: BorderSide(
+            color: const Color(0xFF22D3EE).withValues(alpha: 0.5),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        label: const Text(
+          'Önceki günü kopyala',
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
     );

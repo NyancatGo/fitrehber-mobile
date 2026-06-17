@@ -495,7 +495,10 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
 
     final ok = await notifier.ogunEkle(
       ogunTipi: widget.ogunTipi,
-      besinId: null,
+      // Senkronlanmış besinde server PK'si gönderilir -> makroları sunucu
+      // hesaplar, kayıt "doğrulanmış" olur. Bundled seed'de (henüz senkron
+      // olmamış) besinId null -> custom kayıt (geriye dönük davranış).
+      besinId: widget.food.besinId,
       besinIsim: widget.food.isim,
       miktar: _currentGram,
       kalori: widget.food.gramKalori(_currentGram).toInt(),

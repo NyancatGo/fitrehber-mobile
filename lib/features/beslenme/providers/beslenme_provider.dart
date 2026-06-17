@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/api_servisi.dart';
 import '../../../shared/models/beslenme_model.dart';
 import '../../../shared/oturum_denetleyici.dart';
+import '../../../shared/services/besin_senkron_servisi.dart';
 import '../../../shared/utils/beslenme_hesaplayici.dart';
 
 /// Beslenme ekranının anlık durumunu temsil eden değişmez veri sınıfı.
@@ -67,6 +68,10 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     : super(BeslenmeDurumu(seciliTarih: _bugunStr())) {
     _hesaplaHedefler();
     load(_bugunStr());
+    // Besin veritabanını arka planda sunucuyla senkronla (6 saatte bir, ağ
+    // hatasında sessiz). Böylece offline arama tazelenir ve eklenen besinler
+    // gerçek besin_id taşır (web ile tutarlı). Fire-and-forget.
+    BesinSenkronServisi.instance.senkronEt();
     // Profil hedef hesabının girdisidir; boy/kilo/hedef/su değişirse ekran
     // yeniden açılmadan hedefler güncellenir.
     _ref.listen<OturumDurumu>(oturumDenetleyiciProvider, (prev, next) {
@@ -229,6 +234,34 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
         state = state.copyWith(isLoading: false, hata: _mesaj(e));
       }
       return false;
+    }
+  }
+
+  /// Bir önceki günün öğünlerini seçili güne kopyalar. Başarılıysa true,
+  /// hata (kaynak boş / hedef dolu / gelecek) durumunda hata mesajı state'e yazılır.
+  Future<bool> ogunleriKopyala() async {
+    final tarih = state.seciliTarih;
+    state = state.copyWith(isLoading: true, clearHata: true);
+    try {
+      await _api.ogunleriKopyala(tarih);
+      await load(tarih);
+      return true;
+    } catch (e) {
+      debugPrint('[BeslenmeDenetleyici.ogunleriKopyala] $e');
+      if (mounted) {
+        state = state.copyWith(isLoading: false, hata: _mesaj(e));
+      }
+      return false;
+    }
+  }
+
+  /// Son kullanılan besinleri sunucudan getirir (hızlı yeniden ekleme için).
+  Future<List<Map<String, dynamic>>> sonKullanilanBesinler() async {
+    try {
+      return await _api.sonKullanilanBesinler();
+    } catch (e) {
+      debugPrint('[BeslenmeDenetleyici.sonKullanilanBesinler] $e');
+      return const [];
     }
   }
 

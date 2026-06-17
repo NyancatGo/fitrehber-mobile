@@ -683,6 +683,49 @@ class ApiServisi {
     );
   }
 
+  /// Sunucudaki besin veritabanını senkronlamak için TEK sayfa çeker.
+  ///
+  /// [since] verilirse yalnız o andan sonra değişen besinler döner (delta);
+  /// boşsa tüm veritabanı (ilk tam senkron). Dönen map:
+  /// `{ foods: List<Map>, serverTime: String?, hasMore: bool, count: int }`.
+  Future<Map<String, dynamic>> besinSenkronSayfasi({
+    String? since,
+    int offset = 0,
+    int limit = 1000,
+  }) async {
+    final token = await _accessTokenYoksaHataVer(
+      'Besinleri senkronlamak için giriş yapmalısın.',
+    );
+    final response = await _dio.get(
+      ApiSabitleri.besinlerSync,
+      queryParameters: {
+        if (since != null && since.isNotEmpty) 'since': since,
+        'offset': offset,
+        'limit': limit,
+      },
+      options: _kimlikSecenekleri(token),
+    );
+    if (response.statusCode == 200 && response.data is Map) {
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final foods = (data['results'] as List? ?? const [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      return {
+        'foods': foods,
+        'serverTime': data['server_time']?.toString(),
+        'hasMore': data['has_more'] == true,
+        'count': (data['count'] as num?)?.toInt() ?? foods.length,
+      };
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Besin senkronu yapılamadı.',
+    );
+  }
+
   /// Bir öğüne yeni besin kaydı ekler.
   Future<void> ogunEkle({
     required String tarih,
@@ -813,6 +856,54 @@ class ApiServisi {
       response.statusCode,
       unauthorizedMessage: 'Oturum süren dolmuş.',
       defaultMessage: 'Su eklenemedi.',
+    );
+  }
+
+  /// Bir önceki günün öğünlerini seçili (boş) güne kopyalar. Kopyalanan kayıt
+  /// sayısını döner; hata (kaynak boş / hedef dolu / gelecek) durumunda fırlatır.
+  Future<int> ogunleriKopyala(String tarih) async {
+    final token = await _accessTokenYoksaHataVer(
+      'Öğün kopyalamak için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiSabitleri.beslenmeKopyala,
+      data: {'tarih': tarih},
+      options: _kimlikSecenekleri(token),
+    );
+    if (response.statusCode == 201 && response.data is Map) {
+      final data = Map<String, dynamic>.from(response.data as Map);
+      return (data['kopyalanan'] as num?)?.toInt() ?? 0;
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Öğünler kopyalanamadı.',
+    );
+  }
+
+  /// Kullanıcının son kullandığı benzersiz besinleri (hızlı yeniden ekleme)
+  /// ham map listesi olarak döner: { besin_id, isim, miktar, kalori, ... }.
+  Future<List<Map<String, dynamic>>> sonKullanilanBesinler() async {
+    final token = await _accessTokenYoksaHataVer(
+      'Son besinleri görmek için giriş yapmalısın.',
+    );
+    final response = await _dio.get(
+      ApiSabitleri.sonBesinler,
+      options: _kimlikSecenekleri(token),
+    );
+    if (response.statusCode == 200 && response.data is Map) {
+      final data = Map<String, dynamic>.from(response.data as Map);
+      return (data['sonuclar'] as List? ?? const [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Son besinler alınamadı.',
     );
   }
 

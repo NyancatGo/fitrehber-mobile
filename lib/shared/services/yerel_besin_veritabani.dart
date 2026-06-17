@@ -8,8 +8,9 @@
 
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Yerel JSON veritabanından besin araması yapan servis.
 /// Uygulama başlatıldığında dosya bir kez okunup bellekte tutulur.
@@ -18,9 +19,26 @@ class YerelBesinVeritabani {
   YerelBesinVeritabani._();
   static final instance = YerelBesinVeritabani._();
 
+  // Senkron cache anahtarlari (BesinSenkronServisi de ayni anahtarlari yazar).
+  /// Sunucudan senkronlanmis besin listesi (JSON dizisi).
+  static const String cacheKey = 'besin_cache_v1';
+
+  /// En son senkronun sunucu zamani (bir sonraki ?since= delta icin).
+  static const String lastSyncKey = 'besin_cache_last_sync';
+
+  /// En son senkronun istemci zamani (throttle icin).
+  static const String lastSyncAtKey = 'besin_cache_synced_at';
+
   List<YerelBesin>? _besinler;
   List<YerelBesin>? _siraliBesinler;
   Future<void>? _hazirlaniyor;
+
+  @visibleForTesting
+  void resetForTests() {
+    _besinler = null;
+    _siraliBesinler = null;
+    _hazirlaniyor = null;
+  }
 
   /// Veritabanını bellekte hazırlar. İki kaynak yüklenir:
   ///   - foods_cleaned.json   → generic foods (curated)
@@ -37,19 +55,45 @@ class YerelBesinVeritabani {
 
   Future<void> _tumunuYukle() async {
     try {
+      // Oncelik: sunucudan senkronlanmis cache (gercek besin_id'li). Yoksa
+      // (ilk acilis / henuz senkron olmadi) uygulamayla gelen bundled seed.
+      final cached = await _cachetenOku();
+      if (cached != null && cached.isNotEmpty) {
+        _kur(cached);
+        return;
+      }
       final genel = await _dosyaYukle('assets/data/foods_cleaned.json');
       final markali = await _dosyaYukle('assets/data/foods_brands_tr.json');
-      _besinler = [
-        ...genel,
-        ...markali,
-      ].where((f) => f.kalori100g > 0).toList();
-      _siraliBesinler = List<YerelBesin>.from(_besinler!)
-        ..sort((a, b) => a.isim.compareTo(b.isim));
+      _kur([...genel, ...markali]);
     } catch (e) {
       _besinler = [];
       _siraliBesinler = [];
     } finally {
       _hazirlaniyor = null;
+    }
+  }
+
+  /// Verilen besin listesini bellege kurar (kalorisizleri eler, alfabetik siralar).
+  void _kur(List<YerelBesin> besinler) {
+    _besinler = besinler.where((f) => f.kalori100g > 0).toList();
+    _siraliBesinler = List<YerelBesin>.from(_besinler!)
+      ..sort((a, b) => a.isim.compareTo(b.isim));
+  }
+
+  /// Senkron sonrasi (BesinSenkronServisi) bellegi taze cache verisiyle tazeler.
+  void cachetenYukle(List<Map<String, dynamic>> foods) {
+    _kur(foods.map((m) => YerelBesin.fromCache(m)).toList());
+  }
+
+  /// SharedPreferences'taki senkron cache'ini okur; yoksa/bozuksa null.
+  Future<List<YerelBesin>?> _cachetenOku() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(cacheKey);
+      if (raw == null || raw.isEmpty) return null;
+      return compute(_cacheCoz, raw);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -160,6 +204,15 @@ List<YerelBesin> _besinleriCoz(String jsonMetni) {
       .toList();
 }
 
+/// Senkron cache JSON'unu (sunucu formati) cozer — compute izolatinda calisir.
+List<YerelBesin> _cacheCoz(String jsonMetni) {
+  final list = json.decode(jsonMetni) as List<dynamic>;
+  return list
+      .whereType<Map>()
+      .map((item) => YerelBesin.fromCache(Map<String, dynamic>.from(item)))
+      .toList();
+}
+
 class _PuanliBesin {
   final YerelBesin besin;
   final int puan;
@@ -169,6 +222,11 @@ class _PuanliBesin {
 /// Yerel JSON'dan okunan tek bir besin maddesi.
 class YerelBesin {
   final String id;
+
+  /// Sunucudaki Besin PK'si. Senkronlanmis kayitta dolu, bundled seed'de null.
+  /// Doluysa ogun eklerken `besin_id` olarak gonderilir -> kayit dogrulanmis
+  /// olur ve makrolari sunucu hesaplar (web ile birebir tutarli).
+  final int? besinId;
   final String isim;
   final String isimIngilizce;
   final String marka; // OFF kaynağı için marka adı; generic foods'ta boş.
@@ -195,6 +253,7 @@ class YerelBesin {
 
   const YerelBesin({
     required this.id,
+    this.besinId,
     required this.isim,
     required this.isimIngilizce,
     this.marka = '',
@@ -243,6 +302,41 @@ class YerelBesin {
       seker100g: _d(json['seker100g']),
       doymusYag100g: _d(json['doymus_yag100g']),
       dogrulanmisMi: json['isVerified'] as bool? ?? false,
+    );
+  }
+
+  /// Sunucudan senkronlanmis besin kaydindan olusturur (BesinSyncSerializer).
+  /// Bundled JSON'dan farkli alan adlari: `kalori_100g`, `marka`, `is_verified`
+  /// ve server PK'si `id`. `kaynak_id` yerel `id` olarak tutulur.
+  factory YerelBesin.fromCache(Map<String, dynamic> json) {
+    final isim = (json['isim'] ?? '').toString().trim();
+    final isimIngilizce = (json['isim_ingilizce'] ?? '').toString().trim();
+    final marka = (json['marka'] ?? '').toString().trim();
+    final aramaAdi = YerelBesinVeritabani._turkceKucult(isim);
+    final aramaIngilizceAdi = YerelBesinVeritabani._turkceKucult(isimIngilizce);
+    final aramaMarkasi = YerelBesinVeritabani._turkceKucult(marka);
+
+    return YerelBesin(
+      id: (json['kaynak_id'] ?? '').toString(),
+      besinId: (json['id'] as num?)?.toInt(),
+      isim: isim,
+      isimIngilizce: isimIngilizce,
+      marka: marka,
+      aramaAdi: aramaAdi,
+      aramaIngilizceAdi: aramaIngilizceAdi,
+      aramaMarkasi: aramaMarkasi,
+      aramaMetni: '$aramaAdi $aramaIngilizceAdi $aramaMarkasi',
+      kalori100g: _d(json['kalori_100g']),
+      protein100g: _d(json['protein_100g']),
+      karbonhidrat100g: _d(json['karbonhidrat_100g']),
+      yag100g: _d(json['yag_100g']),
+      sodyum100g: _d(json['sodyum_100g']),
+      potasyum100g: _d(json['potasyum_100g']),
+      kolesterol100g: _d(json['kolesterol_100g']),
+      lif100g: _d(json['lif_100g']),
+      seker100g: _d(json['seker_100g']),
+      doymusYag100g: _d(json['doymus_yag_100g']),
+      dogrulanmisMi: json['is_verified'] as bool? ?? false,
     );
   }
 

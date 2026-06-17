@@ -83,36 +83,42 @@ class _AksiyonSatiri extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
         color: UygulamaTemasi.yuzey,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 4),
-        leading: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 21),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: color == const Color(0xFFEF4444) ? color : Colors.white,
-            fontWeight: FontWeight.w900,
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: onTap,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 4,
           ),
-        ),
-        trailing: Icon(
-          Icons.chevron_right,
-          color: Colors.white.withValues(alpha: 0.38),
+          leading: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 21),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: color == const Color(0xFFEF4444) ? color : Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: Colors.white.withValues(alpha: 0.38),
+          ),
         ),
       ),
     );

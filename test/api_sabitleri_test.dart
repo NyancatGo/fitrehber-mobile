@@ -79,7 +79,10 @@ void main() {
       ApiSabitleri.profilOnboard,
       ApiSabitleri.beslenmeSu,
       ApiSabitleri.besinler,
+      ApiSabitleri.besinlerSync,
       ApiSabitleri.beslenmeEkle,
+      ApiSabitleri.beslenmeKopyala,
+      ApiSabitleri.sonBesinler,
       ApiSabitleri.aiChat,
     ];
 
@@ -111,6 +114,26 @@ void main() {
       expect(
         ApiSabitleri.beslenmeGuncelle(13),
         'https://api.fitrehber.com.tr/api/beslenme/guncelle/13/',
+      );
+    });
+  });
+
+  group('ApiSabitleri beslenme senkron uç noktaları', () {
+    test('besinlerSync canonical sync adresidir', () {
+      expect(
+        ApiSabitleri.besinlerSync,
+        'https://api.fitrehber.com.tr/api/besinler/sync/',
+      );
+    });
+
+    test('kopyala ve son besinler web parite adreslerini kullanır', () {
+      expect(
+        ApiSabitleri.beslenmeKopyala,
+        'https://api.fitrehber.com.tr/api/beslenme/kopyala/',
+      );
+      expect(
+        ApiSabitleri.sonBesinler,
+        'https://api.fitrehber.com.tr/api/beslenme/son-besinler/',
       );
     });
   });
