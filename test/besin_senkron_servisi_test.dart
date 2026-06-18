@@ -46,6 +46,7 @@ void main() {
       prefs.getString(YerelBesinVeritabani.lastSyncKey),
       '2026-06-17T10:00:00Z',
     );
+    expect(prefs.getInt('besin_cache_schema_version'), 3);
     expect(calls.map((c) => c['offset']).toList(), [0, 1]);
     expect(calls.every((c) => c['since'] == null), isTrue);
     expect(YerelBesinVeritabani.instance.toplamSayi, 2);
@@ -62,6 +63,7 @@ void main() {
       YerelBesinVeritabani.lastSyncAtKey: DateTime.now()
           .subtract(const Duration(days: 1))
           .toIso8601String(),
+      'besin_cache_schema_version': 3,
     });
     YerelBesinVeritabani.instance.resetForTests();
 
@@ -95,6 +97,47 @@ void main() {
     expect(calls.single['since'], lastSync);
     expect(calls.single['offset'], 0);
   });
+
+  test(
+    'cache semasi eskiyse throttle atlanir ve tam senkron yapilir',
+    () async {
+      const lastSync = '2026-06-17T09:00:00Z';
+      SharedPreferences.setMockInitialValues({
+        YerelBesinVeritabani.cacheKey: jsonEncode([
+          _serverFood(id: 1, isim: 'Eski Cache Yulaf'),
+        ]),
+        YerelBesinVeritabani.lastSyncKey: lastSync,
+        YerelBesinVeritabani.lastSyncAtKey: DateTime.now().toIso8601String(),
+      });
+      YerelBesinVeritabani.instance.resetForTests();
+
+      final calls = <Map<String, Object?>>[];
+      final service = BesinSenkronServisi.test(
+        sayfaGetir: ({String? since, int offset = 0, int limit = 1000}) async {
+          calls.add({'since': since, 'offset': offset, 'limit': limit});
+          return {
+            'foods': [_serverFood(id: 2, isim: 'Yeni Semali Sut')],
+            'serverTime': '2026-06-17T12:00:00Z',
+            'hasMore': false,
+            'count': 1,
+          };
+        },
+      );
+
+      await service.senkronEt();
+
+      final prefs = await SharedPreferences.getInstance();
+      final cached =
+          (jsonDecode(prefs.getString(YerelBesinVeritabani.cacheKey)!)
+                  as List<dynamic>)
+              .cast<Map<dynamic, dynamic>>();
+      expect(calls, hasLength(1));
+      expect(calls.single['since'], isNull);
+      expect(cached, hasLength(1));
+      expect(cached.single['isim'], 'Yeni Semali Sut');
+      expect(prefs.getInt('besin_cache_schema_version'), 3);
+    },
+  );
 }
 
 Map<String, dynamic> _serverFood({required int id, required String isim}) {

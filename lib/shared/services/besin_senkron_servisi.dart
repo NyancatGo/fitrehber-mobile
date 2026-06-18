@@ -44,6 +44,8 @@ class BesinSenkronServisi {
   static const Duration _minAralik = Duration(hours: 6);
   static const int _sayfaBoyu = 1000;
   static const int _maxSayfa = 50; // güvenlik: sonsuz döngü koruması
+  static const String _schemaVersionKey = 'besin_cache_schema_version';
+  static const int _schemaVersion = 3;
 
   /// Gerekiyorsa besin veritabanını senkronlar. Fire-and-forget çağrılabilir;
   /// hata fırlatmaz. [zorla] true ise throttle atlanır.
@@ -52,12 +54,16 @@ class BesinSenkronServisi {
     _calisiyor = true;
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (!zorla && !_zamaniGeldi(prefs)) return;
+      final schemaGuncel = prefs.getInt(_schemaVersionKey) == _schemaVersion;
+      if (!zorla && schemaGuncel && !_zamaniGeldi(prefs)) return;
 
       final lastSync = prefs.getString(YerelBesinVeritabani.lastSyncKey);
       final mevcutCache = prefs.getString(YerelBesinVeritabani.cacheKey) ?? '';
       final delta =
-          mevcutCache.isNotEmpty && lastSync != null && lastSync.isNotEmpty;
+          schemaGuncel &&
+          mevcutCache.isNotEmpty &&
+          lastSync != null &&
+          lastSync.isNotEmpty;
 
       // Delta ise mevcut önbelleği id->kayıt olarak yükle; tam senkronda sıfırdan.
       final Map<int, Map<String, dynamic>> birikim = {};
@@ -106,6 +112,7 @@ class BesinSenkronServisi {
         YerelBesinVeritabani.lastSyncAtKey,
         DateTime.now().toIso8601String(),
       );
+      await prefs.setInt(_schemaVersionKey, _schemaVersion);
     } catch (e) {
       debugPrint('[BesinSenkron] atlandı (önbellek korunuyor): $e');
     } finally {
