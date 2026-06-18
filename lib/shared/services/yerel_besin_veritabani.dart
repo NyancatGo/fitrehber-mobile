@@ -79,7 +79,7 @@ class YerelBesinVeritabani {
   void _kur(List<YerelBesin> besinler) {
     _besinler = besinler.where((f) => f.kalori100g > 0).toList();
     _siraliBesinler = List<YerelBesin>.from(_besinler!)
-      ..sort((a, b) => a.isim.compareTo(b.isim));
+      ..sort(_besinSirala);
   }
 
   /// Senkron sonrasi (BesinSenkronServisi) bellegi taze cache verisiyle tazeler.
@@ -169,6 +169,11 @@ class YerelBesinVeritabani {
     sonuclar.sort((a, b) {
       final cmp = b.puan.compareTo(a.puan);
       if (cmp != 0) return cmp;
+      if (a.besin.dogrulanmisMi != b.besin.dogrulanmisMi) {
+        return a.besin.dogrulanmisMi ? -1 : 1;
+      }
+      final kalite = b.besin.qualityScore.compareTo(a.besin.qualityScore);
+      if (kalite != 0) return kalite;
       return a.besin.isim.compareTo(b.besin.isim);
     });
 
@@ -252,6 +257,10 @@ class YerelBesin {
   final double doymusYag100g;
 
   final bool dogrulanmisMi;
+  final int qualityScore;
+  final String qualityStatus;
+  final String sourceType;
+  final List<String> aliases;
 
   /// Bu besine ait porsiyon birimleri.
   final List<BesinPorsiyonModel> porsiyonlar;
@@ -277,6 +286,10 @@ class YerelBesin {
     required this.seker100g,
     required this.doymusYag100g,
     required this.dogrulanmisMi,
+    this.qualityScore = 0,
+    this.qualityStatus = 'needs_review',
+    this.sourceType = 'manual',
+    this.aliases = const [],
     this.porsiyonlar = const [],
   });
 
@@ -287,6 +300,10 @@ class YerelBesin {
     final aramaAdi = YerelBesinVeritabani._turkceKucult(isim);
     final aramaIngilizceAdi = YerelBesinVeritabani._turkceKucult(isimIngilizce);
     final aramaMarkasi = YerelBesinVeritabani._turkceKucult(marka);
+    final aliases = _stringList(json['aliases']);
+    final aramaAliaslari = aliases
+        .map(YerelBesinVeritabani._turkceKucult)
+        .join(' ');
 
     return YerelBesin(
       id: (json['id'] ?? '').toString(),
@@ -296,7 +313,7 @@ class YerelBesin {
       aramaAdi: aramaAdi,
       aramaIngilizceAdi: aramaIngilizceAdi,
       aramaMarkasi: aramaMarkasi,
-      aramaMetni: '$aramaAdi $aramaIngilizceAdi $aramaMarkasi',
+      aramaMetni: '$aramaAdi $aramaIngilizceAdi $aramaMarkasi $aramaAliaslari',
       kalori100g: _d(json['kalori100g']),
       protein100g: _d(json['protein100g']),
       karbonhidrat100g: _d(json['karbonhidrat100g']),
@@ -308,6 +325,10 @@ class YerelBesin {
       seker100g: _d(json['seker100g']),
       doymusYag100g: _d(json['doymus_yag100g']),
       dogrulanmisMi: json['isVerified'] as bool? ?? false,
+      qualityScore: _i(json['quality_score']),
+      qualityStatus: (json['quality_status'] ?? 'needs_review').toString(),
+      sourceType: (json['source_type'] ?? 'manual').toString(),
+      aliases: aliases,
       porsiyonlar: const [],
     );
   }
@@ -322,6 +343,10 @@ class YerelBesin {
     final aramaAdi = YerelBesinVeritabani._turkceKucult(isim);
     final aramaIngilizceAdi = YerelBesinVeritabani._turkceKucult(isimIngilizce);
     final aramaMarkasi = YerelBesinVeritabani._turkceKucult(marka);
+    final aliases = _stringList(json['aliases']);
+    final aramaAliaslari = aliases
+        .map(YerelBesinVeritabani._turkceKucult)
+        .join(' ');
 
     var pList = <BesinPorsiyonModel>[];
     if (json['porsiyonlar'] is List) {
@@ -342,7 +367,7 @@ class YerelBesin {
       aramaAdi: aramaAdi,
       aramaIngilizceAdi: aramaIngilizceAdi,
       aramaMarkasi: aramaMarkasi,
-      aramaMetni: '$aramaAdi $aramaIngilizceAdi $aramaMarkasi',
+      aramaMetni: '$aramaAdi $aramaIngilizceAdi $aramaMarkasi $aramaAliaslari',
       kalori100g: _d(json['kalori_100g']),
       protein100g: _d(json['protein_100g']),
       karbonhidrat100g: _d(json['karbonhidrat_100g']),
@@ -354,6 +379,10 @@ class YerelBesin {
       seker100g: _d(json['seker_100g']),
       doymusYag100g: _d(json['doymus_yag_100g']),
       dogrulanmisMi: json['is_verified'] as bool? ?? false,
+      qualityScore: _i(json['quality_score']),
+      qualityStatus: (json['quality_status'] ?? 'needs_review').toString(),
+      sourceType: (json['source_type'] ?? 'manual').toString(),
+      aliases: aliases,
       porsiyonlar: pList,
     );
   }
@@ -385,8 +414,32 @@ class YerelBesin {
   }
 }
 
+int _besinSirala(YerelBesin a, YerelBesin b) {
+  if (a.dogrulanmisMi != b.dogrulanmisMi) {
+    return a.dogrulanmisMi ? -1 : 1;
+  }
+  final kalite = b.qualityScore.compareTo(a.qualityScore);
+  if (kalite != 0) return kalite;
+  return a.isim.compareTo(b.isim);
+}
+
 int _porsiyonSirala(BesinPorsiyonModel a, BesinPorsiyonModel b) {
   final siraKarsilastirma = a.sira.compareTo(b.sira);
   if (siraKarsilastirma != 0) return siraKarsilastirma;
   return a.id.compareTo(b.id);
+}
+
+int _i(Object? v) {
+  if (v == null) return 0;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString()) ?? 0;
+}
+
+List<String> _stringList(Object? raw) {
+  if (raw is! List) return const [];
+  return raw
+      .map((item) => item.toString().trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
 }

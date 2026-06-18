@@ -76,6 +76,10 @@ class BesinModel {
 
   /// Besinin editörlerce doğrulanıp doğrulanmadığı (güvenilirlik rozeti).
   final bool dogrulanmisMi;
+  final int qualityScore;
+  final String qualityStatus;
+  final String sourceType;
+  final List<String> aliases;
 
   /// Bu besine ait porsiyon birimleri.
   final List<BesinPorsiyonModel> porsiyonlar;
@@ -90,6 +94,10 @@ class BesinModel {
     required this.karbonhidrat100g,
     required this.yag100g,
     required this.dogrulanmisMi,
+    this.qualityScore = 0,
+    this.qualityStatus = 'needs_review',
+    this.sourceType = 'manual',
+    this.aliases = const [],
     this.porsiyonlar = const [],
   });
 
@@ -114,6 +122,10 @@ class BesinModel {
       karbonhidrat100g: _parseDouble(json['karbonhidrat_100g']) ?? 0.0,
       yag100g: _parseDouble(json['yag_100g']) ?? 0.0,
       dogrulanmisMi: json['is_verified'] as bool? ?? false,
+      qualityScore: _parseInt(json['quality_score']) ?? 0,
+      qualityStatus: (json['quality_status'] ?? 'needs_review').toString(),
+      sourceType: (json['source_type'] ?? 'manual').toString(),
+      aliases: _parseStringList(json['aliases']),
       porsiyonlar: pList,
     );
   }
@@ -355,6 +367,14 @@ int _porsiyonSirala(BesinPorsiyonModel a, BesinPorsiyonModel b) {
 }
 
 /// Gelen değeri güvenli biçimde tam sayıya çevirir; çevrilemezse `null` döner.
+List<String> _parseStringList(Object? raw) {
+  if (raw is! List) return const [];
+  return raw
+      .map((item) => item.toString().trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+}
+
 int? _parseInt(Object? value) {
   if (value == null) return null;
   if (value is int) return value;

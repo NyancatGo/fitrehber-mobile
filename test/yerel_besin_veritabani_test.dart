@@ -29,6 +29,10 @@ void main() {
     expect(food.kalori100g, 72);
     expect(food.protein100g, 7.5);
     expect(food.dogrulanmisMi, isTrue);
+    expect(food.qualityScore, 95);
+    expect(food.qualityStatus, 'verified');
+    expect(food.sourceType, 'openfoodfacts');
+    expect(food.aliases, contains('Proteinli sut alias'));
   });
 
   test('YerelBesin.fromCache porsiyonlari siralar ve varsayilani secer', () {
@@ -78,6 +82,35 @@ void main() {
     expect(results.single.id, 'cache-food');
   });
 
+  test('offline arama alias kullanir ve kaliteli sonucu one alir', () async {
+    SharedPreferences.setMockInitialValues({
+      YerelBesinVeritabani.cacheKey: jsonEncode([
+        _serverFood(
+          id: 1,
+          kaynakId: 'low-quality',
+          isim: 'Aliasli Besin',
+          aliases: ['sporcu sut'],
+          qualityScore: 50,
+          verified: false,
+        ),
+        _serverFood(
+          id: 2,
+          kaynakId: 'high-quality',
+          isim: 'Kaliteli Besin',
+          aliases: ['sporcu sut'],
+          qualityScore: 98,
+          verified: true,
+        ),
+      ]),
+    });
+    YerelBesinVeritabani.instance.resetForTests();
+
+    await YerelBesinVeritabani.instance.hazirla();
+
+    final results = YerelBesinVeritabani.instance.ara('sporcu sut');
+    expect(results.map((f) => f.besinId), [2, 1]);
+  });
+
   test('cache yoksa bundled JSON fallback yuklenir', () async {
     await YerelBesinVeritabani.instance.hazirla();
 
@@ -91,6 +124,9 @@ Map<String, dynamic> _serverFood({
   required String isim,
   String marka = '',
   List<Map<String, dynamic>> porsiyonlar = const [],
+  List<String> aliases = const ['Proteinli sut alias'],
+  int qualityScore = 95,
+  bool verified = true,
 }) {
   return {
     'id': id,
@@ -109,7 +145,11 @@ Map<String, dynamic> _serverFood({
     'lif_100g': 0,
     'seker_100g': 4.8,
     'doymus_yag_100g': 0.8,
-    'is_verified': true,
+    'is_verified': verified,
+    'quality_score': qualityScore,
+    'quality_status': verified ? 'verified' : 'needs_review',
+    'source_type': 'openfoodfacts',
+    'aliases': aliases,
     'updated_at': '2026-06-17T10:00:00Z',
     'porsiyonlar': porsiyonlar,
   };

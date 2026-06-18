@@ -45,7 +45,7 @@ class BesinSenkronServisi {
   static const int _sayfaBoyu = 1000;
   static const int _maxSayfa = 50; // güvenlik: sonsuz döngü koruması
   static const String _schemaVersionKey = 'besin_cache_schema_version';
-  static const int _schemaVersion = 3;
+  static const int _schemaVersion = 4;
 
   /// Gerekiyorsa besin veritabanını senkronlar. Fire-and-forget çağrılabilir;
   /// hata fırlatmaz. [zorla] true ise throttle atlanır.

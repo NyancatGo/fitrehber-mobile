@@ -34,12 +34,20 @@ void main() {
         'karbonhidrat_100g': '66.3',
         'yag_100g': '6.9',
         'is_verified': true,
+        'quality_score': 97,
+        'quality_status': 'verified',
+        'source_type': 'seed',
+        'aliases': ['Oatmeal'],
       });
 
       expect(besin.id, 5);
       expect(besin.isim, 'Yulaf Ezmesi');
       expect(besin.protein100g, 16.9);
       expect(besin.dogrulanmisMi, isTrue);
+      expect(besin.qualityScore, 97);
+      expect(besin.qualityStatus, 'verified');
+      expect(besin.sourceType, 'seed');
+      expect(besin.aliases, ['Oatmeal']);
     });
 
     test('GunlukBeslenmeModel yeni öğün gövdesini ayrıştırır', () {

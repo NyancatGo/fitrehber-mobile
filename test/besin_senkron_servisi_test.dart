@@ -46,7 +46,7 @@ void main() {
       prefs.getString(YerelBesinVeritabani.lastSyncKey),
       '2026-06-17T10:00:00Z',
     );
-    expect(prefs.getInt('besin_cache_schema_version'), 3);
+    expect(prefs.getInt('besin_cache_schema_version'), 4);
     expect(calls.map((c) => c['offset']).toList(), [0, 1]);
     expect(calls.every((c) => c['since'] == null), isTrue);
     expect(YerelBesinVeritabani.instance.toplamSayi, 2);
@@ -63,7 +63,7 @@ void main() {
       YerelBesinVeritabani.lastSyncAtKey: DateTime.now()
           .subtract(const Duration(days: 1))
           .toIso8601String(),
-      'besin_cache_schema_version': 3,
+      'besin_cache_schema_version': 4,
     });
     YerelBesinVeritabani.instance.resetForTests();
 
@@ -135,7 +135,7 @@ void main() {
       expect(calls.single['since'], isNull);
       expect(cached, hasLength(1));
       expect(cached.single['isim'], 'Yeni Semali Sut');
-      expect(prefs.getInt('besin_cache_schema_version'), 3);
+      expect(prefs.getInt('besin_cache_schema_version'), 4);
     },
   );
 }
@@ -159,6 +159,10 @@ Map<String, dynamic> _serverFood({required int id, required String isim}) {
     'seker_100g': 2.0,
     'doymus_yag_100g': 0.5,
     'is_verified': true,
+    'quality_score': 95,
+    'quality_status': 'verified',
+    'source_type': 'seed',
+    'aliases': ['Alias $id'],
     'updated_at': '2026-06-17T10:00:00Z',
   };
 }
