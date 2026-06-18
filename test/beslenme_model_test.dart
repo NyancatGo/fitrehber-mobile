@@ -3,6 +3,26 @@ import 'package:fitrehber_mobile/shared/models/beslenme_model.dart';
 
 void main() {
   group('Beslenme modelleri', () {
+    test('BesinPorsiyonModel ayni server id ile esdeger kabul edilir', () {
+      final fromMeal = BesinPorsiyonModel.fromJson({
+        'id': 12,
+        'isim': 'Porsiyon',
+        'gram_esdegeri': '40.0',
+        'varsayilan': true,
+        'sira': 10,
+      });
+      final fromCache = BesinPorsiyonModel.fromJson({
+        'id': 12,
+        'isim': 'Porsiyon',
+        'gram_esdegeri': 40,
+        'varsayilan': false,
+        'sira': 20,
+      });
+
+      expect(fromMeal, equals(fromCache));
+      expect({fromMeal, fromCache}, hasLength(1));
+    });
+
     test('BesinModel API gövdesini ayrıştırır', () {
       final besin = BesinModel.fromJson({
         'id': 5,

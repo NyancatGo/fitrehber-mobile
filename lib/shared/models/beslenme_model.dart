@@ -32,6 +32,17 @@ class BesinPorsiyonModel {
       sira: _parseInt(json['sira']) ?? 100,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! BesinPorsiyonModel) return false;
+    if (id > 0 || other.id > 0) return id == other.id;
+    return isim == other.isim && gramEsdegeri == other.gramEsdegeri;
+  }
+
+  @override
+  int get hashCode => id > 0 ? id.hashCode : Object.hash(isim, gramEsdegeri);
 }
 
 /// Besin (yiyecek) veritabanındaki bir kaydı temsil eder.
