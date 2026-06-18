@@ -31,6 +31,36 @@ void main() {
     expect(food.dogrulanmisMi, isTrue);
   });
 
+  test('YerelBesin.fromCache porsiyonlari siralar ve varsayilani secer', () {
+    final food = YerelBesin.fromCache(
+      _serverFood(
+        id: 42,
+        kaynakId: 'portion-food',
+        isim: 'Yulaf Ezmesi',
+        porsiyonlar: [
+          {
+            'id': 2,
+            'isim': 'Yemek Kasigi',
+            'gram_esdegeri': 10,
+            'varsayilan': false,
+            'sira': 20,
+          },
+          {
+            'id': 1,
+            'isim': 'Porsiyon',
+            'gram_esdegeri': 40,
+            'varsayilan': true,
+            'sira': 10,
+          },
+        ],
+      ),
+    );
+
+    expect(food.porsiyonlar.map((p) => p.isim), ['Porsiyon', 'Yemek Kasigi']);
+    expect(food.varsayilanPorsiyon?.isim, 'Porsiyon');
+    expect(food.varsayilanPorsiyon?.gramEsdegeri, 40);
+  });
+
   test('hazirla cache varsa bundled asset yerine cache kullanir', () async {
     SharedPreferences.setMockInitialValues({
       YerelBesinVeritabani.cacheKey: jsonEncode([
@@ -60,6 +90,7 @@ Map<String, dynamic> _serverFood({
   required String kaynakId,
   required String isim,
   String marka = '',
+  List<Map<String, dynamic>> porsiyonlar = const [],
 }) {
   return {
     'id': id,
@@ -80,5 +111,6 @@ Map<String, dynamic> _serverFood({
     'doymus_yag_100g': 0.8,
     'is_verified': true,
     'updated_at': '2026-06-17T10:00:00Z',
+    'porsiyonlar': porsiyonlar,
   };
 }

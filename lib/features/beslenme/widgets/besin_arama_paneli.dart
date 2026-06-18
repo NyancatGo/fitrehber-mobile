@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/models/beslenme_model.dart';
 import '../../../shared/services/yerel_besin_veritabani.dart';
 import '../providers/beslenme_provider.dart';
 
@@ -454,7 +455,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
   void initState() {
     super.initState();
     if (widget.food.porsiyonlar.isNotEmpty) {
-      _selectedPortion = widget.food.porsiyonlar.first;
+      _selectedPortion = widget.food.varsayilanPorsiyon;
       _quantity = 1.0;
       _amountCtrl = TextEditingController(text: '1');
     } else {
@@ -636,7 +637,11 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                       fontWeight: FontWeight.w500,
                       color: Colors.white.withValues(alpha: 0.5),
                     ),
-                          // Miktar Girişi (− adım | kutu | + adım)
+                  ),
+                ],
+                const SizedBox(height: 28),
+
+                // Miktar Girişi (− adım | kutu | + adım)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -689,7 +694,11 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            _selectedPortion != null ? (_selectedPortion!.isim.length > 6 ? _selectedPortion!.isim.substring(0, 6) : _selectedPortion!.isim) : 'g',
+                            _selectedPortion != null
+                                ? (_selectedPortion!.isim.length > 6
+                                      ? _selectedPortion!.isim.substring(0, 6)
+                                      : _selectedPortion!.isim)
+                                : 'g',
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 18,
@@ -711,7 +720,10 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                 // Birim Seçici Dropdown
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
@@ -723,7 +735,10 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                       child: DropdownButton<BesinPorsiyonModel?>(
                         value: _selectedPortion,
                         dropdownColor: const Color(0xFF1E222B),
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFFF97316)),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Color(0xFFF97316),
+                        ),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -737,7 +752,9 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                           ...widget.food.porsiyonlar.map((p) {
                             return DropdownMenuItem<BesinPorsiyonModel?>(
                               value: p,
-                              child: Text('${p.isim} (${p.gramEsdegeri == p.gramEsdegeri.roundToDouble() ? p.gramEsdegeri.toStringAsFixed(0) : p.gramEsdegeri.toStringAsFixed(1)}g)'),
+                              child: Text(
+                                '${p.isim} (${p.gramEsdegeri == p.gramEsdegeri.roundToDouble() ? p.gramEsdegeri.toStringAsFixed(0) : p.gramEsdegeri.toStringAsFixed(1)}g)',
+                              ),
                             );
                           }),
                         ],

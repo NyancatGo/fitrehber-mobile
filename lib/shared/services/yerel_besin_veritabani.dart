@@ -252,7 +252,7 @@ class YerelBesin {
   final double doymusYag100g;
 
   final bool dogrulanmisMi;
-  
+
   /// Bu besine ait porsiyon birimleri.
   final List<BesinPorsiyonModel> porsiyonlar;
 
@@ -325,10 +325,12 @@ class YerelBesin {
 
     var pList = <BesinPorsiyonModel>[];
     if (json['porsiyonlar'] is List) {
-      pList = (json['porsiyonlar'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map((item) => BesinPorsiyonModel.fromJson(item))
-          .toList();
+      pList =
+          (json['porsiyonlar'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map((item) => BesinPorsiyonModel.fromJson(item))
+              .toList()
+            ..sort(_porsiyonSirala);
     }
 
     return YerelBesin(
@@ -356,6 +358,14 @@ class YerelBesin {
     );
   }
 
+  BesinPorsiyonModel? get varsayilanPorsiyon {
+    if (porsiyonlar.isEmpty) return null;
+    for (final porsiyon in porsiyonlar) {
+      if (porsiyon.varsayilan) return porsiyon;
+    }
+    return porsiyonlar.first;
+  }
+
   /// Gramaja göre hesaplanmış kaloriyi döner.
   double gramKalori(double gram) => (kalori100g * gram) / 100;
   double gramProtein(double gram) => (protein100g * gram) / 100;
@@ -373,4 +383,10 @@ class YerelBesin {
     if (v is num) return v.toDouble();
     return double.tryParse(v.toString().replaceAll(',', '.')) ?? 0.0;
   }
+}
+
+int _porsiyonSirala(BesinPorsiyonModel a, BesinPorsiyonModel b) {
+  final siraKarsilastirma = a.sira.compareTo(b.sira);
+  if (siraKarsilastirma != 0) return siraKarsilastirma;
+  return a.id.compareTo(b.id);
 }

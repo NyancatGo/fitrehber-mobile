@@ -12,11 +12,15 @@ class BesinPorsiyonModel {
   final int id;
   final String isim;
   final double gramEsdegeri;
+  final bool varsayilan;
+  final int sira;
 
   const BesinPorsiyonModel({
     required this.id,
     required this.isim,
     required this.gramEsdegeri,
+    this.varsayilan = false,
+    this.sira = 100,
   });
 
   factory BesinPorsiyonModel.fromJson(Map<String, dynamic> json) {
@@ -24,6 +28,8 @@ class BesinPorsiyonModel {
       id: _parseInt(json['id']) ?? 0,
       isim: (json['isim'] ?? '').toString(),
       gramEsdegeri: _parseDouble(json['gram_esdegeri']) ?? 0.0,
+      varsayilan: json['varsayilan'] == true || json['is_default'] == true,
+      sira: _parseInt(json['sira']) ?? 100,
     );
   }
 }
@@ -80,10 +86,12 @@ class BesinModel {
   factory BesinModel.fromJson(Map<String, dynamic> json) {
     var pList = <BesinPorsiyonModel>[];
     if (json['porsiyonlar'] is List) {
-      pList = (json['porsiyonlar'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map((item) => BesinPorsiyonModel.fromJson(item))
-          .toList();
+      pList =
+          (json['porsiyonlar'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map((item) => BesinPorsiyonModel.fromJson(item))
+              .toList()
+            ..sort(_porsiyonSirala);
     }
     return BesinModel(
       id: _parseInt(json['id']) ?? 0,
@@ -97,6 +105,14 @@ class BesinModel {
       dogrulanmisMi: json['is_verified'] as bool? ?? false,
       porsiyonlar: pList,
     );
+  }
+
+  BesinPorsiyonModel? get varsayilanPorsiyon {
+    if (porsiyonlar.isEmpty) return null;
+    for (final porsiyon in porsiyonlar) {
+      if (porsiyon.varsayilan) return porsiyon;
+    }
+    return porsiyonlar.first;
   }
 }
 
@@ -170,7 +186,11 @@ class OgunKaydiModel {
       protein: _parseDouble(json['protein']) ?? 0.0,
       karbonhidrat: _parseDouble(json['karbonhidrat']) ?? 0.0,
       yag: _parseDouble(json['yag']) ?? 0.0,
-      porsiyon: json['porsiyon'] != null ? BesinPorsiyonModel.fromJson(Map<String, dynamic>.from(json['porsiyon'])) : null,
+      porsiyon: json['porsiyon'] != null
+          ? BesinPorsiyonModel.fromJson(
+              Map<String, dynamic>.from(json['porsiyon']),
+            )
+          : null,
     );
   }
 }
@@ -315,6 +335,12 @@ class GunlukBeslenmeModel {
 
   /// Yağ hedefine ulaşma oranı (0.0–1.0).
   double get yagYuzdesi => (yagG / gunlukYagHedefG).clamp(0.0, 1.0);
+}
+
+int _porsiyonSirala(BesinPorsiyonModel a, BesinPorsiyonModel b) {
+  final siraKarsilastirma = a.sira.compareTo(b.sira);
+  if (siraKarsilastirma != 0) return siraKarsilastirma;
+  return a.id.compareTo(b.id);
 }
 
 /// Gelen değeri güvenli biçimde tam sayıya çevirir; çevrilemezse `null` döner.
