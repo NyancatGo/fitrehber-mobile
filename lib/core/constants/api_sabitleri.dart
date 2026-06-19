@@ -46,6 +46,9 @@ class ApiSabitleri {
   /// Besin (yiyecek) veritabanında arama.
   static const String besinler = '$baseUrl/besinler/';
 
+  /// Mobil offline aramada zayıf/boş sonuç sinyali.
+  static const String besinlerAramaLog = '$baseUrl/besinler/arama-log/';
+
   /// Yerel besin veritabanını sunucuyla senkronlama (offline arama için tek
   /// kaynak). `?since=` ile yalnız değişenler (delta), `offset`/`limit` ile
   /// sayfalı çekilir.

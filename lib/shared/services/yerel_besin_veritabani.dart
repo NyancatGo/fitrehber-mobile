@@ -77,7 +77,9 @@ class YerelBesinVeritabani {
 
   /// Verilen besin listesini bellege kurar (kalorisizleri eler, alfabetik siralar).
   void _kur(List<YerelBesin> besinler) {
-    _besinler = besinler.where((f) => f.kalori100g > 0).toList();
+    _besinler = besinler
+        .where((f) => f.kalori100g > 0 && f.qualityStatus != 'rejected')
+        .toList();
     _siraliBesinler = List<YerelBesin>.from(_besinler!)
       ..sort(_besinSirala);
   }

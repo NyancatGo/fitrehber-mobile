@@ -683,6 +683,39 @@ class ApiServisi {
     );
   }
 
+  /// Offline/cache aramasında zayıf veya boş sonuç oluştuğunu sessizce bildirir.
+  Future<void> besinAramaLoguGonder({
+    required String query,
+    required int resultCount,
+  }) async {
+    final temizQuery = query.trim();
+    if (temizQuery.isEmpty) return;
+
+    final token = await _accessTokenYoksaHataVer(
+      'Besin arama sinyali göndermek için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiSabitleri.besinlerAramaLog,
+      data: {
+        'query': temizQuery,
+        'result_count': resultCount,
+        'source': 'mobile',
+      },
+      options: _kimlikSecenekleri(token),
+    );
+    if (response.statusCode == 201 ||
+        response.statusCode == 204 ||
+        response.statusCode == 429) {
+      return;
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Besin arama sinyali gönderilemedi.',
+    );
+  }
+
   /// Sunucudaki besin veritabanını senkronlamak için TEK sayfa çeker.
   ///
   /// [since] verilirse yalnız o andan sonra değişen besinler döner (delta);

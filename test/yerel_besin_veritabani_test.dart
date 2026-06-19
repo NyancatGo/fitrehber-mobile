@@ -111,6 +111,31 @@ void main() {
     expect(results.map((f) => f.besinId), [2, 1]);
   });
 
+  test('rejected cache kayitlarini yuklemez', () async {
+    SharedPreferences.setMockInitialValues({
+      YerelBesinVeritabani.cacheKey: jsonEncode([
+        _serverFood(
+          id: 1,
+          kaynakId: 'rejected-food',
+          isim: 'Reddedilen Besin',
+          qualityStatus: 'rejected',
+        ),
+        _serverFood(
+          id: 2,
+          kaynakId: 'good-food',
+          isim: 'Gecerli Besin',
+        ),
+      ]),
+    });
+    YerelBesinVeritabani.instance.resetForTests();
+
+    await YerelBesinVeritabani.instance.hazirla();
+
+    expect(YerelBesinVeritabani.instance.toplamSayi, 1);
+    expect(YerelBesinVeritabani.instance.ara('Reddedilen'), isEmpty);
+    expect(YerelBesinVeritabani.instance.ara('Gecerli'), hasLength(1));
+  });
+
   test('cache yoksa bundled JSON fallback yuklenir', () async {
     await YerelBesinVeritabani.instance.hazirla();
 
@@ -126,6 +151,7 @@ Map<String, dynamic> _serverFood({
   List<Map<String, dynamic>> porsiyonlar = const [],
   List<String> aliases = const ['Proteinli sut alias'],
   int qualityScore = 95,
+  String? qualityStatus,
   bool verified = true,
 }) {
   return {
@@ -147,7 +173,7 @@ Map<String, dynamic> _serverFood({
     'doymus_yag_100g': 0.8,
     'is_verified': verified,
     'quality_score': qualityScore,
-    'quality_status': verified ? 'verified' : 'needs_review',
+    'quality_status': qualityStatus ?? (verified ? 'verified' : 'needs_review'),
     'source_type': 'openfoodfacts',
     'aliases': aliases,
     'updated_at': '2026-06-17T10:00:00Z',

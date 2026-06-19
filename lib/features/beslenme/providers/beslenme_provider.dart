@@ -154,6 +154,21 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     return _api.besinAra(query);
   }
 
+  /// Offline aramada sonuç azsa kullanıcı ihtiyacını API'ye sessizce bildirir.
+  Future<void> besinAramaLoguGonder({
+    required String query,
+    required int resultCount,
+  }) async {
+    try {
+      await _api.besinAramaLoguGonder(
+        query: query,
+        resultCount: resultCount,
+      );
+    } catch (e) {
+      debugPrint('[BeslenmeDenetleyici.besinAramaLoguGonder] $e');
+    }
+  }
+
   /// Seçili güne, belirtilen öğüne yeni bir besin kaydı ekler.
   Future<bool> ogunEkle({
     required String ogunTipi,

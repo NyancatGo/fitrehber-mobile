@@ -132,6 +132,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
   List<YerelBesin> _sonuclar = [];
   bool _isInit = false;
   Timer? _searchDebounce;
+  String? _sonLoglananArama;
 
   @override
   void initState() {
@@ -175,10 +176,24 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
     // liste yalniz debounce sonrasi sonuc degisince yeniden cizilir.
     _searchDebounce = Timer(_searchDebounceDuration, () {
       if (!mounted || _searchCtrl.text.trim() != temizSorgu) return;
+      final sonuclar = YerelBesinVeritabani.instance.ara(temizSorgu);
       setState(() {
-        _sonuclar = YerelBesinVeritabani.instance.ara(temizSorgu);
+        _sonuclar = sonuclar;
       });
+      _zayifAramayiLogla(temizSorgu, sonuclar.length);
     });
+  }
+
+  void _zayifAramayiLogla(String query, int resultCount) {
+    if (query.length < 2 || resultCount > 2) return;
+    final logKey = query.toLowerCase();
+    if (_sonLoglananArama == logKey) return;
+    _sonLoglananArama = logKey;
+    unawaited(
+      ref
+          .read(beslenmeProvider.notifier)
+          .besinAramaLoguGonder(query: query, resultCount: resultCount),
+    );
   }
 
   String _ogunBasligi(String ogunTipi) {
