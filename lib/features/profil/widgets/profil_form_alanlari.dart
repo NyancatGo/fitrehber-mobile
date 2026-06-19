@@ -76,44 +76,43 @@ class _SayiAlani extends StatelessWidget {
 
 class _DogumTarihiSecimSatiri extends StatelessWidget {
   final DateTime? birthDate;
-  final VoidCallback onPick;
-  final VoidCallback onClear;
 
   const _DogumTarihiSecimSatiri({
     required this.birthDate,
-    required this.onPick,
-    required this.onClear,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasValue = birthDate != null;
 
-    return InkWell(
-      onTap: onPick,
-      borderRadius: BorderRadius.circular(4),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'Doğum Tarihi',
-          prefixIcon: const Icon(Icons.cake_outlined),
-          suffixIcon: hasValue
-              ? IconButton(
-                  tooltip: 'Tarihi temizle',
-                  onPressed: onClear,
-                  icon: const Icon(Icons.close),
-                )
-              : const Icon(Icons.calendar_month_outlined),
-          border: const OutlineInputBorder(),
-        ),
-        child: Text(
-          hasValue ? _tarihFormatla(birthDate) : 'Henüz eklenmedi',
-          style: TextStyle(
-            color: hasValue
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.52),
-            fontWeight: FontWeight.w700,
+    return InputDecorator(
+      decoration: const InputDecoration(
+        labelText: 'Doğum Tarihi',
+        prefixIcon: Icon(Icons.lock_outline),
+        border: OutlineInputBorder(),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            hasValue ? _tarihFormatla(birthDate) : 'Henüz eklenmedi',
+            style: TextStyle(
+              color: hasValue
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.52),
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(
+            'İlk kurulum bilgisidir; değişiklik gerekiyorsa yönetimden güncellenir.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.48),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

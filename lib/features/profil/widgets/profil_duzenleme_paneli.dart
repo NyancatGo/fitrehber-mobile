@@ -22,9 +22,8 @@ class _ProfilDuzenlemePaneliDurumu
   // Hedef artık sabit listeden seçilir; eski serbest metin varsa kullanıcı
   // bilinçli olarak yeni seçeneklerden birini seçer.
   String? _goal;
-  late DateTime? _birthDate;
-  // Cinsiyet ilk kurulum kontratıdır; profil düzenlemede UI'a ve API gövdesine
-  // eklenmez, böylece mevcut DB değeri korunur.
+  // Cinsiyet ve dogum_tarihi ilk kurulum kontratıdır; profil düzenlemede UI'a
+  // ve API gövdesine eklenmez, böylece mevcut DB değeri korunur.
   XFile? _selectedPhoto;
   Uint8List? _selectedPhotoBytes;
   bool _saving = false;
@@ -53,7 +52,6 @@ class _ProfilDuzenlemePaneliDurumu
           ? widget.profile.customWaterGoalMl.toString()
           : '',
     );
-    _birthDate = widget.profile.birthDate;
   }
 
   @override
@@ -107,12 +105,11 @@ class _ProfilDuzenlemePaneliDurumu
         'kilo': _bosOlabilirDoubleCoz(_weightController.text),
         'hedef_kilo': _bosOlabilirDoubleCoz(_targetWeightController.text),
         'fitness_hedefi': _goal ?? '',
-        'dogum_tarihi': _birthDate?.toIso8601String().split('T').first,
         'gunluk_su_hedefi_ml': waterGoal,
       };
 
       if (widget.profile.isOnboarded && !_zorunluOlcumlerTamMi(data)) {
-        throw 'Boy, kilo, hedef kilo, hedef ve doğum tarihi boş bırakılamaz.';
+        throw 'Boy, kilo, hedef kilo ve hedef boş bırakılamaz.';
       }
 
       final notifier = ref.read(profilProvider.notifier);
@@ -137,20 +134,6 @@ class _ProfilDuzenlemePaneliDurumu
       ).showSnackBar(SnackBar(content: Text(kullaniciDostuHata(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _pickBirthDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime(now.year - 25, now.month, now.day),
-      firstDate: DateTime(now.year - 100),
-      lastDate: now,
-    );
-
-    if (picked != null && mounted) {
-      setState(() => _birthDate = picked);
     }
   }
 
@@ -263,9 +246,7 @@ class _ProfilDuzenlemePaneliDurumu
             ),
             const SizedBox(height: 12),
             _DogumTarihiSecimSatiri(
-              birthDate: _birthDate,
-              onPick: _pickBirthDate,
-              onClear: () => setState(() => _birthDate = null),
+              birthDate: widget.profile.birthDate,
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

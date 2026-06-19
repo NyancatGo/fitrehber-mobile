@@ -542,8 +542,9 @@ class ApiServisi {
       ..removeWhere(
         (key, value) =>
             value == null &&
-            !{'boy', 'kilo', 'hedef_kilo', 'dogum_tarihi'}.contains(key),
+            !{'boy', 'kilo', 'hedef_kilo'}.contains(key),
       );
+    cleanedData.remove('dogum_tarihi');
 
     final response = await _dio.patch(
       ApiSabitleri.profilDetay(userId),

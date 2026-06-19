@@ -2,7 +2,7 @@
 // SU TAKİBİ BÖLÜMÜ
 // ---------------------------------------------------------------------------
 // Beslenme ekranının en altındaki su takibi kartı. Günlük su hedefine göre
-// ilerlemeyi gösterir ve hızlı su ekleme butonları (+250 ml / +500 ml) sunar.
+// ilerlemeyi gösterir ve web ile aynı hızlı su ekleme butonlarını sunar.
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
@@ -108,7 +108,11 @@ class SuTakipBolumu extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _SuButon(ml: 250, onEkle: onEkle, isLoading: isLoading),
+                child: _SuButon(ml: 200, onEkle: onEkle, isLoading: isLoading),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SuButon(ml: 330, onEkle: onEkle, isLoading: isLoading),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -123,16 +127,7 @@ class SuTakipBolumu extends StatelessWidget {
             children: [
               Expanded(
                 child: _SuButon(
-                  ml: -250,
-                  onEkle: onEkle,
-                  isLoading: isLoading,
-                  negatif: true,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _SuButon(
-                  ml: -500,
+                  ml: -200,
                   onEkle: onEkle,
                   isLoading: isLoading,
                   negatif: true,

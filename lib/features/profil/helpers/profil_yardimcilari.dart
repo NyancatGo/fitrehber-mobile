@@ -154,12 +154,12 @@ double? _bosOlabilirDoubleCoz(String value) {
   return double.tryParse(trimmed.replaceAll(',', '.'));
 }
 
-/// Profil verisinde zorunlu ölçüm alanlarının (boy, kilo, hedef, doğum
-/// tarihi, fitness hedefi) eksiksiz dolu olup olmadığını kontrol eder.
+/// Profil düzenleme payload'ındaki kullanıcı tarafından değiştirilebilir
+/// zorunlu ölçüm alanlarının eksiksiz dolu olup olmadığını kontrol eder.
+/// Doğum tarihi ilk kurulum sözleşmesidir; profil düzenlemede gönderilmez.
 bool _zorunluOlcumlerTamMi(Map<String, dynamic> data) {
   return data['boy'] != null &&
       data['kilo'] != null &&
       data['hedef_kilo'] != null &&
-      (data['fitness_hedefi']?.toString().trim().isNotEmpty ?? false) &&
-      data['dogum_tarihi'] != null;
+      (data['fitness_hedefi']?.toString().trim().isNotEmpty ?? false);
 }
