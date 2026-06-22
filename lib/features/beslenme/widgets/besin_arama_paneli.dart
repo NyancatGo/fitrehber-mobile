@@ -10,6 +10,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../shared/models/beslenme_model.dart';
 import '../../../shared/services/yerel_besin_veritabani.dart';
@@ -196,6 +197,82 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
     );
   }
 
+  Future<void> _katkiFormuAc() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: const Color(0xFF12141A),
+      builder: (context) {
+        return _BesinKatkiFormu(
+          initialName: _searchCtrl.text.trim(),
+          onSubmit:
+              ({
+                required isim,
+                required kalori100g,
+                required protein100g,
+                required karbonhidrat100g,
+                required yag100g,
+              }) {
+                return ref
+                    .read(beslenmeProvider.notifier)
+                    .besinKatkiGonder(
+                      isim: isim,
+                      kalori100g: kalori100g,
+                      protein100g: protein100g,
+                      karbonhidrat100g: karbonhidrat100g,
+                      yag100g: yag100g,
+                    );
+              },
+        );
+      },
+    );
+  }
+
+  Future<void> _barkodTara() async {
+    final code = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const _BarkodTaramaSayfasi()),
+    );
+    if (!mounted || code == null || code.isEmpty) return;
+
+    final result = await ref
+        .read(beslenmeProvider.notifier)
+        .besinBarkodSorgula(code);
+    if (!mounted) return;
+
+    if (result == null) {
+      _snack('Barkod sorgulanamadı.', hata: true);
+      return;
+    }
+
+    final besinRaw = result['besin'];
+    if (besinRaw is Map) {
+      final besin = BesinModel.fromJson(Map<String, dynamic>.from(besinRaw));
+      widget.onFoodSelected(YerelBesin.fromBesinModel(besin));
+      _snack('Barkod bulundu.');
+      return;
+    }
+
+    final status = result['status']?.toString() ?? '';
+    if (status == 'staged') {
+      _snack('Ürün inceleme kuyruğuna alındı. Şimdilik elle ekleyebilirsin.');
+    } else {
+      _snack('Bu barkod için ürün bulunamadı.', hata: true);
+    }
+  }
+
+  void _snack(String message, {bool hata = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: hata
+            ? const Color(0xFFDC2626)
+            : const Color(0xFF22C55E),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   String _ogunBasligi(String ogunTipi) {
     switch (ogunTipi) {
       case 'sabah':
@@ -240,9 +317,22 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                   color: Colors.white,
                 ),
               ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, color: Colors.white54),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Barkod tara',
+                    onPressed: _barkodTara,
+                    icon: const Icon(
+                      Icons.qr_code_scanner,
+                      color: Color(0xFFF97316),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white54),
+                  ),
+                ],
               ),
             ],
           ),
@@ -298,10 +388,42 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                 )
               : _sonuclar.isEmpty
               ? Center(
-                  child: Text(
-                    'Sonuç bulunamadı.',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Sonuç bulunamadı.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        ElevatedButton.icon(
+                          onPressed: _katkiFormuAc,
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text('Veritabanına öner'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF97316),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Öneriler editör onayından sonra genel aramada görünür.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 )
@@ -322,6 +444,283 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+typedef _BesinKatkiSubmit =
+    Future<bool> Function({
+      required String isim,
+      required int kalori100g,
+      required double protein100g,
+      required double karbonhidrat100g,
+      required double yag100g,
+    });
+
+class _BesinKatkiFormu extends StatefulWidget {
+  final String initialName;
+  final _BesinKatkiSubmit onSubmit;
+
+  const _BesinKatkiFormu({required this.initialName, required this.onSubmit});
+
+  @override
+  State<_BesinKatkiFormu> createState() => _BesinKatkiFormuState();
+}
+
+class _BesinKatkiFormuState extends State<_BesinKatkiFormu> {
+  late final TextEditingController _isimCtrl;
+  final TextEditingController _kcalCtrl = TextEditingController();
+  final TextEditingController _proteinCtrl = TextEditingController();
+  final TextEditingController _karbCtrl = TextEditingController();
+  final TextEditingController _yagCtrl = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isimCtrl = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _isimCtrl.dispose();
+    _kcalCtrl.dispose();
+    _proteinCtrl.dispose();
+    _karbCtrl.dispose();
+    _yagCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _gonder() async {
+    final isim = _isimCtrl.text.trim();
+    final kcal = int.tryParse(_kcalCtrl.text.trim().replaceAll(',', '.'));
+    final protein = double.tryParse(
+      _proteinCtrl.text.trim().replaceAll(',', '.'),
+    );
+    final karb = double.tryParse(_karbCtrl.text.trim().replaceAll(',', '.'));
+    final yag = double.tryParse(_yagCtrl.text.trim().replaceAll(',', '.'));
+    if (isim.length < 2 ||
+        kcal == null ||
+        kcal <= 0 ||
+        protein == null ||
+        karb == null ||
+        yag == null) {
+      _snack('Lütfen 100 g değerlerini eksiksiz gir.', hata: true);
+      return;
+    }
+
+    setState(() => _busy = true);
+    final ok = await widget.onSubmit(
+      isim: isim,
+      kalori100g: kcal,
+      protein100g: protein,
+      karbonhidrat100g: karb,
+      yag100g: yag,
+    );
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (ok) {
+      _snack('Besin önerin inceleme kuyruğuna alındı.');
+      Navigator.pop(context);
+    } else {
+      _snack('Öneri gönderilemedi.', hata: true);
+    }
+  }
+
+  void _snack(String message, {bool hata = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: hata
+            ? const Color(0xFFDC2626)
+            : const Color(0xFF22C55E),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 18, 20, bottom + 20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Besin öner',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '100 g değerlerini gir; editör onayından sonra genel aramaya açılır.',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+            ),
+            const SizedBox(height: 16),
+            _katkiInput(_isimCtrl, 'Besin adı', TextInputType.text),
+            const SizedBox(height: 10),
+            _katkiInput(
+              _kcalCtrl,
+              'Kalori (kcal / 100 g)',
+              TextInputType.number,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _katkiInput(
+                    _proteinCtrl,
+                    'Protein',
+                    TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _katkiInput(_karbCtrl, 'Karb', TextInputType.number),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _katkiInput(_yagCtrl, 'Yağ', TextInputType.number),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton(
+              onPressed: _busy ? null : _gonder,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF97316),
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('İnceleme kuyruğuna gönder'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _katkiInput(
+    TextEditingController controller,
+    String label,
+    TextInputType keyboardType,
+  ) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.05),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+}
+
+class _BarkodTaramaSayfasi extends StatefulWidget {
+  const _BarkodTaramaSayfasi();
+
+  @override
+  State<_BarkodTaramaSayfasi> createState() => _BarkodTaramaSayfasiState();
+}
+
+class _BarkodTaramaSayfasiState extends State<_BarkodTaramaSayfasi> {
+  late final MobileScannerController _controller;
+  bool _done = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      formats: const [
+        BarcodeFormat.ean8,
+        BarcodeFormat.ean13,
+        BarcodeFormat.upcA,
+        BarcodeFormat.upcE,
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_done) return;
+    for (final barcode in capture.barcodes) {
+      final value = barcode.rawValue;
+      if (value != null && value.trim().isNotEmpty) {
+        _done = true;
+        Navigator.pop(context, value.trim());
+        return;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text('Barkod tara'),
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(controller: _controller, onDetect: _onDetect),
+          Center(
+            child: Container(
+              width: 260,
+              height: 180,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFF97316), width: 3),
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 36,
+            child: Text(
+              'Barkodu çerçevenin içine getir.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

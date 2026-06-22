@@ -49,6 +49,13 @@ class ApiSabitleri {
   /// Mobil offline aramada zayıf/boş sonuç sinyali.
   static const String besinlerAramaLog = '$baseUrl/besinler/arama-log/';
 
+  /// Kullanıcı besin önerilerini moderasyon kuyruğuna gönderme.
+  static const String besinlerKatki = '$baseUrl/besinler/katki/';
+
+  /// Barkod sorgulama: önce DB, yoksa sunucu tarafı OpenFoodFacts staging.
+  static const String besinlerBarkodSorgula =
+      '$baseUrl/besinler/barkod-sorgula/';
+
   /// Yerel besin veritabanını sunucuyla senkronlama (offline arama için tek
   /// kaynak). `?since=` ile yalnız değişenler (delta), `offset`/`limit` ile
   /// sayfalı çekilir.

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fitrehber_mobile/shared/models/beslenme_model.dart';
 import 'package:fitrehber_mobile/shared/services/yerel_besin_veritabani.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,6 +66,45 @@ void main() {
     expect(food.varsayilanPorsiyon?.gramEsdegeri, 40);
   });
 
+  test(
+    'YerelBesin.fromBesinModel barkod sonucunu porsiyon akisina cevirir',
+    () {
+      final food = YerelBesin.fromBesinModel(
+        BesinModel.fromJson({
+          'id': 77,
+          'isim': 'Barkodlu Sut',
+          'marka': 'Fit Marka',
+          'barkod': '8690000000092',
+          'kalori_100g': 100,
+          'protein_100g': 10,
+          'karbonhidrat_100g': 10,
+          'yag_100g': 4,
+          'is_verified': false,
+          'quality_score': 95,
+          'quality_status': 'good',
+          'source_type': 'openfoodfacts',
+          'aliases': ['protein sut'],
+          'porsiyonlar': [
+            {
+              'id': 9,
+              'isim': 'Sise',
+              'gram_esdegeri': 250,
+              'varsayilan': true,
+              'sira': 1,
+            },
+          ],
+        }),
+      );
+
+      expect(food.id, '8690000000092');
+      expect(food.besinId, 77);
+      expect(food.isim, 'Barkodlu Sut');
+      expect(food.kalori100g, 100);
+      expect(food.sourceType, 'openfoodfacts');
+      expect(food.varsayilanPorsiyon?.isim, 'Sise');
+    },
+  );
+
   test('hazirla cache varsa bundled asset yerine cache kullanir', () async {
     SharedPreferences.setMockInitialValues({
       YerelBesinVeritabani.cacheKey: jsonEncode([
@@ -120,11 +160,7 @@ void main() {
           isim: 'Reddedilen Besin',
           qualityStatus: 'rejected',
         ),
-        _serverFood(
-          id: 2,
-          kaynakId: 'good-food',
-          isim: 'Gecerli Besin',
-        ),
+        _serverFood(id: 2, kaynakId: 'good-food', isim: 'Gecerli Besin'),
       ]),
     });
     YerelBesinVeritabani.instance.resetForTests();

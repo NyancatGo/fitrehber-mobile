@@ -80,8 +80,7 @@ class YerelBesinVeritabani {
     _besinler = besinler
         .where((f) => f.kalori100g > 0 && f.qualityStatus != 'rejected')
         .toList();
-    _siraliBesinler = List<YerelBesin>.from(_besinler!)
-      ..sort(_besinSirala);
+    _siraliBesinler = List<YerelBesin>.from(_besinler!)..sort(_besinSirala);
   }
 
   /// Senkron sonrasi (BesinSenkronServisi) bellegi taze cache verisiyle tazeler.
@@ -386,6 +385,44 @@ class YerelBesin {
       sourceType: (json['source_type'] ?? 'manual').toString(),
       aliases: aliases,
       porsiyonlar: pList,
+    );
+  }
+
+  factory YerelBesin.fromBesinModel(BesinModel model) {
+    final isim = model.isim.trim();
+    final marka = (model.marka ?? '').trim();
+    final aramaAdi = YerelBesinVeritabani._turkceKucult(isim);
+    final aramaMarkasi = YerelBesinVeritabani._turkceKucult(marka);
+    final aramaAliaslari = model.aliases
+        .map(YerelBesinVeritabani._turkceKucult)
+        .join(' ');
+
+    return YerelBesin(
+      id: model.barkod ?? 'server:${model.id}',
+      besinId: model.id,
+      isim: isim,
+      isimIngilizce: '',
+      marka: marka,
+      aramaAdi: aramaAdi,
+      aramaIngilizceAdi: '',
+      aramaMarkasi: aramaMarkasi,
+      aramaMetni: '$aramaAdi $aramaMarkasi $aramaAliaslari',
+      kalori100g: model.kalori100g.toDouble(),
+      protein100g: model.protein100g,
+      karbonhidrat100g: model.karbonhidrat100g,
+      yag100g: model.yag100g,
+      sodyum100g: 0,
+      potasyum100g: 0,
+      kolesterol100g: 0,
+      lif100g: 0,
+      seker100g: 0,
+      doymusYag100g: 0,
+      dogrulanmisMi: model.dogrulanmisMi,
+      qualityScore: model.qualityScore,
+      qualityStatus: model.qualityStatus,
+      sourceType: model.sourceType,
+      aliases: model.aliases,
+      porsiyonlar: model.porsiyonlar,
     );
   }
 

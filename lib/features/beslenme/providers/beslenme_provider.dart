@@ -160,12 +160,46 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     required int resultCount,
   }) async {
     try {
-      await _api.besinAramaLoguGonder(
-        query: query,
-        resultCount: resultCount,
-      );
+      await _api.besinAramaLoguGonder(query: query, resultCount: resultCount);
     } catch (e) {
       debugPrint('[BeslenmeDenetleyici.besinAramaLoguGonder] $e');
+    }
+  }
+
+  Future<bool> besinKatkiGonder({
+    required String isim,
+    required int kalori100g,
+    required double protein100g,
+    required double karbonhidrat100g,
+    required double yag100g,
+  }) async {
+    try {
+      await _api.besinKatkiGonder(
+        isim: isim,
+        kalori100g: kalori100g,
+        protein100g: protein100g,
+        karbonhidrat100g: karbonhidrat100g,
+        yag100g: yag100g,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[BeslenmeDenetleyici.besinKatkiGonder] $e');
+      if (mounted) {
+        state = state.copyWith(hata: _mesaj(e));
+      }
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> besinBarkodSorgula(String barkod) async {
+    try {
+      return await _api.besinBarkodSorgula(barkod);
+    } catch (e) {
+      debugPrint('[BeslenmeDenetleyici.besinBarkodSorgula] $e');
+      if (mounted) {
+        state = state.copyWith(hata: _mesaj(e));
+      }
+      return null;
     }
   }
 
@@ -220,7 +254,9 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
       state = state.copyWith(hata: 'Miktar sıfırdan büyük olmalı.');
       return false;
     }
-    if (yeniMiktar == eski.miktar && porsiyonId == eski.porsiyon?.id) return true; // Değişiklik yok.
+    if (yeniMiktar == eski.miktar && porsiyonId == eski.porsiyon?.id) {
+      return true; // Değişiklik yok.
+    }
 
     final tarih = state.seciliTarih;
     state = state.copyWith(isLoading: true, clearHata: true);

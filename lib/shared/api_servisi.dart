@@ -541,8 +541,7 @@ class ApiServisi {
     final cleanedData = Map<String, dynamic>.from(data)
       ..removeWhere(
         (key, value) =>
-            value == null &&
-            !{'boy', 'kilo', 'hedef_kilo'}.contains(key),
+            value == null && !{'boy', 'kilo', 'hedef_kilo'}.contains(key),
       );
     cleanedData.remove('dogum_tarihi');
 
@@ -714,6 +713,64 @@ class ApiServisi {
       response.statusCode,
       unauthorizedMessage: 'Oturum süren dolmuş.',
       defaultMessage: 'Besin arama sinyali gönderilemedi.',
+    );
+  }
+
+  /// Kullanıcının 100 g referanslı besin önerisini moderasyon kuyruğuna yollar.
+  Future<Map<String, dynamic>> besinKatkiGonder({
+    required String isim,
+    required int kalori100g,
+    required double protein100g,
+    required double karbonhidrat100g,
+    required double yag100g,
+    String? marka,
+    String? barkod,
+  }) async {
+    final token = await _accessTokenYoksaHataVer(
+      'Besin önerisi göndermek için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiSabitleri.besinlerKatki,
+      data: {
+        'isim': isim.trim(),
+        if (marka != null && marka.trim().isNotEmpty) 'marka': marka.trim(),
+        if (barkod != null && barkod.trim().isNotEmpty) 'barkod': barkod.trim(),
+        'kalori_100g': kalori100g,
+        'protein_100g': protein100g,
+        'karbonhidrat_100g': karbonhidrat100g,
+        'yag_100g': yag100g,
+      },
+      options: _kimlikSecenekleri(token),
+    );
+    if (response.statusCode == 201 && response.data is Map) {
+      return Map<String, dynamic>.from(response.data as Map);
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Besin önerisi gönderilemedi.',
+    );
+  }
+
+  /// Barkodu sunucuda sorgular. Sunucu önce DB'ye, yoksa OpenFoodFacts'a bakar.
+  Future<Map<String, dynamic>> besinBarkodSorgula(String barkod) async {
+    final token = await _accessTokenYoksaHataVer(
+      'Barkod sorgulamak için giriş yapmalısın.',
+    );
+    final response = await _dio.post(
+      ApiSabitleri.besinlerBarkodSorgula,
+      data: {'barkod': barkod.trim()},
+      options: _kimlikSecenekleri(token),
+    );
+    if (response.statusCode == 200 && response.data is Map) {
+      return Map<String, dynamic>.from(response.data as Map);
+    }
+    throw _hataAyikla(
+      response.data,
+      response.statusCode,
+      unauthorizedMessage: 'Oturum süren dolmuş.',
+      defaultMessage: 'Barkod sorgulanamadı.',
     );
   }
 
