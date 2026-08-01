@@ -90,9 +90,12 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
+  # NOT: Besin verisi artik uygulamayla PAKETLENMEZ. Tek kaynak sunucudaki
+  # posts_besin tablosudur; cihaza /api/besinler/sync/ ile iner
+  # (bkz. BesinSenkronServisi). Bundled seed kaldirildi cunku seed'den secilen
+  # besin gercek besin_id tasimiyordu -> ogun kaydi custom-food yoluna dusuyor,
+  # porsiyon desteklenmiyor ve kayit besin veritabanindan kalici kopuk kaliyordu.
   assets:
-    - assets/data/
-    - assets/data/foods_cleaned.json
     - assets/icons/
   #   - images/a_dot_burr.jpeg
 

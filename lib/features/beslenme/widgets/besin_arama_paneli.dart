@@ -2,8 +2,9 @@
 // BESİN ARAMA ALT SAYFASI
 // ---------------------------------------------------------------------------
 // Bir öğüne besin eklerken açılan tam ekran arama alt sayfası. Kullanıcı besin
-// arar, listeden seçer, miktarı belirler ve öğüne ekler. Arama, yerel besin
-// veritabanı üzerinde anında (internet gerektirmeden) çalışır.
+// arar, listeden seçer, miktarı belirler ve öğüne ekler. Arama, senkronlanmış
+// yerel önbellek üzerinde anında (internet gerektirmeden) çalışır — ancak
+// önbelleğin dolması için en az bir kez sunucu senkronu gerekir.
 // ---------------------------------------------------------------------------
 
 import 'dart:async';
@@ -13,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../shared/models/beslenme_model.dart';
+import '../../../shared/services/besin_senkron_servisi.dart';
 import '../../../shared/services/yerel_besin_veritabani.dart';
 import '../providers/beslenme_provider.dart';
 
@@ -126,12 +128,17 @@ class _BesinAramaGorunumu extends ConsumerStatefulWidget {
       _BesinAramaGorunumuDurumu();
 }
 
+/// Besin veritabaninin ekran acisindan durumu. Bundled seed kaldirildigi icin
+/// ilk senkron tamamlanmadan arama yapilamaz; bu yuzden "indiriliyor" ve
+/// "indirilemedi" durumlari kullaniciya acikca gosterilir.
+enum _VeritabaniDurumu { yukleniyor, hazir, basarisiz }
+
 class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
   static const _searchDebounceDuration = Duration(milliseconds: 180);
 
   final TextEditingController _searchCtrl = TextEditingController();
   List<YerelBesin> _sonuclar = [];
-  bool _isInit = false;
+  _VeritabaniDurumu _durum = _VeritabaniDurumu.yukleniyor;
   Timer? _searchDebounce;
   String? _sonLoglananArama;
 
@@ -142,13 +149,23 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
   }
 
   Future<void> _initDb() async {
+    if (mounted) setState(() => _durum = _VeritabaniDurumu.yukleniyor);
+
+    // Once onbellek: varsa arama aninda acilir.
     await YerelBesinVeritabani.instance.hazirla();
-    if (mounted) {
-      setState(() {
-        _isInit = true;
-        _sonuclar = YerelBesinVeritabani.instance.tumunuGetir();
-      });
+
+    // Onbellek bosSA (ilk kurulum / temizlenmis veri) ilk senkronu BEKLE.
+    // Fire-and-forget degil: kullanici veri inmeden arama yapamaz.
+    var hazir = YerelBesinVeritabani.instance.hazirMi;
+    if (!hazir) {
+      hazir = await BesinSenkronServisi.instance.senkronEt(zorla: true);
     }
+
+    if (!mounted) return;
+    setState(() {
+      _durum = hazir ? _VeritabaniDurumu.hazir : _VeritabaniDurumu.basarisiz;
+      _sonuclar = hazir ? YerelBesinVeritabani.instance.tumunuGetir() : const [];
+    });
   }
 
   @override
@@ -382,10 +399,10 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
         const SizedBox(height: 12),
         // Sonuç Listesi
         Expanded(
-          child: !_isInit
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFF97316)),
-                )
+          child: _durum == _VeritabaniDurumu.yukleniyor
+              ? const _VeritabaniHazirlaniyor()
+              : _durum == _VeritabaniDurumu.basarisiz
+              ? _VeritabaniIndirilemedi(onTekrarDene: _initDb)
               : _sonuclar.isEmpty
               ? Center(
                   child: Padding(
@@ -1513,6 +1530,108 @@ class _MikroOgesi extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Ilk senkron devam ederken gosterilir. Bundled seed kaldirildigi icin besin
+/// verisi yalniz sunucudan gelir; bu bekleme yalnizca ilk kurulumda (veya
+/// onbellek temizlenmisse) bir kez yasanir, sonrasinda onbellek kalicidir.
+class _VeritabaniHazirlaniyor extends StatelessWidget {
+  const _VeritabaniHazirlaniyor();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFFF97316)),
+            const SizedBox(height: 18),
+            const Text(
+              'Besin veritabanı hazırlanıyor…',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Bu yalnızca ilk kullanımda bir kez yapılır. '
+              'Sonrasında arama internetsiz de çalışır.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ilk senkron basarisiz oldugunda gosterilir (ag yok / sunucu hatasi).
+/// Ogun kaydi da API uzerinden gittigi icin bu durumda yapilabilecek tek
+/// anlamli aksiyon baglanti duzeldiginde tekrar denemektir.
+class _VeritabaniIndirilemedi extends StatelessWidget {
+  const _VeritabaniIndirilemedi({required this.onTekrarDene});
+
+  final VoidCallback onTekrarDene;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 44,
+              color: Colors.white.withValues(alpha: 0.35),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Besin veritabanı indirilemedi',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'İnternet bağlantını kontrol edip tekrar dene.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: onTekrarDene,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Tekrar dene'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF97316),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

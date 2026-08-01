@@ -1,22 +1,26 @@
 // ---------------------------------------------------------------------------
 // YEREL BESİN VERİTABANI SERVİSİ
 // ---------------------------------------------------------------------------
-// Uygulamayla birlikte gelen iki JSON dosyasından (genel besinler + Türkiye
-// markalı ürünler) besin araması yapar. Veri uygulama açılışında bir kez
+// Sunucudan senkronlanmış besin önbelleği üzerinde arama yapar. Önbellek bir kez
 // belleğe yüklenir; böylece tüm aramalar internet gerektirmeden, anında çalışır.
+//
+// TEK KAYNAK: sunucudaki `posts_besin` tablosu. Uygulamayla birlikte gelen
+// bundled JSON seed KALDIRILDI — çünkü seed'den seçilen besin gerçek `besin_id`
+// taşımıyordu ve öğün kaydı custom-food yoluna düşüyordu (porsiyon desteği yok,
+// makrolar istemcide hesaplanıyor, kayıt besin veritabanından kalıcı kopuk).
+// Önbellek boşsa arama yapılmaz; `BesinSenkronServisi` ile ilk senkron beklenir.
 // ---------------------------------------------------------------------------
 
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show compute, visibleForTesting;
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/beslenme_model.dart';
 
-/// Yerel JSON veritabanından besin araması yapan servis.
-/// Uygulama başlatıldığında dosya bir kez okunup bellekte tutulur.
-/// Tüm aramalar offline (milisaniye düzeyinde) gerçekleşir.
+/// Senkron önbelleğinden besin araması yapan servis.
+/// Önbellek bir kez okunup bellekte tutulur; aramalar offline (milisaniye
+/// düzeyinde) gerçekleşir.
 class YerelBesinVeritabani {
   YerelBesinVeritabani._();
   static final instance = YerelBesinVeritabani._();
@@ -42,10 +46,9 @@ class YerelBesinVeritabani {
     _hazirlaniyor = null;
   }
 
-  /// Veritabanını bellekte hazırlar. İki kaynak yüklenir:
-  ///   - foods_cleaned.json   → generic foods (curated)
-  ///   - foods_brands_tr.json → Türkiye'deki markalı ürünler (OpenFoodFacts)
-  /// İkincisi yoksa veya bozuksa sadece birincisi kullanılır.
+  /// Veritabanını bellekte hazırlar. Kaynak yalnızca senkron önbelleğidir;
+  /// önbellek yoksa bellek boş kalır ve [hazirMi] false döner (çağıran taraf
+  /// `BesinSenkronServisi.senkronEt` ile ilk senkronu tetiklemelidir).
   Future<void> hazirla() async {
     if (_besinler != null) return;
     final devamEdenHazirlik = _hazirlaniyor;
@@ -55,18 +58,14 @@ class YerelBesinVeritabani {
     return _hazirlaniyor!;
   }
 
+  /// Arama yapılabilecek kadar veri bellekte mi? İlk senkron tamamlanmadan
+  /// (veya önbellek temizlenmişse) false döner.
+  bool get hazirMi => (_besinler?.isNotEmpty ?? false);
+
   Future<void> _tumunuYukle() async {
     try {
-      // Oncelik: sunucudan senkronlanmis cache (gercek besin_id'li). Yoksa
-      // (ilk acilis / henuz senkron olmadi) uygulamayla gelen bundled seed.
       final cached = await _cachetenOku();
-      if (cached != null && cached.isNotEmpty) {
-        _kur(cached);
-        return;
-      }
-      final genel = await _dosyaYukle('assets/data/foods_cleaned.json');
-      final markali = await _dosyaYukle('assets/data/foods_brands_tr.json');
-      _kur([...genel, ...markali]);
+      _kur(cached ?? const []);
     } catch (e) {
       _besinler = [];
       _siraliBesinler = [];
@@ -76,9 +75,16 @@ class YerelBesinVeritabani {
   }
 
   /// Verilen besin listesini bellege kurar (kalorisizleri eler, alfabetik siralar).
+  /// `besinId <= 0` olan kayit sunucu PK'si tasimadigi icin elenir — bu kayittan
+  /// ogun eklenirse custom-food yoluna duserdi (bkz. dosya basligi).
   void _kur(List<YerelBesin> besinler) {
     _besinler = besinler
-        .where((f) => f.kalori100g > 0 && f.qualityStatus != 'rejected')
+        .where(
+          (f) =>
+              f.besinId > 0 &&
+              f.kalori100g > 0 &&
+              f.qualityStatus != 'rejected',
+        )
         .toList();
     _siraliBesinler = List<YerelBesin>.from(_besinler!)..sort(_besinSirala);
   }
@@ -97,16 +103,6 @@ class YerelBesinVeritabani {
       return compute(_cacheCoz, raw);
     } catch (_) {
       return null;
-    }
-  }
-
-  /// Tek bir JSON dosyasını yükler; bulunamazsa veya bozuksa boş liste döner.
-  Future<List<YerelBesin>> _dosyaYukle(String assetYolu) async {
-    try {
-      final jsonMetni = await rootBundle.loadString(assetYolu);
-      return compute(_besinleriCoz, jsonMetni);
-    } catch (_) {
-      return const [];
     }
   }
 
@@ -204,14 +200,6 @@ class YerelBesinVeritabani {
   }
 }
 
-List<YerelBesin> _besinleriCoz(String jsonMetni) {
-  final list = json.decode(jsonMetni) as List<dynamic>;
-  return list
-      .whereType<Map>()
-      .map((item) => YerelBesin.fromJson(Map<String, dynamic>.from(item)))
-      .toList();
-}
-
 /// Senkron cache JSON'unu (sunucu formati) cozer — compute izolatinda calisir.
 List<YerelBesin> _cacheCoz(String jsonMetni) {
   final list = json.decode(jsonMetni) as List<dynamic>;
@@ -227,14 +215,14 @@ class _PuanliBesin {
   _PuanliBesin(this.besin, this.puan);
 }
 
-/// Yerel JSON'dan okunan tek bir besin maddesi.
+/// Senkron onbelleginden okunan tek bir besin maddesi.
 class YerelBesin {
   final String id;
 
-  /// Sunucudaki Besin PK'si. Senkronlanmis kayitta dolu, bundled seed'de null.
-  /// Doluysa ogun eklerken `besin_id` olarak gonderilir -> kayit dogrulanmis
-  /// olur and makrolari sunucu hesaplar (web ile birebir tutarli).
-  final int? besinId;
+  /// Sunucudaki Besin PK'si — her zaman dolu. Ogun eklerken `besin_id` olarak
+  /// gonderilir; makrolari sunucu kendi tablosundan hesaplar (web ile birebir
+  /// tutarli, porsiyon destekli, sonradan duzeltilebilir kayit).
+  final int besinId;
   final String isim;
   final String isimIngilizce;
   final String marka; // OFF kaynağı için marka adı; generic foods'ta boş.
@@ -268,7 +256,7 @@ class YerelBesin {
 
   const YerelBesin({
     required this.id,
-    this.besinId,
+    required this.besinId,
     required this.isim,
     required this.isimIngilizce,
     this.marka = '',
@@ -294,49 +282,8 @@ class YerelBesin {
     this.porsiyonlar = const [],
   });
 
-  factory YerelBesin.fromJson(Map<String, dynamic> json) {
-    final isim = (json['isim'] ?? '').toString().trim();
-    final isimIngilizce = (json['isim_ingilizce'] ?? '').toString().trim();
-    final marka = (json['brand'] ?? '').toString().trim();
-    final aramaAdi = YerelBesinVeritabani._turkceKucult(isim);
-    final aramaIngilizceAdi = YerelBesinVeritabani._turkceKucult(isimIngilizce);
-    final aramaMarkasi = YerelBesinVeritabani._turkceKucult(marka);
-    final aliases = _stringList(json['aliases']);
-    final aramaAliaslari = aliases
-        .map(YerelBesinVeritabani._turkceKucult)
-        .join(' ');
-
-    return YerelBesin(
-      id: (json['id'] ?? '').toString(),
-      isim: isim,
-      isimIngilizce: isimIngilizce,
-      marka: marka,
-      aramaAdi: aramaAdi,
-      aramaIngilizceAdi: aramaIngilizceAdi,
-      aramaMarkasi: aramaMarkasi,
-      aramaMetni: '$aramaAdi $aramaIngilizceAdi $aramaMarkasi $aramaAliaslari',
-      kalori100g: _d(json['kalori100g']),
-      protein100g: _d(json['protein100g']),
-      karbonhidrat100g: _d(json['karbonhidrat100g']),
-      yag100g: _d(json['yag100g']),
-      sodyum100g: _d(json['sodyum100g']),
-      potasyum100g: _d(json['potasyum100g']),
-      kolesterol100g: _d(json['kolesterol100g']),
-      lif100g: _d(json['lif100g']),
-      seker100g: _d(json['seker100g']),
-      doymusYag100g: _d(json['doymus_yag100g']),
-      dogrulanmisMi: json['isVerified'] as bool? ?? false,
-      qualityScore: _i(json['quality_score']),
-      qualityStatus: (json['quality_status'] ?? 'needs_review').toString(),
-      sourceType: (json['source_type'] ?? 'manual').toString(),
-      aliases: aliases,
-      porsiyonlar: const [],
-    );
-  }
-
   /// Sunucudan senkronlanmis besin kaydindan olusturur (BesinSyncSerializer).
-  /// Bundled JSON'dan farkli alan adlari: `kalori_100g`, `marka`, `is_verified`
-  /// ve server PK'si `id`. `kaynak_id` yerel `id` olarak tutulur.
+  /// Server PK'si `id` -> [besinId]; `kaynak_id` yerel [id] olarak tutulur.
   factory YerelBesin.fromCache(Map<String, dynamic> json) {
     final isim = (json['isim'] ?? '').toString().trim();
     final isimIngilizce = (json['isim_ingilizce'] ?? '').toString().trim();
@@ -361,7 +308,8 @@ class YerelBesin {
 
     return YerelBesin(
       id: (json['kaynak_id'] ?? '').toString(),
-      besinId: (json['id'] as num?)?.toInt(),
+      // PK yoksa 0 kalir; _kur() bu kayitlari eler.
+      besinId: (json['id'] as num?)?.toInt() ?? 0,
       isim: isim,
       isimIngilizce: isimIngilizce,
       marka: marka,

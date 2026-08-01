@@ -5,6 +5,9 @@
 // önbelleğine indirir. Böylece arama OFFLINE ve anlık kalırken, eklenen besinler
 // gerçek `besin_id` taşır (web ile birebir tutarlı, "doğrulanmış" kayıt).
 //
+// Bundled JSON seed kaldırıldığı için bu senkron artık besin aramasının TEK
+// veri kaynağıdır: ilk senkron tamamlanmadan arama yapılamaz.
+//
 // Akış:
 //   1) İlk senkron (since yok)  -> tüm besinler sayfa sayfa indirilir.
 //   2) Sonraki senkronlar       -> yalnız `updated_at > son_server_time` olanlar.
@@ -49,13 +52,19 @@ class BesinSenkronServisi {
 
   /// Gerekiyorsa besin veritabanını senkronlar. Fire-and-forget çağrılabilir;
   /// hata fırlatmaz. [zorla] true ise throttle atlanır.
-  Future<void> senkronEt({bool zorla = false}) async {
-    if (_calisiyor) return;
+  ///
+  /// Dönüş: çağrı sonrası arama yapılabilir durumda mıyız
+  /// ([YerelBesinVeritabani.hazirMi]). İlk senkronu bekleyen ekranlar bu değere
+  /// bakarak "hazır" / "başarısız" durumunu ayırt eder.
+  Future<bool> senkronEt({bool zorla = false}) async {
+    if (_calisiyor) return YerelBesinVeritabani.instance.hazirMi;
     _calisiyor = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       final schemaGuncel = prefs.getInt(_schemaVersionKey) == _schemaVersion;
-      if (!zorla && schemaGuncel && !_zamaniGeldi(prefs)) return;
+      if (!zorla && schemaGuncel && !_zamaniGeldi(prefs)) {
+        return YerelBesinVeritabani.instance.hazirMi;
+      }
 
       final lastSync = prefs.getString(YerelBesinVeritabani.lastSyncKey);
       final mevcutCache = prefs.getString(YerelBesinVeritabani.cacheKey) ?? '';
@@ -113,8 +122,10 @@ class BesinSenkronServisi {
         DateTime.now().toIso8601String(),
       );
       await prefs.setInt(_schemaVersionKey, _schemaVersion);
+      return YerelBesinVeritabani.instance.hazirMi;
     } catch (e) {
       debugPrint('[BesinSenkron] atlandı (önbellek korunuyor): $e');
+      return YerelBesinVeritabani.instance.hazirMi;
     } finally {
       _calisiyor = false;
     }

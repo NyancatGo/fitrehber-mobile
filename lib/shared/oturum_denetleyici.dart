@@ -6,6 +6,8 @@
 // ekrana yönlendirir. Ağ kesintisinde token'ı silme kararı burada verilmez.
 // ---------------------------------------------------------------------------
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,7 @@ import 'api_servisi.dart';
 import 'kimlik_servisi.dart';
 import 'google_oauth_akisi.dart';
 import 'models/profil_model.dart';
+import 'services/besin_senkron_servisi.dart';
 
 /// Kimlik doğrulama servisini sağlayan provider.
 final kimlikServisiProvider = Provider<KimlikServisi>((ref) => KimlikServisi());
@@ -206,10 +209,22 @@ class OturumDenetleyici extends StateNotifier<OturumDurumu> {
         oturumVarMi: true,
         profile: profile,
       );
+      _besinSenkronunuTetikle();
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
       rethrow;
     }
+  }
+
+  /// Besin veritabanını arka planda indirmeye başlatır (fire-and-forget).
+  ///
+  /// Oturum kurulur kurulmaz çağrılır — beslenme ekranı açılmasını beklemeyiz.
+  /// Bundled JSON seed kaldırıldığı için besin araması bu senkrona bağımlı;
+  /// erken tetikleyerek kullanıcının "veritabanı hazırlanıyor" ekranını görme
+  /// ihtimalini en aza indiriyoruz. `senkronEt` kendi 6 saatlik throttle'ına
+  /// sahip olduğu için her oturumda ağ trafiği oluşturmaz ve hata fırlatmaz.
+  void _besinSenkronunuTetikle() {
+    unawaited(BesinSenkronServisi.instance.senkronEt());
   }
 
   /// Oturumu kapatır ve durumu sıfırlar.
@@ -233,6 +248,7 @@ class OturumDenetleyici extends StateNotifier<OturumDurumu> {
         oturumVarMi: true,
         profile: profile,
       );
+      _besinSenkronunuTetikle();
     } catch (error) {
       // ApiServisi 401/403'ü DioException olarak değil, okunabilir hata olarak
       // döndürür. DioException daha çok ağ kesintisidir; çevrimdışıyken
