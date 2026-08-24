@@ -100,10 +100,18 @@ class _ProfilIcerigi extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
             sliver: SliverList.list(
               children: [
-                _BiyometrikKartlar(profile: profile),
-                const SizedBox(height: 14),
-                _HedefIlerlemeKarti(profile: profile),
-                const SizedBox(height: 14),
+                // Biyometri ve hedef ilerlemesi kişisel veridir. Sunucu bu
+                // alanları artık yalnız profil sahibine döndürüyor (API
+                // ProfilSerializer.SAHIBE_OZEL_ALANLAR); başkasının
+                // profilinde kartlar boş görüneceği için burada da
+                // gizliyoruz. Web'de aynı kural profil.html'deki BİYOMETRİ
+                // bloğunda uygulanıyor.
+                if (isOwnProfile) ...[
+                  _BiyometrikKartlar(profile: profile),
+                  const SizedBox(height: 14),
+                  _HedefIlerlemeKarti(profile: profile),
+                  const SizedBox(height: 14),
+                ],
                 if (profile.achievements.isNotEmpty) ...[
                   _RozetlerBolumu(achievements: profile.achievements),
                   const SizedBox(height: 14),
