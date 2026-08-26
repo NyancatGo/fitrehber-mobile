@@ -41,7 +41,14 @@ String kullaniciDostuHata(Object hata) {
         return 'İstek iptal edildi.';
       case DioExceptionType.badResponse:
         return 'Sunucu beklenmeyen bir yanıt döndü. Lütfen tekrar dene.';
-      case DioExceptionType.unknown:
+      // DioExceptionType.unknown ve dio'nun ileride ekleyeceği tipler.
+      //
+      // Açık uç (default) bilerek duruyor: bu enum bize ait değil, dio her
+      // minor sürümde yeni değer ekleyebiliyor. Nitekim ekledi de — dio 5.11
+      // `transformTimeout` getirdi, buradaki switch exhaustive olmaktan çıktı
+      // ve temiz bir checkout'ta uygulama DERLENMEZ hâle geldi. Sürüm
+      // `^5.4.3` olduğu için pub bu sürümü çekmekte serbest.
+      default:
         return 'Beklenmeyen bir hata oluştu. Lütfen tekrar dene.';
     }
   }

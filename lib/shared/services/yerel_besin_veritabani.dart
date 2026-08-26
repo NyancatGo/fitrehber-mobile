@@ -186,9 +186,22 @@ class YerelBesinVeritabani {
     return besinler.take(sinir).toList();
   }
 
-  /// Türkçe küçük harf dönüşümü (İ->i, I->ı gibi).
+  /// Arama anahtari uretir: once Turkce kucuk harf, sonra ASCII katlama.
+  ///
+  /// Iki asama ayri ayri gerekli:
+  ///   1. Buyuk harf esleme (İ->i, I->ı) — Dart'in `toLowerCase()`'i Unicode
+  ///      varsayilanini kullanir, 'İ' icin 'i' + birlesik nokta uretir. Bu
+  ///      esleme once yapilmazsa anahtarin icinde gorunmez bir karakter kalir.
+  ///   2. ASCII katlama (ı->i, ğ->g, ...) — kullanici mobil klavyede Turkce
+  ///      karakter yazmiyor: "gogsu", "corba", "cikolata". Katlama olmadan bu
+  ///      sorgular hicbir seye eslesmiyordu.
+  ///
+  /// Hem sorgu hem de indeks (bkz. [YerelBesin.fromCache]) bu fonksiyondan
+  /// gectigi icin iki taraf her zaman ayni alfabede kalir. Sunucudaki
+  /// `normalize_food_text` ile ayni sonucu uretmesi GEREKMEZ — karsilastirma
+  /// daima istemci icinde, kendi urettigi anahtarlar arasinda yapilir.
   static String _turkceKucult(String s) {
-    return s
+    final kucuk = s
         .replaceAll('İ', 'i')
         .replaceAll('I', 'ı')
         .replaceAll('Ğ', 'ğ')
@@ -197,6 +210,13 @@ class YerelBesinVeritabani {
         .replaceAll('Ö', 'ö')
         .replaceAll('Ç', 'ç')
         .toLowerCase();
+    return kucuk
+        .replaceAll('ı', 'i')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ş', 's')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c');
   }
 }
 
