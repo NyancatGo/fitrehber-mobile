@@ -131,14 +131,74 @@ class KimlikServisi {
       data['access'],
       data['refresh'],
     );
-    await _tokenKaydet(kullanici.accessToken, kullanici.refreshToken);
+    await _tokenKaydet(
+      kullanici.accessToken,
+      kullanici.refreshToken,
+      expiresIn: data['expires_in'],
+    );
     await _kullaniciKaydet(kullaniciJson);
     return kullanici;
   }
 
-  Future<void> _tokenKaydet(String access, String refresh) async {
+  /// Access token'in bitiş zamanı (epoch ms). Proaktif yenileme için.
+  static const _accessExpiryKey = 'access_token_expires_at';
+
+  /// Access token bitiş zamanının BELLEKTEKI kopyasi (tüm örneklerde paylaşılan).
+  ///
+  /// Neden bellekte de tutuyoruz? Proaktif yenileme kontrolü HER istek
+  /// öncesinde çalışır; güvenli depoya (secure storage) her istekte erişmek
+  /// hem gereksiz I/O'dur hem de platform eklentisine bağımlılık yaratır
+  /// (masaüstü eklentileri test ortamında takılabiliyor).
+  ///
+  /// Neden statik? KimlikServisi birden fazla yerde örnekleniyor (ApiServisi
+  /// ve Riverpod provider ayrı örnekler oluşturuyor). Süre tek oturuma
+  /// ait olduğu için statik tutulur; böylece hangi örnekten girilirse
+  /// girelsin aynı bilgi görülür.
+  static int? _accessBitisMs;
+
+  Future<void> _tokenKaydet(
+    String access,
+    String refresh, {
+    Object? expiresIn,
+  }) async {
     await _storage.write(key: 'access_token', value: access);
     await _storage.write(key: 'refresh_token', value: refresh);
+    await _sureYaz(expiresIn);
+  }
+
+  /// `expires_in` (saniye) bilgisi yoksa süreyi temizler — böylece istemci
+  /// "süre bilinmiyor" durumunda her istekte yenileme yapmaz, eski davranışı
+  /// (401'e düşünce yenileme) sürdürür.
+  Future<void> _sureYaz(Object? expiresIn) async {
+    // JSON'dan int veya double gelebilir; ikisini de tolere ediyoruz.
+    final saniye = expiresIn is num
+        ? expiresIn.toInt()
+        : int.tryParse(expiresIn?.toString() ?? '');
+    if (saniye == null || saniye <= 0) {
+      _accessBitisMs = null;
+      await _storage.delete(key: _accessExpiryKey);
+      return;
+    }
+    final bitis = DateTime.now()
+        .add(Duration(seconds: saniye))
+        .millisecondsSinceEpoch;
+    _accessBitisMs = bitis;
+    await _storage.write(key: _accessExpiryKey, value: '$bitis');
+  }
+
+  /// Uygulama acilisinda saklanan token suresini bellege yukler.
+  ///
+  /// Oturum yuklemesi sirasinda (token okunurken) cagrilir; boylece istek
+  /// yolunda guvenli depoya erisim olmaz.
+  Future<void> sureYukle() async {
+    try {
+      final ham = await _storage.read(key: _accessExpiryKey);
+      _accessBitisMs = (ham == null || ham.isEmpty)
+          ? null
+          : int.tryParse(ham);
+    } catch (_) {
+      _accessBitisMs = null;
+    }
   }
 
   Future<void> _kullaniciKaydet(dynamic kullanici) async {
@@ -180,6 +240,27 @@ class KimlikServisi {
     });
   }
 
+  /// Access token'in omru dolmak uzereyse (veya suresi bilinmiyorsa) yeniler.
+  ///
+  /// Proaktif yenileme: once her uygulama acilisinda ilk istek 401 aliyor,
+  /// sonra yenileme yapiliyor ve istek tekrarlaniyordu. Simdi token suresi
+  /// biliniyorsa istek ATILMADAN once yenileme yapilir.
+  ///
+  /// Guvenli davranis: sure bilinmiyorsa hicbir sey yapilmaz (eski
+  /// davranis — 401'e dusulunce yenilenir). Yalnizca BELLEKTEKI surEYi
+  /// kullanir; istek yolunda guvenli depoya erisim yapilmaz.
+  Future<bool> accessTokenGerekiyorsaYenile({
+    Duration pay = const Duration(seconds: 60),
+  }) async {
+    final bitis = _accessBitisMs;
+    if (bitis == null) return false;
+
+    final kalanMs = bitis - DateTime.now().millisecondsSinceEpoch;
+    if (kalanMs > pay.inMilliseconds) return false;
+
+    return accessTokenYenile();
+  }
+
   Future<bool> _performTokenRefresh() async {
     final refresh = await _storage.read(key: 'refresh_token');
     if (refresh == null || refresh.isEmpty) return false;
@@ -202,6 +283,9 @@ class KimlikServisi {
         if (newRefresh != null && newRefresh.isNotEmpty) {
           await _storage.write(key: 'refresh_token', value: newRefresh);
         }
+        // Yeni access token'in suresi de guncellenmeli; aksi halde bir sonraki
+        // istekte "sure doldu" sanip tekrar yenilemeye kalkardi.
+        await _sureYaz(data['expires_in']);
         return true;
       }
       return false;

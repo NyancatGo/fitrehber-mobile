@@ -30,9 +30,12 @@ import 'models/yorum_model.dart';
 /// istekleri kapsar; hata yönetimi ve token yenileme de buradan yürür.
 class ApiServisi {
   ApiServisi() {
-    // 401 burada yakalanır; refresh başarılıysa aynı istek tek kez yenilenir.
-    // Başarısız olursa 401 üst katmana döner, oturum kapatma kararını UI/state verir.
-    _dio.interceptors.add(InterceptorsWrapper(onResponse: _onResponse));
+    // onRequest: tokenin omru dolmak uzereyse istek ATILMADAN once yenilenir
+    // (proaktif yenileme). onResponse: 401 gelirse bir kez sessizce yeniler.
+    // Basarisiz olursa 401 ust katmana doner, oturum kapatma kararini UI/state verir.
+    _dio.interceptors.add(
+      InterceptorsWrapper(onRequest: _onRequest, onResponse: _onResponse),
+    );
   }
 
   final Dio _dio = Dio(
@@ -46,6 +49,28 @@ class ApiServisi {
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final KimlikServisi _kimlikServisi = KimlikServisi();
+
+  /// Proaktif token yenileme: access tokenin omru dolmak uzereyse istek
+  /// gonderilmeden once yenilenir.
+  ///
+  /// Onceki davranista her uygulama acilisinda ilk istek 401 aliyor, sonra
+  /// yenileme yapiliyor ve istek tekrarlaniyordu (gereksiz tur + gecikme).
+  /// Sure bilinmiyorsa hicbir sey yapilmaz — o durumda 401 interceptor'i
+  /// devreye girer.
+  Future<void> _onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    try {
+      if (!options.path.contains('/auth/')) {
+        await _kimlikServisi.accessTokenGerekiyorsaYenile();
+      }
+    } catch (_) {
+      // Yenileme basarisiz olursa istek yine de atilsin; 401 interceptor'i
+      // ikinci sansi verecek.
+    }
+    handler.next(options);
+  }
 
   /// 401 yanıtı gelince access token'ı yenileyip isteği bir kez tekrar dener.
   ///
@@ -471,21 +496,20 @@ class ApiServisi {
 
   /// Oturum açan kullanıcının kendi profilini getirir.
   ///
-  /// Kullanıcı id'si önce yerel önbellekten, gerekirse JWT içinden okunur.
+  /// Kendi profilim ucu kullanılır: kullanıcı id URL'de değil, sunucu
+  /// JWT'den belirliyor. Önceden istemci JWT'yi çözüp id çıkarıyordu; bu
+  /// hem istemciyi JWT iç yapısına bağımlı kılıyordu hem de claim şekli
+  /// değişince sessizce bozuluyordu.
+  ///
   /// İlk kurulum bitmediyse boş profil döner; ad/soyad önbellekten taşınır.
   Future<ProfilModel> profiliGetir() async {
     final token = await _accessTokenYoksaHataVer(
       'Profilini görmek için giriş yapmalısın.',
     );
     final cachedProfile = await _onbellektekiProfiliOku();
-    final userId = cachedProfile?.id ?? _tokendenKullaniciIdOku(token);
-
-    if (userId == null || userId <= 0) {
-      throw 'Profil bilgisi için kullanıcı id alınamadı. Lütfen çıkış yapıp tekrar giriş yap.';
-    }
 
     final response = await _dio.get(
-      ApiSabitleri.profilDetay(userId),
+      ApiSabitleri.profil,
       options: _kimlikSecenekleri(token),
     );
 
@@ -508,7 +532,7 @@ class ApiServisi {
       // İlk kurulum tamamlanmamışsa Google'dan gelen ad/soyad kaybolmasın;
       // boş profil oluştururken önbellekteki kullanıcı bilgisini taşırız.
       final profile = ProfilModel.empty(
-        id: userId,
+        id: cachedProfile?.id ?? 0,
         username: cachedProfile?.username,
         email: cachedProfile?.email ?? '',
         firstName: cachedProfile?.firstName ?? '',
@@ -531,12 +555,6 @@ class ApiServisi {
     final token = await _accessTokenYoksaHataVer(
       'Profilini güncellemek için giriş yapmalısın.',
     );
-    final cachedProfile = await _onbellektekiProfiliOku();
-    final userId = cachedProfile?.id ?? _tokendenKullaniciIdOku(token);
-
-    if (userId == null || userId <= 0) {
-      throw 'Profil güncellemesi için kullanıcı id alınamadı. Lütfen çıkış yapıp tekrar giriş yap.';
-    }
 
     final cleanedData = Map<String, dynamic>.from(data)
       ..removeWhere(
@@ -546,7 +564,7 @@ class ApiServisi {
     cleanedData.remove('dogum_tarihi');
 
     final response = await _dio.patch(
-      ApiSabitleri.profilDetay(userId),
+      ApiSabitleri.profil,
       data: cleanedData,
       options: _kimlikSecenekleri(token),
     );
@@ -573,15 +591,8 @@ class ApiServisi {
     final token = await _accessTokenYoksaHataVer(
       'Profil fotografini guncellemek icin giris yapmalisin.',
     );
-    final cachedProfile = await _onbellektekiProfiliOku();
-    final userId = cachedProfile?.id ?? _tokendenKullaniciIdOku(token);
-
-    if (userId == null || userId <= 0) {
-      throw 'Profil fotografi icin kullanici id alinamadi. Lutfen cikis yapip tekrar giris yap.';
-    }
-
     final response = await _dio.patch(
-      ApiSabitleri.profilDetay(userId),
+      ApiSabitleri.profil,
       data: FormData.fromMap({
         'foto': MultipartFile.fromBytes(
           await foto.readAsBytes(),
@@ -1123,26 +1134,11 @@ class ApiServisi {
     );
   }
 
-  int? _tokendenKullaniciIdOku(String token) {
-    final parts = token.split('.');
-    if (parts.length < 2) return null;
-
-    try {
-      final payload = utf8.decode(
-        base64Url.decode(base64Url.normalize(parts[1])),
-      );
-      final decoded = jsonDecode(payload);
-      if (decoded is Map<String, dynamic>) {
-        final rawId = decoded['user_id'] ?? decoded['id'] ?? decoded['sub'];
-        if (rawId is int) return rawId;
-        return int.tryParse(rawId?.toString() ?? '');
-      }
-    } catch (_) {
-      return null;
-    }
-
-    return null;
-  }
+  // NOT: `_tokendenKullaniciIdOku` KALDIRILDI.
+  // Kendi profilimize ulasmak icin JWT'yi istemcide cozup `user_id`
+  // cikarmaya gerek kalmadi: artik `GET /api/profil/` ucu kimligi
+  // dogrudan sunucudan aliyor. Boylece istemci, SimpleJWT claim
+  // yapisina (user_id/id/sub) bagimli olmaktan kurtuldu.
 
   Future<String> _accessTokenYoksaHataVer(String message) async {
     final token = await _storage.read(key: 'access_token');

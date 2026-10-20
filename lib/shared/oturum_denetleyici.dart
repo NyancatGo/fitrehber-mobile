@@ -108,6 +108,11 @@ class OturumDenetleyici extends StateNotifier<OturumDurumu> {
       return;
     }
 
+    // Token bitiş zamanını belleğe al: proaktif yenileme kontrolü istek
+    // yolunda YALNIZCA bu bellek değerine bakar (güvenli depoya her istekte
+    // erişilmez).
+    await _kimlikServisi.sureYukle();
+
     await _profiliYukle();
   }
 
@@ -125,13 +130,24 @@ class OturumDenetleyici extends StateNotifier<OturumDurumu> {
       return false;
     }
 
+    // CSRF koruması: dönen state, başlatılan state ile birebir eşleşmeli.
+    //
+    // ÖNCE karşılaştır, SONRA temizle. Önceden temizleme karşılaştırmadan
+    // önce yapılıyordu; uyuşmazlık halinde kullanıcı "açıklamasız" oturumsuz
+    // kalıyordu (dönüş true idi ama hata mesajı gösterilmiyordu).
+    if (bekleyenIstek.state != donus.state) {
+      await _kimlikServisi.bekleyenGoogleIstekTemizle();
+      state = const OturumDurumu(
+        isLoading: false,
+        error:
+            'Google oturum doğrulaması başarısız oldu. '
+            'Lütfen tekrar giriş yapmayı deneyin.',
+      );
+      return true;
+    }
+
     // Tek kullanımlık: aynı Google kodu sayfa yenilenince tekrar denenmesin.
     await _kimlikServisi.bekleyenGoogleIstekTemizle();
-
-    // CSRF koruması: dönen state, başlatılan state ile birebir eşleşmeli.
-    if (bekleyenIstek.state != donus.state) {
-      return false;
-    }
 
     try {
       await _kimlikServisi.googleKoduIleOturumAc(

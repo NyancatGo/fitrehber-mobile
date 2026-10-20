@@ -12,11 +12,26 @@
 /// `ApiSabitleri.girisYap` gibi çağrılır.
 class ApiSabitleri {
   /// Mobil uygulamanın veri alışverişi yaptığı ana API kök adresi.
-  static const String baseUrl = 'https://api.fitrehber.com.tr/api';
+  ///
+  /// Ortam değiştirme: `--dart-define=API_BASE_URL=https://.../api` ile
+  /// verilebilir. Verilmezse üretim adresi kullanılır.
+  ///
+  /// Önceden adres doğrudan kod içine yazılıydı; bu yüzden debug/CI/fork
+  /// build'leri de CANLI API'ye ve canlı MySQL'e bağlanıyordu. Test
+  /// yapmak veya staging kurmak imkânsızdı.
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://api.fitrehber.com.tr/api',
+  );
 
   /// Web sitesinin kök adresi. Bazı kimlik doğrulama işlemleri web tarafında
   /// JSON uç noktaları üzerinden yürütüldüğü için ayrıca tutulur.
-  static const String webUrl = 'https://fitrehber.com.tr';
+  ///
+  /// Ortam değiştirme: `--dart-define=WEB_BASE_URL=https://...`
+  static const String webUrl = String.fromEnvironment(
+    'WEB_BASE_URL',
+    defaultValue: 'https://fitrehber.com.tr',
+  );
 
   /// Sayfalı (paginated) listelerde her istekte kaç kayıt çekileceği.
   /// Backend tarafındaki `OptionalPageNumberPagination` ile uyumludur.

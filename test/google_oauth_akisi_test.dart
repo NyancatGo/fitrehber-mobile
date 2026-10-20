@@ -1,3 +1,4 @@
+import 'package:fitrehber_mobile/core/constants/api_sabitleri.dart';
 import 'package:fitrehber_mobile/shared/google_oauth_akisi.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,7 +13,12 @@ void main() {
 
       expect(istek.codeChallenge, hasLength(43));
       expect(istek.authorizationUrl.scheme, 'https');
-      expect(istek.authorizationUrl.host, 'fitrehber.com.tr');
+      // OAuth başlangıcı WEB hostunda olmalı. Host, ortam degiskeniyle
+      // degisebilecegi icin sabit kodlanmaz.
+      expect(
+        istek.authorizationUrl.host,
+        Uri.parse(ApiSabitleri.webUrl).host,
+      );
       expect(istek.authorizationUrl.path, '/accounts/mobile-google/start/');
       expect(
         istek.authorizationUrl.queryParameters['state'],

@@ -8,6 +8,13 @@
 // URL string'inin İÇİNE de uygulayıp `/auth/login/` adresini `/auth/girisYap/`
 // yapmıştı. Değişken adı Türkçe olabilir; ancak URL'nin kendisi backend
 // sözleşmesidir ve aynen kalmalıdır. Bu testler tam olarak bunu denetler.
+//
+// ORTAM BAĞIMSIZLIK
+// ------------------
+// Adresler artık `--dart-define=API_BASE_URL=...` ile değiştirilebiliyor.
+// Bu yüzden testlerde DOMAIN sabit kodlanmaz; sözleşmenin kendisi olan
+// YOL (path) denetlenir. Böylece test paketi hem üretimde hem de staging/
+// CI adresleriyle koşabilir.
 // ---------------------------------------------------------------------------
 
 import 'package:fitrehber_mobile/core/constants/api_sabitleri.dart';
@@ -15,9 +22,26 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('ApiSabitleri kök adresleri', () {
-    test('baseUrl ve webUrl beklenen değerlerde', () {
-      expect(ApiSabitleri.baseUrl, 'https://api.fitrehber.com.tr/api');
-      expect(ApiSabitleri.webUrl, 'https://fitrehber.com.tr');
+    test('baseUrl ve webUrl varsayılan olarak üretim adreslerinde', () {
+      // Tanım verilmediğinde (normal CI koşusu) üretim adresi beklenir.
+      const tanimli = String.fromEnvironment('API_BASE_URL');
+      if (tanimli.isEmpty) {
+        expect(ApiSabitleri.baseUrl, 'https://api.fitrehber.com.tr/api');
+      } else {
+        expect(ApiSabitleri.baseUrl, tanimli);
+      }
+
+      const webTanimli = String.fromEnvironment('WEB_BASE_URL');
+      if (webTanimli.isEmpty) {
+        expect(ApiSabitleri.webUrl, 'https://fitrehber.com.tr');
+      } else {
+        expect(ApiSabitleri.webUrl, webTanimli);
+      }
+    });
+
+    test('kendi profil ucu kullanici id icermez', () {
+      // Id JWT icinden sunucuda belirlenir; istemci JWT cozmez.
+      expect(ApiSabitleri.profil, '${ApiSabitleri.baseUrl}/profil/');
     });
   });
 
@@ -25,14 +49,14 @@ void main() {
     test('girisYap adresi /auth/login/ olmalı (Türkçeleşmemeli)', () {
       expect(
         ApiSabitleri.girisYap,
-        'https://api.fitrehber.com.tr/api/auth/login/',
+        '${ApiSabitleri.baseUrl}/auth/login/',
       );
     });
 
     test('kayitOl adresi /mobile/auth/register/ olmalı (Türkçeleşmemeli)', () {
       expect(
         ApiSabitleri.kayitOl,
-        'https://fitrehber.com.tr/mobile/auth/register/',
+        '${ApiSabitleri.webUrl}/mobile/auth/register/',
       );
     });
 
@@ -93,27 +117,37 @@ void main() {
         expect(adres.contains('auth/cikis'), isFalse, reason: adres);
       }
     });
+
+    test('tum adresler http(s) ile baslar', () {
+      for (final adres in tumAdresler) {
+        expect(
+          adres.startsWith('http://') || adres.startsWith('https://'),
+          isTrue,
+          reason: adres,
+        );
+      }
+    });
   });
 
   group('ApiSabitleri parametreli (dinamik) uç noktalar', () {
     test('profilDetay doğru adresi üretir', () {
       expect(
         ApiSabitleri.profilDetay(42),
-        'https://api.fitrehber.com.tr/api/profil/42/',
+        '${ApiSabitleri.baseUrl}/profil/42/',
       );
     });
 
     test('yorumlar doğru adresi üretir', () {
       expect(
         ApiSabitleri.yorumlar(7),
-        'https://api.fitrehber.com.tr/api/icerikler/7/yorumlar/',
+        '${ApiSabitleri.baseUrl}/icerikler/7/yorumlar/',
       );
     });
 
     test('beslenmeGuncelle doğru adresi üretir', () {
       expect(
         ApiSabitleri.beslenmeGuncelle(13),
-        'https://api.fitrehber.com.tr/api/beslenme/guncelle/13/',
+        '${ApiSabitleri.baseUrl}/beslenme/guncelle/13/',
       );
     });
   });
@@ -122,18 +156,18 @@ void main() {
     test('besinlerSync canonical sync adresidir', () {
       expect(
         ApiSabitleri.besinlerSync,
-        'https://api.fitrehber.com.tr/api/besinler/sync/',
+        '${ApiSabitleri.baseUrl}/besinler/sync/',
       );
     });
 
     test('kopyala ve son besinler web parite adreslerini kullanır', () {
       expect(
         ApiSabitleri.beslenmeKopyala,
-        'https://api.fitrehber.com.tr/api/beslenme/kopyala/',
+        '${ApiSabitleri.baseUrl}/beslenme/kopyala/',
       );
       expect(
         ApiSabitleri.sonBesinler,
-        'https://api.fitrehber.com.tr/api/beslenme/son-besinler/',
+        '${ApiSabitleri.baseUrl}/beslenme/son-besinler/',
       );
     });
   });

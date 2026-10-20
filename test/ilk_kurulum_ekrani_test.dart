@@ -38,6 +38,12 @@ void main() {
     ]);
   });
 
+  test('onboardingGoalChoices tekrarsızdır', () {
+    // API'deki NutritionCalculator bu stringler üzerinde contains() ile
+    // TDEE ayarlıyor; tekrar eden bir değer kalor hesabını bozabilir.
+    expect(onboardingGoalChoices.toSet().length, onboardingGoalChoices.length);
+  });
+
   testWidgets('kimlik adımında sadece Erkek/Kadın vardır ve ön seçim yoktur', (
     tester,
   ) async {
