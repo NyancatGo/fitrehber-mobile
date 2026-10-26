@@ -76,7 +76,7 @@ class _BildirimAyarlariPaneliDurumu extends State<_BildirimAyarlariPaneli> {
             width: 44,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.22),
+              color: UygulamaTemasi.cizgi,
               borderRadius: BorderRadius.circular(99),
             ),
           ),

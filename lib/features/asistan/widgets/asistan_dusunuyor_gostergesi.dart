@@ -57,14 +57,7 @@ class _AsistanDusunuyorGostergesiDurumu
               topRight: Radius.circular(16),
               bottomRight: Radius.circular(16),
             ),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 12,
-                offset: const Offset(0, 5),
-              ),
-            ],
+            border: Border.all(color: UygulamaTemasi.cizgi),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

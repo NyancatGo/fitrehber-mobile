@@ -15,7 +15,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../core/constants/api_sabitleri.dart';
+import 'api_hatasi.dart';
 import 'kimlik_servisi.dart';
+
+export 'api_hatasi.dart';
 import 'models/beslenme_model.dart';
 import 'models/sohbet_mesaji_model.dart';
 import 'models/icerik_model.dart';
@@ -29,7 +32,25 @@ import 'models/yorum_model.dart';
 /// İçerik, profil, beslenme, yorum ve yapay zekâ uç noktalarına yapılan
 /// istekleri kapsar; hata yönetimi ve token yenileme de buradan yürür.
 class ApiServisi {
-  ApiServisi() {
+  /// Uygulama genelinde paylaşılan varsayılan API servisi örneği.
+  static final ApiServisi instance = ApiServisi();
+
+  ApiServisi({
+    Dio? dio,
+    FlutterSecureStorage? storage,
+    KimlikServisi? kimlikServisi,
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               validateStatus: (status) => true,
+               connectTimeout: const Duration(seconds: 10),
+               receiveTimeout: const Duration(seconds: 30),
+               headers: {'Accept': 'application/json'},
+             ),
+           ),
+       _storage = storage ?? const FlutterSecureStorage(),
+       _kimlikServisi = kimlikServisi ?? KimlikServisi.instance {
     // onRequest: tokenin omru dolmak uzereyse istek ATILMADAN once yenilenir
     // (proaktif yenileme). onResponse: 401 gelirse bir kez sessizce yeniler.
     // Basarisiz olursa 401 ust katmana doner, oturum kapatma kararini UI/state verir.
@@ -38,17 +59,9 @@ class ApiServisi {
     );
   }
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      validateStatus: (status) => true,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {'Accept': 'application/json'},
-    ),
-  );
-
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final KimlikServisi _kimlikServisi = KimlikServisi();
+  final Dio _dio;
+  final FlutterSecureStorage _storage;
+  final KimlikServisi _kimlikServisi;
 
   /// Proaktif token yenileme: access tokenin omru dolmak uzereyse istek
   /// gonderilmeden once yenilenir.
@@ -1051,30 +1064,36 @@ class ApiServisi {
     );
   }
 
-  /// Yapay zekâ asistanına bir mesaj gönderir ve cevabını döndürür.
-  ///
-  /// [history] önceki sohbet mesajlarıdır; asistanın bağlamı koruması için
-  /// her istekte birlikte gönderilir.
-  Future<String> asistanaSor({
+  /// Yapay zekâ asistanına mesaj gönderir ve yanıtla birlikte önerilen
+  /// takip sorularını (`suggestions`) ve kullanılan veri etiketlerini
+  /// (`contextTags`) döndürür.
+  Future<AsistanYanitModel> asistanaDetayliSor({
     required String message,
     required List<SohbetMesajiModel> history,
+    String? clientContext,
   }) async {
     final token = await _accessTokenYoksaHataVer(
       'AI Asistan için giriş yapmalısın.',
     );
 
+    final payload = <String, dynamic>{
+      'message': message,
+      'history': history.map((m) => m.toApiJson()).toList(),
+    };
+    if (clientContext != null && clientContext.trim().isNotEmpty) {
+      payload['client_context'] = clientContext.trim();
+    }
+
     final response = await _dio.post(
       ApiSabitleri.aiChat,
-      data: {
-        'message': message,
-        'history': history.map((message) => message.toApiJson()).toList(),
-      },
+      data: payload,
       options: _kimlikSecenekleri(token),
     );
 
-    if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
-      final answer = response.data['answer']?.toString().trim();
-      if (answer != null && answer.isNotEmpty) return answer;
+    if (response.statusCode == 200 && response.data is Map) {
+      final map = Map<String, dynamic>.from(response.data as Map);
+      final parsed = AsistanYanitModel.fromJson(map);
+      if (parsed.answer.isNotEmpty) return parsed;
       throw 'Backend boş cevap döndü.';
     }
 
@@ -1086,6 +1105,52 @@ class ApiServisi {
           'Çok kısa sürede fazla soru sordun. Lütfen biraz bekleyip tekrar dene.',
       defaultMessage: 'AI cevabı alınamadı.',
     );
+  }
+
+  /// Yapay zekâ asistanına bir mesaj gönderir ve cevabını döndürür.
+  ///
+  /// [history] önceki sohbet mesajlarıdır; asistanın bağlamı koruması için
+  /// her istekte birlikte gönderilir.
+  Future<String> asistanaSor({
+    required String message,
+    required List<SohbetMesajiModel> history,
+    String? clientContext,
+  }) async {
+    final yanit = await asistanaDetayliSor(
+      message: message,
+      history: history,
+      clientContext: clientContext,
+    );
+    return yanit.answer;
+  }
+
+  /// AI asistan yanıtı için 👍/👎 değerlendirmesi veya eylem kartı uygulama
+  /// sinyali gönderir. Hata durumunda akışı bozmamak için `false` döner.
+  Future<bool> asistanGeriBildirimGonder({
+    required String messageId,
+    String? rating,
+    String? reason,
+    bool actionApplied = false,
+  }) async {
+    if (messageId.trim().isEmpty) return false;
+    try {
+      final token = await _storage.read(key: 'access_token');
+      if (token == null || token.trim().isEmpty) return false;
+
+      final response = await _dio.post(
+        ApiSabitleri.aiFeedback,
+        data: {
+          'message_id': messageId.trim(),
+          if (rating != null && rating.isNotEmpty) 'rating': rating,
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+          if (actionApplied) 'action_applied': true,
+        },
+        options: _kimlikSecenekleri(token),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<ProfilModel?> _onbellektekiProfiliOku() async {
@@ -1140,9 +1205,16 @@ class ApiServisi {
   // dogrudan sunucudan aliyor. Boylece istemci, SimpleJWT claim
   // yapisina (user_id/id/sub) bagimli olmaktan kurtuldu.
 
+  /// Güvenli depoda access token yoksa 401 eşdeğeri bir [ApiHatasi] fırlatır.
+  ///
+  /// Düz `String` fırlatmak, çevrimdışı kuyruğun bu durumu "kalıcı veri
+  /// hatası" sanıp bekleyen öğünleri düşürmesine yol açıyordu. Oturum yokluğu
+  /// geçici bir durumdur: kullanıcı tekrar giriş yapınca işlem gönderilebilir.
   Future<String> _accessTokenYoksaHataVer(String message) async {
     final token = await _storage.read(key: 'access_token');
-    if (token == null || token.isEmpty) throw message;
+    if (token == null || token.isEmpty) {
+      throw ApiHatasi(message, statusCode: 401);
+    }
     return token;
   }
 
@@ -1155,7 +1227,65 @@ class ApiServisi {
     );
   }
 
-  String _hataAyikla(
+  static const Map<String, String> _alanEtiketleri = {
+    'baslik': 'Başlık',
+    'yazi': 'İçerik',
+    'mesaj': 'Yorum',
+    'kategori': 'Kategori',
+    'miktar': 'Miktar',
+    'tarih': 'Tarih',
+    'ogun_tipi': 'Öğün',
+    'besin_isim': 'Besin adı',
+    'kalori': 'Kalori',
+    'kalori_100g': 'Kalori (100g)',
+    'protein_100g': 'Protein (100g)',
+    'karbonhidrat_100g': 'Karbonhidrat (100g)',
+    'yag_100g': 'Yağ (100g)',
+    'su_ml': 'Su miktarı',
+    'boy': 'Boy',
+    'height': 'Boy',
+    'kilo': 'Kilo',
+    'weight': 'Kilo',
+    'hedef_kilo': 'Hedef kilo',
+    'target_weight': 'Hedef kilo',
+    'dogum_tarihi': 'Doğum tarihi',
+    'birth_date': 'Doğum tarihi',
+    'fitness_hedefi': 'Hedef',
+    'goal': 'Hedef',
+    'cinsiyet': 'Cinsiyet',
+    'gender': 'Cinsiyet',
+    'username': 'Kullanıcı adı',
+    'email': 'E-posta',
+    'password': 'Şifre',
+    'foto': 'Fotoğraf',
+    'resim': 'Görsel',
+  };
+
+  /// Başarısız yanıtı, HTTP durum kodunu taşıyan tipli bir [ApiHatasi]'na çevirir.
+  ///
+  /// Durum kodu korunduğu için üst katmanlar (ör. çevrimdışı outbox) geçici
+  /// (401/429/5xx) ve kalıcı (400/403/404 ...) hataları metin eşleştirmesi
+  /// yapmadan ayırt edebilir.
+  ApiHatasi _hataAyikla(
+    dynamic data,
+    int? statusCode, {
+    required String unauthorizedMessage,
+    required String defaultMessage,
+    String? rateLimitMessage,
+  }) {
+    return ApiHatasi(
+      _hataMesajiOlustur(
+        data,
+        statusCode,
+        unauthorizedMessage: unauthorizedMessage,
+        defaultMessage: defaultMessage,
+        rateLimitMessage: rateLimitMessage,
+      ),
+      statusCode: statusCode,
+    );
+  }
+
+  String _hataMesajiOlustur(
     dynamic data,
     int? statusCode, {
     required String unauthorizedMessage,
@@ -1167,23 +1297,25 @@ class ApiServisi {
       return rateLimitMessage;
     }
 
-    if (data is Map<String, dynamic>) {
+    if (data is Map) {
+      final map = Map<String, dynamic>.from(data);
       final detail =
-          data['detail'] ??
-          data['hata'] ??
-          data['message'] ??
-          data['error'] ??
-          data['non_field_errors'];
+          map['detail'] ??
+          map['hata'] ??
+          map['message'] ??
+          map['error'] ??
+          map['non_field_errors'];
       if (detail != null && detail.toString().trim().isNotEmpty) {
         return detail is List ? detail.join(' ') : detail.toString();
       }
-      // DRF alan hatalarını tek okunabilir mesaja indiriyoruz.
-      final fieldErrors = data.entries
+      // DRF alan hatalarını Türkçe alan etiketleriyle tek okunabilir mesaja indiriyoruz.
+      final fieldErrors = map.entries
           .where((e) => e.value != null)
           .map((e) {
             final v = e.value;
             final msg = v is List ? v.join(', ') : v.toString();
-            return '${e.key}: $msg';
+            final etiket = _alanEtiketleri[e.key] ?? e.key;
+            return '$etiket: $msg';
           })
           .join(' | ');
       if (fieldErrors.isNotEmpty) {

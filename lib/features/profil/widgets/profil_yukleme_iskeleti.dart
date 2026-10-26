@@ -9,8 +9,8 @@ class _ProfilYuklemeIskeleti extends StatelessWidget {
     final topPadding = MediaQuery.paddingOf(context).top;
 
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1A1D27),
-      highlightColor: const Color(0xFF2A2D37),
+      baseColor: UygulamaTemasi.cizgi,
+      highlightColor: UygulamaTemasi.yuzey,
       child: ListView(
         padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 24),
         children: [
@@ -50,7 +50,7 @@ class _IskeletKutusu extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: UygulamaTemasi.yuzey,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

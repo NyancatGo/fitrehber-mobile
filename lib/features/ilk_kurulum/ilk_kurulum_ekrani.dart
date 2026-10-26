@@ -318,7 +318,7 @@ class _Baslik extends StatelessWidget {
             value: (adim + 1) / 4,
             minHeight: 8,
             borderRadius: BorderRadius.circular(999),
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
+            backgroundColor: UygulamaTemasi.cizgi,
           ),
         ],
       ),
@@ -483,7 +483,7 @@ class _HedefAdimi extends StatelessWidget {
             child: Text(
               'Fitness hedefi',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.62),
+                color: UygulamaTemasi.ikincilMetin,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -661,9 +661,7 @@ class _HedefKarti extends StatelessWidget {
                 : UygulamaTemasi.yuzey,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: selected
-                  ? UygulamaTemasi.anaRenk
-                  : Colors.white.withValues(alpha: 0.08),
+              color: selected ? UygulamaTemasi.anaRenk : UygulamaTemasi.yuzey,
             ),
           ),
           child: Row(
@@ -700,14 +698,14 @@ class _OzetSatiri extends StatelessWidget {
       decoration: BoxDecoration(
         color: UygulamaTemasi.yuzey,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
+              style: const TextStyle(color: UygulamaTemasi.ikincilMetin),
             ),
           ),
           Flexible(

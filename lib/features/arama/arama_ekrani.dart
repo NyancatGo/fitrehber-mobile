@@ -9,24 +9,28 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/api_sabitleri.dart';
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/api_servisi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/icerik_model.dart';
+import '../../shared/oturum_denetleyici.dart';
 import '../../shared/sayfalama/sayfalama_yardimcilari.dart';
+import '../../shared/widgets/icerik_kart_parcalari.dart';
 
 /// Başlığa göre içerik araması yapılan ekran.
-class AramaEkrani extends StatefulWidget {
+class AramaEkrani extends ConsumerStatefulWidget {
   const AramaEkrani({super.key});
 
   @override
-  State<AramaEkrani> createState() => _AramaEkraniDurumu();
+  ConsumerState<AramaEkrani> createState() => _AramaEkraniDurumu();
 }
 
-class _AramaEkraniDurumu extends State<AramaEkrani> {
-  final ApiServisi _api = ApiServisi();
+class _AramaEkraniDurumu extends ConsumerState<AramaEkrani> {
+  ApiServisi get _api => ref.read(apiServisiProvider);
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final SayfalamaTetikleyici _sayfalamaTetikleyici = SayfalamaTetikleyici();
@@ -138,24 +142,36 @@ class _AramaEkraniDurumu extends State<AramaEkrani> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: TextField(
-          controller: _controller,
-          autofocus: true,
-          textInputAction: TextInputAction.search,
-          decoration: const InputDecoration(
-            hintText: 'İçerik ara...',
-            border: InputBorder.none,
-          ),
-          onChanged: _aramaDegisti,
-          onSubmitted: (deger) => _ara(deger.trim()),
-        ),
-        actions: [
-          if (_controller.text.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: _aramayiTemizle,
+        titleSpacing: 0,
+        title: Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: TextField(
+            controller: _controller,
+            autofocus: true,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'İçerik ara...',
+              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
+              suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _controller,
+                builder: (context, value, _) {
+                  if (value.text.isEmpty) return const SizedBox.shrink();
+                  return IconButton(
+                    tooltip: 'Temizle',
+                    icon: const Icon(Icons.clear_rounded, size: 18),
+                    onPressed: _aramayiTemizle,
+                  );
+                },
+              ),
             ),
-        ],
+            onChanged: _aramaDegisti,
+            onSubmitted: (deger) => _ara(deger.trim()),
+          ),
+        ),
       ),
       body: _govde(),
     );
@@ -163,44 +179,29 @@ class _AramaEkraniDurumu extends State<AramaEkrani> {
 
   Widget _govde() {
     if (_yukleniyor) {
-      return const Center(child: CircularProgressIndicator());
+      return const IcerikShimmerListe(itemHeight: 96);
     }
     if (_hata != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 12),
-            Text(_hata!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _ara(_sonAranan),
-              child: const Text('Tekrar Dene'),
-            ),
-          ],
-        ),
-      );
+      return HataGorunumu(mesaj: _hata!, onRetry: () => _ara(_sonAranan));
     }
     if (_sonAranan.length < 2) {
-      return const Center(
-        child: Text(
-          'Aramak için en az 2 harf yaz.',
-          style: TextStyle(color: Colors.grey),
-        ),
+      return const BosDurumGorunumu(
+        ikon: Icons.search_rounded,
+        mesaj: 'Aramak için en az 2 harf yaz.',
+        altMesaj: 'Makale ve forum sorularında başlığa göre arama yapabilirsin.',
       );
     }
     if (_sonuclar.isEmpty) {
-      return Center(
-        child: Text(
-          '"$_sonAranan" için sonuç bulunamadı.',
-          style: const TextStyle(color: Colors.grey),
-        ),
+      return BosDurumGorunumu(
+        ikon: Icons.search_off_rounded,
+        mesaj: '"$_sonAranan" için sonuç bulunamadı.',
+        altMesaj: 'Farklı bir anahtar kelimeyle tekrar deneyebilirsin.',
       );
     }
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(12),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.all(16),
       itemCount: _sonuclar.length + (_dahaVar ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= _sonuclar.length) {
@@ -216,7 +217,7 @@ class _AramaEkraniDurumu extends State<AramaEkrani> {
             ),
           );
         }
-        return _sonucKarti(_sonuclar[index]);
+        return RepaintBoundary(child: _sonucKarti(_sonuclar[index]));
       },
     );
   }
@@ -225,35 +226,63 @@ class _AramaEkraniDurumu extends State<AramaEkrani> {
     final forumMu = icerik.tur == 'soru';
     return Card(
       key: ValueKey('arama-${icerik.id}'),
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        ),
         leading: icerik.resimUrl != null && icerik.resimUrl!.isNotEmpty
             ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
                 child: CachedNetworkImage(
                   imageUrl: icerik.resimUrl!,
+                  memCacheWidth: 160,
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
-                  placeholder: (c, u) =>
-                      Container(color: const Color(0xFF2A2D37)),
+                  placeholder: (c, u) => Container(color: UygulamaTemasi.cizgi),
                   errorWidget: (c, u, e) => const Icon(Icons.image),
                 ),
               )
-            : Icon(
-                forumMu ? Icons.forum_outlined : Icons.article_outlined,
-                color: const Color(0xFF22D3EE),
+            : Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: UygulamaTemasi.anaRenk.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  forumMu ? Icons.forum_outlined : Icons.article_outlined,
+                  color: UygulamaTemasi.anaRenk,
+                  size: 20,
+                ),
               ),
         title: Text(
           icerik.baslik,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            height: 1.3,
+          ),
         ),
-        subtitle: Text(
-          '${forumMu ? 'Forum' : icerik.kategoriAdi} · ${icerik.tarihFormatli}',
-          style: const TextStyle(fontSize: 12),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '${forumMu ? 'Forum' : icerik.kategoriAdi} · ${icerik.tarihFormatli}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: UygulamaTemasi.ikincilMetin,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: UygulamaTemasi.ikincilMetin,
+          size: 20,
         ),
         onTap: () => context.push('/makale/${icerik.id}'),
       ),

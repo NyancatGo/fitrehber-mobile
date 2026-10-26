@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/uygulama_temasi.dart';
 import '../../../shared/models/beslenme_model.dart';
 import '../../../shared/services/yerel_besin_veritabani.dart';
 import '../providers/beslenme_provider.dart';
@@ -23,7 +24,7 @@ void showKayitDuzenleSheet(
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF12141A),
+    backgroundColor: UygulamaTemasi.yuzey,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -105,7 +106,9 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
       return;
     }
     setState(() => _isBusy = true);
-    final ok = await ref.read(beslenmeProvider.notifier).ogunGuncelle(
+    final ok = await ref
+        .read(beslenmeProvider.notifier)
+        .ogunGuncelle(
           eski: widget.kayit,
           yeniMiktar: _quantity,
           porsiyonId: _selectedPortion?.id,
@@ -117,7 +120,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Güncellendi.'),
-          backgroundColor: Color(0xFF22C55E),
+          backgroundColor: UygulamaTemasi.yuzey,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ),
@@ -127,7 +130,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(hata),
-          backgroundColor: const Color(0xFFDC2626),
+          backgroundColor: UygulamaTemasi.hata,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
@@ -140,25 +143,25 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
     final onay = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2937),
-        title: const Text('Kaydı sil?', style: TextStyle(color: Colors.white)),
+        backgroundColor: UygulamaTemasi.yuzey,
+        title: const Text('Kaydı sil?'),
         content: Text(
           '"${widget.kayit.besinIsim}" kaydı silinsin mi?',
-          style: const TextStyle(color: Colors.white70),
+          style: const TextStyle(color: UygulamaTemasi.ikincilMetin),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text(
               'Vazgeç',
-              style: TextStyle(color: Colors.white60),
+              style: TextStyle(color: UygulamaTemasi.ikincilMetin),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
               'Sil',
-              style: TextStyle(color: Color(0xFFEF4444)),
+              style: TextStyle(color: UygulamaTemasi.hata),
             ),
           ),
         ],
@@ -176,7 +179,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Silindi.'),
-          backgroundColor: Color(0xFF22C55E),
+          backgroundColor: UygulamaTemasi.yuzey,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ),
@@ -186,7 +189,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(hata),
-          backgroundColor: const Color(0xFFDC2626),
+          backgroundColor: UygulamaTemasi.hata,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -213,7 +216,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: UygulamaTemasi.cizgi,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -225,7 +228,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: UygulamaTemasi.anaMetin,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   height: 1.2,
@@ -236,7 +239,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                 'Gramajı değiştir veya kaydı sil',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: UygulamaTemasi.ikincilMetin,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -247,10 +250,10 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                 child: Container(
                   width: 200,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: UygulamaTemasi.arkaPlan,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: const Color(0xFFF97316).withValues(alpha: 0.5),
+                      color: UygulamaTemasi.anaRenk.withValues(alpha: 0.5),
                       width: 2,
                     ),
                   ),
@@ -273,7 +276,7 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                           onChanged: _updateGrams,
                           autofocus: true,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: UygulamaTemasi.anaMetin,
                             fontSize: 38,
                             fontWeight: FontWeight.w900,
                           ),
@@ -286,9 +289,13 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _selectedPortion != null ? (_selectedPortion!.isim.length > 8 ? _selectedPortion!.isim.substring(0, 8) : _selectedPortion!.isim) : 'g',
+                        _selectedPortion != null
+                            ? (_selectedPortion!.isim.length > 8
+                                  ? _selectedPortion!.isim.substring(0, 8)
+                                  : _selectedPortion!.isim)
+                            : 'g',
                         style: const TextStyle(
-                          color: Colors.white70,
+                          color: UygulamaTemasi.ikincilMetin,
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),
@@ -303,21 +310,25 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
               if (_porsiyonlar.isNotEmpty) ...[
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: UygulamaTemasi.arkaPlan,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
+                      border: Border.all(color: UygulamaTemasi.cizgi),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<BesinPorsiyonModel?>(
                         value: _selectedPortion,
-                        dropdownColor: const Color(0xFF1E222B),
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFFF97316)),
+                        dropdownColor: UygulamaTemasi.yuzey,
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: UygulamaTemasi.anaRenk,
+                        ),
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: UygulamaTemasi.anaMetin,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -329,7 +340,9 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                           ..._porsiyonlar.map((p) {
                             return DropdownMenuItem<BesinPorsiyonModel?>(
                               value: p,
-                              child: Text('${p.isim} (${p.gramEsdegeri == p.gramEsdegeri.roundToDouble() ? p.gramEsdegeri.toStringAsFixed(0) : p.gramEsdegeri.toStringAsFixed(1)}g)'),
+                              child: Text(
+                                '${p.isim} (${p.gramEsdegeri == p.gramEsdegeri.roundToDouble() ? p.gramEsdegeri.toStringAsFixed(0) : p.gramEsdegeri.toStringAsFixed(1)}g)',
+                              ),
                             );
                           }),
                         ],
@@ -357,11 +370,9 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.03),
+                  color: UygulamaTemasi.arkaPlan,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
-                  ),
+                  border: Border.all(color: UygulamaTemasi.arkaPlan),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -370,25 +381,25 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                       label: 'Kalori',
                       value: _scale(kayit.kalori.toDouble()).round().toString(),
                       unit: 'kcal',
-                      color: const Color(0xFFF97316),
+                      color: UygulamaTemasi.anaRenk,
                     ),
                     _MacroPreview(
                       label: 'Protein',
                       value: _scale(kayit.protein).toStringAsFixed(1),
                       unit: 'g',
-                      color: const Color(0xFF3B82F6),
+                      color: const Color(0xFFC9844A),
                     ),
                     _MacroPreview(
                       label: 'Karb',
                       value: _scale(kayit.karbonhidrat).toStringAsFixed(1),
                       unit: 'g',
-                      color: const Color(0xFFA855F7),
+                      color: UygulamaTemasi.ikincilMetin,
                     ),
                     _MacroPreview(
                       label: 'Yağ',
                       value: _scale(kayit.yag).toStringAsFixed(1),
                       unit: 'g',
-                      color: const Color(0xFFEAB308),
+                      color: UygulamaTemasi.hata,
                     ),
                   ],
                 ),
@@ -402,19 +413,19 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                       onPressed: _isBusy ? null : _sil,
                       icon: const Icon(
                         Icons.delete_outline,
-                        color: Color(0xFFEF4444),
+                        color: UygulamaTemasi.hata,
                       ),
                       label: const Text(
                         'Sil',
                         style: TextStyle(
-                          color: Color(0xFFEF4444),
+                          color: UygulamaTemasi.hata,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.5),
+                          color: UygulamaTemasi.hata.withValues(alpha: 0.5),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -435,22 +446,19 @@ class _KayitDuzenleSheetState extends ConsumerState<_KayitDuzenleSheet> {
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: UygulamaTemasi.ikincilMetin,
                               ),
                             )
-                          : const Icon(Icons.check, color: Colors.white),
+                          : const Icon(Icons.check),
                       label: const Text(
                         'Güncelle',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF97316),
-                        disabledBackgroundColor: Colors.white.withValues(
-                          alpha: 0.1,
-                        ),
+                        backgroundColor: UygulamaTemasi.anaRenk,
+                        foregroundColor: UygulamaTemasi.anaUstune,
+                        disabledBackgroundColor: UygulamaTemasi.cizgi,
+                        disabledForegroundColor: UygulamaTemasi.ikincilMetin,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -489,7 +497,7 @@ class _MacroPreview extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: UygulamaTemasi.ikincilMetin,
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),

@@ -8,27 +8,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/theme/uygulama_temasi.dart';
 import '../../../shared/models/icerik_blok_model.dart';
 
 /// Blok çizici ve eski HTML geri dönüş yolu aynı paleti kullanır; makale
 /// detayında iki yol arasında görsel kopma oluşmaz.
 class _BlokRenkleri {
-  static const text = Color(0xFFE5E7EB);
-  static const textStrong = Color(0xFFF8FAFC);
-  static const muted = Color(0xFFA1A8B3);
-  static const line = Color(0xFF2F3A4E);
-  static const surfaceSoft = Color(0xFF151D2B);
-  static const surfaceElevated = Color(0xFF1A2333);
-  static const primary = Color(0xFF3B82F6);
-  static const link = Color(0xFFF5A623);
-  static const warn = Color(0xFFF59E0B);
-  static const warnSoft = Color(0xFF332414);
-  static const success = Color(0xFF22C55E);
-  static const successSoft = Color(0xFF14271A);
-  static const source = Color(0xFF60A5FA);
-  static const sourceSoft = Color(0xFF0F1F3A);
-  static const toc = Color(0xFFA855F7);
-  static const tocSoft = Color(0xFF1F1530);
+  static const text = UygulamaTemasi.anaMetin;
+  static const textStrong = UygulamaTemasi.anaMetin;
+  static const muted = UygulamaTemasi.ikincilMetin;
+  static const line = UygulamaTemasi.cizgi;
+  static const surfaceSoft = UygulamaTemasi.arkaPlan;
+  static const surfaceElevated = UygulamaTemasi.yuzey;
+  static const primary = UygulamaTemasi.anaRenk;
+  static const link = UygulamaTemasi.anaRenk;
+  static const warn = UygulamaTemasi.hata;
+  static const warnSoft = Color(0xFF2C1C18);
+  static const success = UygulamaTemasi.anaRenk;
+  static const successSoft = Color(0xFF1A241C);
+  static const source = UygulamaTemasi.ikincilMetin;
+  static const sourceSoft = UygulamaTemasi.arkaPlan;
+  static const toc = UygulamaTemasi.anaRenk;
+  static const tocSoft = UygulamaTemasi.arkaPlan;
 }
 
 class IcerikBlokCizici extends StatelessWidget {
@@ -347,22 +348,13 @@ class _BolumBasligi extends StatelessWidget {
           height: badgeSize,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-            ),
+            color: UygulamaTemasi.anaRenk,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: _BlokRenkleri.primary.withValues(alpha: 0.35),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Text(
             number,
             style: TextStyle(
-              color: Colors.white,
+              color: UygulamaTemasi.anaUstune,
               fontSize: badgeFontSize,
               fontWeight: FontWeight.w900,
               height: 1.0,

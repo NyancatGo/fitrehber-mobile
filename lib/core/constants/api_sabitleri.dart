@@ -33,6 +33,25 @@ class ApiSabitleri {
     defaultValue: 'https://fitrehber.com.tr',
   );
 
+  /// Medya dosyalarının (avatar, içerik görselleri vb.) kök adresi.
+  ///
+  /// Tek medya kökü kuralı gereği tüm medya URL'leri `webUrl` üzerinden çözülür.
+  static const String mediaBaseUrl = '$webUrl/media/';
+
+  /// Göreli veya eksik medya URL'sini `webUrl` tabanlı tam adrese çevirir.
+  static String? mediaUrlNormalize(Object? value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) return null;
+
+    final uri = Uri.tryParse(raw);
+    if (uri != null && uri.hasScheme) return raw;
+    if (raw.startsWith('//')) return 'https:$raw';
+    if (raw.startsWith('/media/')) return '$webUrl$raw';
+    if (raw.startsWith('media/')) return '$webUrl/$raw';
+
+    return '$mediaBaseUrl${raw.replaceFirst(RegExp(r'^/+'), '')}';
+  }
+
   /// Sayfalı (paginated) listelerde her istekte kaç kayıt çekileceği.
   /// Backend tarafındaki `OptionalPageNumberPagination` ile uyumludur.
   static const int pageSize = 20;
@@ -111,6 +130,9 @@ class ApiSabitleri {
 
   /// AI asistanına mesaj gönderme uç noktası.
   static const String aiChat = '$baseUrl/ai/chat/';
+
+  /// AI asistanı yanıt geri bildirimi (👍/👎 ve eylem uygulama) uç noktası.
+  static const String aiFeedback = '$baseUrl/ai/feedback/';
 
   // --- Parametreli (dinamik) uç noktalar -----------------------------------
   // Aşağıdaki fonksiyonlar, içine kimlik (id) alıp tam adresi üreten yardımcılardır.

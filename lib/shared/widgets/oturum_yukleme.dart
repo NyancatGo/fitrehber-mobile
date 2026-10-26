@@ -13,16 +13,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/uygulama_temasi.dart';
 
-const _accentSoft = Color(0xFFFFD166);
-const _accentCyan = Color(0xFF22D3EE);
-const _mutedText = Color(0xFF9AA3AF);
-
-const _brandGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [_accentSoft, UygulamaTemasi.anaRenk, _accentCyan],
-  stops: [0.0, 0.62, 1.0],
-);
+const _mutedText = UygulamaTemasi.ikincilMetin;
 
 class OturumYuklemeEkrani extends StatelessWidget {
   final String title;
@@ -58,7 +49,7 @@ class OturumYuklemeKatmani extends StatelessWidget {
     return Positioned.fill(
       child: AbsorbPointer(
         child: ColoredBox(
-          color: Colors.black.withValues(alpha: 0.62),
+          color: UygulamaTemasi.arkaPlan.withValues(alpha: 0.94),
           child: OturumYuklemeGorunumu(
             title: title,
             subtitle: subtitle,
@@ -132,14 +123,7 @@ class _OturumYuklemeGorunumuDurumu extends State<OturumYuklemeGorunumu>
     final logoSize = ringSize * 0.46;
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0, -0.24),
-          radius: 1.12,
-          colors: [Color(0xFF1A222D), UygulamaTemasi.arkaPlan],
-          stops: [0.0, 1.0],
-        ),
-      ),
+      decoration: const BoxDecoration(color: UygulamaTemasi.arkaPlan),
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -160,7 +144,7 @@ class _OturumYuklemeGorunumuDurumu extends State<OturumYuklemeGorunumu>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.06),
+                              color: UygulamaTemasi.cizgi,
                               width: 1.5,
                             ),
                           ),
@@ -174,28 +158,6 @@ class _OturumYuklemeGorunumuDurumu extends State<OturumYuklemeGorunumu>
                               strokeWidth: 3,
                             ),
                           ),
-                        ),
-                        AnimatedBuilder(
-                          animation: _pulse,
-                          builder: (context, child) {
-                            final t = Curves.easeInOut.transform(_pulse.value);
-                            return Container(
-                              width: ringSize * (0.62 + t * 0.06),
-                              height: ringSize * (0.62 + t * 0.06),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: UygulamaTemasi.anaRenk.withValues(
-                                      alpha: 0.15 + t * 0.18,
-                                    ),
-                                    blurRadius: 24 + t * 14,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
                         ),
                         AnimatedBuilder(
                           animation: _pulse,
@@ -216,19 +178,11 @@ class _OturumYuklemeGorunumuDurumu extends State<OturumYuklemeGorunumu>
                     ),
                   ),
                   SizedBox(height: isCompact ? 24 : 32),
-                  ShaderMask(
-                    shaderCallback: _brandGradient.createShader,
-                    blendMode: BlendMode.srcIn,
-                    child: const Text(
-                      'FitRehber',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                  Text(
+                    'FitRehber',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: UygulamaTemasi.baslik(fontSize: 26),
                   ),
                   SizedBox(height: isCompact ? 18 : 24),
                   SizedBox(
@@ -248,9 +202,9 @@ class _OturumYuklemeGorunumuDurumu extends State<OturumYuklemeGorunumu>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: UygulamaTemasi.anaMetin,
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -313,20 +267,8 @@ class _ArcPainter extends CustomPainter {
     final sweep = math.pi * 0.62;
     final start = progress * 2 * math.pi - math.pi / 2;
 
-    final shader = SweepGradient(
-      startAngle: start,
-      endAngle: start + sweep,
-      colors: const [
-        Color(0x00FFD166),
-        _accentSoft,
-        UygulamaTemasi.anaRenk,
-        _accentCyan,
-      ],
-      stops: const [0.0, 0.22, 0.7, 1.0],
-    ).createShader(Rect.fromCircle(center: center, radius: radius));
-
     final paint = Paint()
-      ..shader = shader
+      ..color = UygulamaTemasi.anaRenk
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -354,10 +296,8 @@ class _BrandMarkPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final shader = _brandGradient.createShader(Offset.zero & size);
-
     final heartPaint = Paint()
-      ..shader = shader
+      ..color = UygulamaTemasi.anaRenk
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * 0.06
       ..strokeCap = StrokeCap.round
@@ -378,7 +318,7 @@ class _BrandMarkPainter extends CustomPainter {
     canvas.drawPath(heart, heartPaint);
 
     final pulsePaint = Paint()
-      ..shader = shader
+      ..color = UygulamaTemasi.anaRenk
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * 0.07
       ..strokeCap = StrokeCap.round
@@ -411,13 +351,13 @@ class _HeartbeatPainter extends CustomPainter {
     final mid = h / 2;
 
     final basePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = UygulamaTemasi.cizgi
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
     canvas.drawLine(Offset(0, mid), Offset(w, mid), basePaint);
 
     final paint = Paint()
-      ..shader = _brandGradient.createShader(Offset.zero & size)
+      ..color = UygulamaTemasi.anaRenk
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round

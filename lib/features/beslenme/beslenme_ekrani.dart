@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/models/beslenme_model.dart';
 import '../profil/providers/profil_provider.dart';
 import 'providers/beslenme_provider.dart';
@@ -27,11 +28,7 @@ class BeslenmeEkrani extends ConsumerWidget {
     final state = ref.watch(beslenmeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Beslenme Takibi'),
-        centerTitle: true,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Beslenme Takibi'), elevation: 0),
       body: state.isLoading && state.veri == null
           ? const Center(child: CircularProgressIndicator())
           : _GovdeParcasi(state: state),
@@ -49,47 +46,66 @@ class _GovdeParcasi extends ConsumerWidget {
     final veri = state.veri ?? GunlukBeslenmeModel(tarih: state.seciliTarih);
     const ogunSirasi = ['sabah', 'ogle', 'aksam', 'atistirmalik'];
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      children: [
-        // --- Tarih Seçici ---
-        _GunSecici(seciliTarih: state.seciliTarih),
-        const SizedBox(height: 20),
+    return RefreshIndicator(
+      color: UygulamaTemasi.anaRenk,
+      backgroundColor: UygulamaTemasi.yuzey,
+      onRefresh: () =>
+          ref.read(beslenmeProvider.notifier).load(state.seciliTarih),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        children: [
+          // --- Tarih Seçici ---
+          _GunSecici(seciliTarih: state.seciliTarih),
+          const SizedBox(height: 16),
 
-        // --- Günlük Özet Panosu (FatSecret tarzı) ---
-        GunlukOzetPaneli(veri: veri, hedefler: state.hedefler),
-        const SizedBox(height: 20),
+          // --- Günlük Özet Panosu (FatSecret tarzı) ---
+          GunlukOzetPaneli(veri: veri, hedefler: state.hedefler),
+          const SizedBox(height: 16),
 
-        // --- Hata varsa göster ---
-        if (state.hata != null) ...[
-          _HataKutusu(metin: state.hata!),
-          const SizedBox(height: 14),
-        ],
+          // --- Çevrimdışı / bekleyen senkron şeridi ---
+          if (state.cevrimdisiMi || state.bekleyenIslemSayisi > 0) ...[
+            _CevrimdisiDurumKutusu(
+              cevrimdisiMi: state.cevrimdisiMi,
+              bekleyenSayisi: state.bekleyenIslemSayisi,
+              isLoading: state.isLoading,
+              onYenile: () =>
+                  ref.read(beslenmeProvider.notifier).load(state.seciliTarih),
+            ),
+            const SizedBox(height: 14),
+          ],
 
-        // --- Gün boşsa: önceki günü kopyala (web paritesi) ---
-        if (veri.ogunler.values.every((l) => l.isEmpty)) ...[
-          _OncekiGunKopyalaButonu(isLoading: state.isLoading),
-          const SizedBox(height: 14),
-        ],
+          // --- Hata varsa göster ---
+          if (state.hata != null) ...[
+            _HataKutusu(metin: state.hata!),
+            const SizedBox(height: 14),
+          ],
 
-        // --- Öğün Blokları (FatSecret tarzı) ---
-        ...ogunSirasi.map(
-          (ogunTipi) => OgunBolumuKarti(
-            ogunTipi: ogunTipi,
-            kayitlar: veri.ogunler[ogunTipi] ?? const [],
+          // --- Gün boşsa: önceki günü kopyala (web paritesi) ---
+          if (veri.ogunler.values.every((l) => l.isEmpty)) ...[
+            _OncekiGunKopyalaButonu(isLoading: state.isLoading),
+            const SizedBox(height: 14),
+          ],
+
+          // --- Öğün Blokları (FatSecret tarzı) ---
+          ...ogunSirasi.map(
+            (ogunTipi) => OgunBolumuKarti(
+              ogunTipi: ogunTipi,
+              kayitlar: veri.ogunler[ogunTipi] ?? const [],
+              isLoading: state.isLoading,
+            ),
+          ),
+
+          // --- Su Takibi ---
+          SuTakipBolumu(
+            suMl: veri.suMl,
+            hedefler: state.hedefler,
+            onEkle: (ml) => ref.read(beslenmeProvider.notifier).suEkle(ml),
             isLoading: state.isLoading,
           ),
-        ),
-
-        // --- Su Takibi ---
-        SuTakipBolumu(
-          suMl: veri.suMl,
-          hedefler: state.hedefler,
-          onEkle: (ml) => ref.read(beslenmeProvider.notifier).suEkle(ml),
-          isLoading: state.isLoading,
-        ),
-        const SizedBox(height: 32),
-      ],
+          const SizedBox(height: 32),
+        ],
+      ),
     );
   }
 }
@@ -184,22 +200,6 @@ class _GunSeciciState extends ConsumerState<_GunSecici> {
       helpText: 'Tarih seç',
       cancelText: 'İptal',
       confirmText: 'Seç',
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF22D3EE),
-              onPrimary: Colors.white,
-              surface: Color(0xFF151D2B),
-              onSurface: Colors.white,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF0F1626),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       // Pencereyi yeni tarihte re-center et + secimi degistir
@@ -230,51 +230,64 @@ class _GunSeciciState extends ConsumerState<_GunSecici> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            ayEtiketi,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                ayEtiketi,
+                style: UygulamaTemasi.baslik(fontSize: 18, height: 1.2),
+              ),
             ),
-          ),
-        ),
-        SizedBox(
-          height: 70,
-          child: Row(
-            children: [
-              _TakvimButonu(onTap: _takvimAc),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < gunler.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 8),
-                        _GunChip(
-                          gun: gunler[i],
-                          secili: _tarihStr(gunler[i]) == widget.seciliTarih,
-                          isToday: _ayniGun(gunler[i], bugun),
-                          disabled:
-                              gunler[i].isBefore(start) ||
-                              gunler[i].isAfter(end),
-                          onTap:
-                              (gunler[i].isBefore(start) ||
-                                  gunler[i].isAfter(end))
-                              ? null
-                              : () => ref
-                                    .read(beslenmeProvider.notifier)
-                                    .load(_tarihStr(gunler[i])),
-                        ),
-                      ],
-                    ],
+            if (!_ayniGun(_seciliDt(), bugun)) ...[
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
                   ),
                 ),
+                onPressed: () {
+                  final bugunTarih = DateTime(
+                    bugun.year,
+                    bugun.month,
+                    bugun.day,
+                  );
+                  setState(() => _windowCenter = bugunTarih);
+                  ref
+                      .read(beslenmeProvider.notifier)
+                      .load(_tarihStr(bugunTarih));
+                },
+                icon: const Icon(Icons.today_rounded, size: 16),
+                label: const Text('Bugün'),
               ),
+              const SizedBox(width: 6),
+            ],
+            _TakvimButonu(onTap: _takvimAc),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              for (var i = 0; i < gunler.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(
+                  child: _GunChip(
+                    gun: gunler[i],
+                    secili: _tarihStr(gunler[i]) == widget.seciliTarih,
+                    isToday: _ayniGun(gunler[i], bugun),
+                    disabled:
+                        gunler[i].isBefore(start) || gunler[i].isAfter(end),
+                    onTap: (gunler[i].isBefore(start) || gunler[i].isAfter(end))
+                        ? null
+                        : () => ref
+                              .read(beslenmeProvider.notifier)
+                              .load(_tarihStr(gunler[i])),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -292,16 +305,16 @@ class _TakvimButonu extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 48,
-        height: 70,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          color: UygulamaTemasi.yuzey,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: UygulamaTemasi.cizgi),
         ),
         child: const Icon(
           Icons.calendar_month_outlined,
-          color: Color(0xFF22D3EE),
+          color: UygulamaTemasi.anaRenk,
           size: 22,
         ),
       ),
@@ -326,31 +339,21 @@ class _GunChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fadedColor = Colors.white.withValues(alpha: 0.18);
+    final soluk = UygulamaTemasi.ikincilMetin.withValues(alpha: 0.4);
+    final seciliVeAcik = secili && !disabled;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: 56,
         decoration: BoxDecoration(
-          gradient: secili && !disabled
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-                )
-              : null,
-          color: secili && !disabled
-              ? null
-              : Colors.white.withValues(alpha: disabled ? 0.02 : 0.05),
-          borderRadius: BorderRadius.circular(14),
+          color: seciliVeAcik ? UygulamaTemasi.anaRenk : UygulamaTemasi.yuzey,
+          borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: secili && !disabled
-                ? Colors.transparent
+            color: seciliVeAcik
+                ? UygulamaTemasi.anaRenk
                 : (isToday && !disabled
-                      ? const Color(0xFF22D3EE).withValues(alpha: 0.5)
-                      : Colors.white.withValues(alpha: disabled ? 0.04 : 0.08)),
-            width: isToday && !secili ? 1.2 : 1,
+                      ? UygulamaTemasi.anaRenk
+                      : UygulamaTemasi.cizgi),
           ),
         ),
         child: Column(
@@ -360,25 +363,27 @@ class _GunChip extends StatelessWidget {
               _kGunAdlari[gun.weekday - 1],
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: disabled
-                    ? fadedColor
-                    : (secili
-                          ? Colors.white
+                    ? soluk
+                    : (seciliVeAcik
+                          ? UygulamaTemasi.anaUstune
                           : (isToday
-                                ? const Color(0xFF22D3EE)
-                                : Colors.white.withValues(alpha: 0.5))),
+                                ? UygulamaTemasi.anaRenk
+                                : UygulamaTemasi.ikincilMetin)),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               '${gun.day}',
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
                 color: disabled
-                    ? fadedColor
-                    : (secili ? Colors.white : Colors.white70),
+                    ? soluk
+                    : (seciliVeAcik
+                          ? UygulamaTemasi.anaUstune
+                          : UygulamaTemasi.anaMetin),
               ),
             ),
           ],
@@ -388,7 +393,61 @@ class _GunChip extends StatelessWidget {
   }
 }
 
-// ---------- Hata Kutusu ----------
+// ---------- Hata & Çevrimdışı Durum Kutuları ----------
+
+class _CevrimdisiDurumKutusu extends StatelessWidget {
+  final bool cevrimdisiMi;
+  final int bekleyenSayisi;
+  final bool isLoading;
+  final VoidCallback onYenile;
+
+  const _CevrimdisiDurumKutusu({
+    required this.cevrimdisiMi,
+    required this.bekleyenSayisi,
+    required this.isLoading,
+    required this.onYenile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final metin = bekleyenSayisi > 0
+        ? 'Çevrimdışı kaydedilen $bekleyenSayisi değişiklik bağlantı kurulduğunda eşitlenecek.'
+        : 'Çevrimdışı görünüm — son kaydedilen günlük veriler gösteriliyor.';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: UygulamaTemasi.yuzey,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: UygulamaTemasi.cizgi),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.cloud_sync_outlined,
+            color: UygulamaTemasi.anaRenk,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              metin,
+              style: const TextStyle(
+                color: UygulamaTemasi.ikincilMetin,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: isLoading ? null : onYenile,
+            child: const Text('Eşitle'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _HataKutusu extends StatelessWidget {
   final String metin;
@@ -399,16 +458,16 @@ class _HataKutusu extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.25)),
+        color: UygulamaTemasi.hata.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: UygulamaTemasi.hata.withValues(alpha: 0.3)),
       ),
       child: Text(
         metin,
         style: const TextStyle(
-          color: Colors.redAccent,
+          color: UygulamaTemasi.hata,
           fontSize: 13,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -444,8 +503,8 @@ class _OncekiGunKopyalaButonu extends ConsumerWidget {
                   SnackBar(
                     content: Text(mesaj),
                     backgroundColor: ok
-                        ? const Color(0xFF22C55E)
-                        : const Color(0xFFDC2626),
+                        ? UygulamaTemasi.yuzey
+                        : UygulamaTemasi.hata,
                     behavior: SnackBarBehavior.floating,
                     duration: const Duration(seconds: 3),
                   ),
@@ -453,14 +512,9 @@ class _OncekiGunKopyalaButonu extends ConsumerWidget {
               },
         icon: const Icon(Icons.copy_all_outlined, size: 18),
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF22D3EE),
-          side: BorderSide(
-            color: const Color(0xFF22D3EE).withValues(alpha: 0.5),
-          ),
+          foregroundColor: UygulamaTemasi.anaRenk,
+          side: const BorderSide(color: UygulamaTemasi.cizgi),
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
         ),
         label: const Text(
           'Önceki günü kopyala',

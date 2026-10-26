@@ -23,11 +23,11 @@ IconData _rozetIkonu(String icon) {
 
 /// Aktivite ısı haritasında, günlük süreye (dakika) göre kutu rengini döner.
 Color _aktiviteSeviyeRengi(int minutes) {
-  if (minutes <= 0) return Colors.white.withValues(alpha: 0.08);
-  if (minutes <= 20) return const Color(0xFF1E3A5F);
-  if (minutes <= 45) return const Color(0xFF2563EB);
-  if (minutes <= 90) return const Color(0xFF22D3EE);
-  return const Color(0xFF34D399);
+  if (minutes <= 0) return UygulamaTemasi.cizgi;
+  if (minutes <= 20) return UygulamaTemasi.anaRenk.withValues(alpha: 0.28);
+  if (minutes <= 45) return UygulamaTemasi.anaRenk.withValues(alpha: 0.5);
+  if (minutes <= 90) return UygulamaTemasi.anaRenk.withValues(alpha: 0.75);
+  return UygulamaTemasi.anaRenk;
 }
 
 /// Aktivite türüne (içerik, yorum, beğeni...) karşılık gelen ikonu döner.
@@ -51,16 +51,12 @@ IconData _aktiviteTuruIkonu(String type) {
 /// Aktivite türüne karşılık gelen vurgu rengini döner.
 Color _aktiviteTuruRengi(String type) {
   switch (type) {
-    case 'icerik':
-      return const Color(0xFF60A5FA);
-    case 'yorum':
-      return const Color(0xFF34D399);
     case 'begeni':
-      return const Color(0xFFEF4444);
+      return UygulamaTemasi.hata;
+    case 'icerik':
+    case 'yorum':
     case 'kayit':
-      return const Color(0xFFF5A623);
     case 'rozet':
-      return const Color(0xFFFFD166);
     default:
       return UygulamaTemasi.anaRenk;
   }

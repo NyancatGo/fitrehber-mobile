@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/oturum_denetleyici.dart';
 
@@ -88,7 +89,7 @@ class _EpostaDogrulamaEkraniDurumu
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(kullaniciDostuHata(e)),
-            backgroundColor: Colors.red,
+            backgroundColor: UygulamaTemasi.hata,
           ),
         );
       }
@@ -118,14 +119,14 @@ class _EpostaDogrulamaEkraniDurumu
             children: [
               const Icon(
                 Icons.mark_email_unread_outlined,
-                size: 80,
-                color: Color(0xFFF5A623),
+                size: 48,
+                color: UygulamaTemasi.anaRenk,
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'E-postanı Doğrula',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: UygulamaTemasi.baslik(fontSize: 26, height: 1.1),
               ),
               const SizedBox(height: 16),
               Text(
@@ -133,26 +134,16 @@ class _EpostaDogrulamaEkraniDurumu
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.grey,
+                  color: UygulamaTemasi.ikincilMetin,
                   height: 1.5,
                 ),
               ),
               const SizedBox(height: 48),
               ElevatedButton(
                 onPressed: () => context.go('/giris'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5A623),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Doğruladım, Giriş Yap',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
+                child: const Text('Doğruladım, Giriş Yap'),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               TextButton(
                 onPressed: _cooldown > 0 || _isLoading ? null : _resendEmail,
                 child: _isLoading
@@ -165,11 +156,6 @@ class _EpostaDogrulamaEkraniDurumu
                         _cooldown > 0
                             ? 'Tekrar gönder ($_cooldown)'
                             : 'E-postayı Tekrar Gönder',
-                        style: TextStyle(
-                          color: _cooldown > 0
-                              ? Colors.grey
-                              : const Color(0xFFF5A623),
-                        ),
                       ),
               ),
             ],

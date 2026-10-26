@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../core/theme/uygulama_temasi.dart';
 import '../../../shared/models/beslenme_model.dart';
 import '../../../shared/services/besin_senkron_servisi.dart';
 import '../../../shared/services/yerel_besin_veritabani.dart';
@@ -28,7 +29,7 @@ void showFoodSearchBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: const Color(0xFF12141A),
+    backgroundColor: UygulamaTemasi.yuzey,
     builder: (sheetContext) {
       return _BesinAramaAkisi(ogunTipi: ogunTipi);
     },
@@ -164,7 +165,9 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
     if (!mounted) return;
     setState(() {
       _durum = hazir ? _VeritabaniDurumu.hazir : _VeritabaniDurumu.basarisiz;
-      _sonuclar = hazir ? YerelBesinVeritabani.instance.tumunuGetir() : const [];
+      _sonuclar = hazir
+          ? YerelBesinVeritabani.instance.tumunuGetir()
+          : const [];
     });
   }
 
@@ -219,7 +222,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: const Color(0xFF12141A),
+      backgroundColor: UygulamaTemasi.yuzey,
       builder: (context) {
         return _BesinKatkiFormu(
           initialName: _searchCtrl.text.trim(),
@@ -282,9 +285,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: hata
-            ? const Color(0xFFDC2626)
-            : const Color(0xFF22C55E),
+        backgroundColor: hata ? UygulamaTemasi.hata : UygulamaTemasi.yuzey,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -315,7 +316,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: Colors.white24,
+            color: UygulamaTemasi.cizgi,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -331,7 +332,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: UygulamaTemasi.anaMetin,
                 ),
               ),
               Row(
@@ -342,12 +343,15 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                     onPressed: _barkodTara,
                     icon: const Icon(
                       Icons.qr_code_scanner,
-                      color: Color(0xFFF97316),
+                      color: UygulamaTemasi.anaRenk,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white54),
+                    icon: const Icon(
+                      Icons.close,
+                      color: UygulamaTemasi.ikincilMetin,
+                    ),
                   ),
                 ],
               ),
@@ -363,14 +367,20 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
             onChanged: _aramaDegisti,
             autofocus: true,
             style: const TextStyle(
-              color: Colors.white,
+              color: UygulamaTemasi.anaMetin,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
               hintText: 'Besin, marka veya yemek ara',
-              hintStyle: const TextStyle(color: Colors.white38, fontSize: 16),
-              prefixIcon: const Icon(Icons.search, color: Color(0xFFF97316)),
+              hintStyle: const TextStyle(
+                color: UygulamaTemasi.ikincilMetin,
+                fontSize: 16,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: UygulamaTemasi.anaRenk,
+              ),
               // Temizleme ikonu yalnizca kendisi yeniden cizilir; metin alanini
               // ve sonuc listesini her tus vurusunda rebuild etmez.
               suffixIcon: ValueListenableBuilder<TextEditingValue>(
@@ -378,7 +388,10 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                 builder: (context, value, _) {
                   if (value.text.isEmpty) return const SizedBox.shrink();
                   return IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.white54),
+                    icon: const Icon(
+                      Icons.clear,
+                      color: UygulamaTemasi.ikincilMetin,
+                    ),
                     onPressed: () {
                       _searchCtrl.clear();
                       _aramaDegisti('');
@@ -387,7 +400,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                 },
               ),
               filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
+              fillColor: UygulamaTemasi.arkaPlan,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
@@ -413,7 +426,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                         Text(
                           'Sonuç bulunamadı.',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
+                            color: UygulamaTemasi.ikincilMetin,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -424,8 +437,8 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                           icon: const Icon(Icons.add_rounded),
                           label: const Text('Veritabanına öner'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF97316),
-                            foregroundColor: Colors.white,
+                            backgroundColor: UygulamaTemasi.anaRenk,
+                            foregroundColor: UygulamaTemasi.anaUstune,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
@@ -436,7 +449,7 @@ class _BesinAramaGorunumuDurumu extends ConsumerState<_BesinAramaGorunumu> {
                           'Öneriler editör onayından sonra genel aramada görünür.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: UygulamaTemasi.ikincilMetin,
                             fontSize: 12,
                           ),
                         ),
@@ -548,9 +561,7 @@ class _BesinKatkiFormuState extends State<_BesinKatkiFormu> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: hata
-            ? const Color(0xFFDC2626)
-            : const Color(0xFF22C55E),
+        backgroundColor: hata ? UygulamaTemasi.hata : UygulamaTemasi.yuzey,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -569,7 +580,7 @@ class _BesinKatkiFormuState extends State<_BesinKatkiFormu> {
             const Text(
               'Besin öner',
               style: TextStyle(
-                color: Colors.white,
+                color: UygulamaTemasi.anaMetin,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
               ),
@@ -577,7 +588,7 @@ class _BesinKatkiFormuState extends State<_BesinKatkiFormu> {
             const SizedBox(height: 6),
             Text(
               '100 g değerlerini gir; editör onayından sonra genel aramaya açılır.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+              style: TextStyle(color: UygulamaTemasi.ikincilMetin),
             ),
             const SizedBox(height: 16),
             _katkiInput(_isimCtrl, 'Besin adı', TextInputType.text),
@@ -611,8 +622,8 @@ class _BesinKatkiFormuState extends State<_BesinKatkiFormu> {
             ElevatedButton(
               onPressed: _busy ? null : _gonder,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF97316),
-                foregroundColor: Colors.white,
+                backgroundColor: UygulamaTemasi.anaRenk,
+                foregroundColor: UygulamaTemasi.anaUstune,
                 minimumSize: const Size.fromHeight(48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -624,7 +635,7 @@ class _BesinKatkiFormuState extends State<_BesinKatkiFormu> {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: UygulamaTemasi.anaUstune,
                       ),
                     )
                   : const Text('İnceleme kuyruğuna gönder'),
@@ -643,12 +654,15 @@ class _BesinKatkiFormuState extends State<_BesinKatkiFormu> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+      style: const TextStyle(
+        color: UygulamaTemasi.anaMetin,
+        fontWeight: FontWeight.w700,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+        labelStyle: TextStyle(color: UygulamaTemasi.ikincilMetin),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
+        fillColor: UygulamaTemasi.arkaPlan,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
@@ -718,7 +732,7 @@ class _BarkodTaramaSayfasiState extends State<_BarkodTaramaSayfasi> {
               width: 260,
               height: 180,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFF97316), width: 3),
+                border: Border.all(color: UygulamaTemasi.anaRenk, width: 3),
                 borderRadius: BorderRadius.circular(18),
               ),
             ),
@@ -731,7 +745,7 @@ class _BarkodTaramaSayfasiState extends State<_BarkodTaramaSayfasi> {
               'Barkodu çerçevenin içine getir.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+                color: Color(0xCCFFFFFF),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -757,9 +771,9 @@ class _BesinListeSatiri extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
+          color: UygulamaTemasi.arkaPlan,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: UygulamaTemasi.arkaPlan),
         ),
         child: Row(
           children: [
@@ -767,12 +781,12 @@ class _BesinListeSatiri extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFF97316).withValues(alpha: 0.1),
+                color: UygulamaTemasi.anaRenk.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.fastfood_rounded,
-                color: Color(0xFFF97316),
+                color: UygulamaTemasi.anaRenk,
                 size: 22,
               ),
             ),
@@ -789,7 +803,7 @@ class _BesinListeSatiri extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: UygulamaTemasi.anaMetin,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -800,7 +814,7 @@ class _BesinListeSatiri extends StatelessWidget {
                           padding: EdgeInsets.only(left: 6),
                           child: Icon(
                             Icons.verified,
-                            color: Color(0xFF22C55E),
+                            color: UygulamaTemasi.anaRenk,
                             size: 16,
                           ),
                         ),
@@ -816,17 +830,17 @@ class _BesinListeSatiri extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF3B82F6,
-                            ).withValues(alpha: 0.15),
+                            color: UygulamaTemasi.ikincilMetin.withValues(
+                              alpha: 0.15,
+                            ),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             food.marka,
                             style: const TextStyle(
-                              color: Color(0xFF60A5FA),
+                              color: UygulamaTemasi.ikincilMetin,
                               fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -838,7 +852,7 @@ class _BesinListeSatiri extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: UygulamaTemasi.ikincilMetin,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -975,7 +989,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.food.isim} eklendi.'),
-          backgroundColor: const Color(0xFF22C55E),
+          backgroundColor: UygulamaTemasi.yuzey,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
         ),
@@ -986,7 +1000,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(hata),
-          backgroundColor: const Color(0xFFDC2626),
+          backgroundColor: UygulamaTemasi.hata,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
         ),
@@ -1021,7 +1035,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                 onPressed: widget.onBack,
                 icon: const Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white,
+                  color: UygulamaTemasi.anaMetin,
                 ),
               ),
               const Expanded(
@@ -1031,7 +1045,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: UygulamaTemasi.anaMetin,
                   ),
                 ),
               ),
@@ -1054,7 +1068,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: UygulamaTemasi.anaMetin,
                     height: 1.2,
                   ),
                 ),
@@ -1066,7 +1080,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: UygulamaTemasi.ikincilMetin,
                     ),
                   ),
                 ],
@@ -1086,10 +1100,10 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                     Container(
                       width: 180,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: UygulamaTemasi.arkaPlan,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: const Color(0xFFF97316).withValues(alpha: 0.5),
+                          color: UygulamaTemasi.anaRenk.withValues(alpha: 0.5),
                           width: 2,
                         ),
                       ),
@@ -1112,7 +1126,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                               textAlign: TextAlign.center,
                               onChanged: _updateGrams,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: UygulamaTemasi.anaMetin,
                                 fontSize: 36,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -1131,7 +1145,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                                       : _selectedPortion!.isim)
                                 : 'g',
                             style: const TextStyle(
-                              color: Colors.white70,
+                              color: UygulamaTemasi.ikincilMetin,
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1156,22 +1170,20 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: UygulamaTemasi.arkaPlan,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
+                      border: Border.all(color: UygulamaTemasi.cizgi),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<BesinPorsiyonModel?>(
                         value: _selectedPortion,
-                        dropdownColor: const Color(0xFF1E222B),
+                        dropdownColor: UygulamaTemasi.yuzey,
                         icon: const Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFFF97316),
+                          color: UygulamaTemasi.anaRenk,
                         ),
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: UygulamaTemasi.anaMetin,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1226,11 +1238,9 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
+                    color: UygulamaTemasi.arkaPlan,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
+                    border: Border.all(color: UygulamaTemasi.arkaPlan),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1239,7 +1249,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                         label: 'Kalori',
                         value: '${food.gramKalori(_currentGram).toInt()}',
                         unit: 'kcal',
-                        color: const Color(0xFFF97316),
+                        color: UygulamaTemasi.anaRenk,
                       ),
                       _MakroOgesi(
                         label: 'Protein',
@@ -1247,7 +1257,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                             .gramProtein(_currentGram)
                             .toStringAsFixed(1),
                         unit: 'g',
-                        color: const Color(0xFF3B82F6),
+                        color: const Color(0xFFC9844A),
                       ),
                       _MakroOgesi(
                         label: 'Karb',
@@ -1255,13 +1265,13 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                             .gramKarbonhidrat(_currentGram)
                             .toStringAsFixed(1),
                         unit: 'g',
-                        color: const Color(0xFFA855F7),
+                        color: UygulamaTemasi.ikincilMetin,
                       ),
                       _MakroOgesi(
                         label: 'Yağ',
                         value: food.gramYag(_currentGram).toStringAsFixed(1),
                         unit: 'g',
-                        color: const Color(0xFFEAB308),
+                        color: UygulamaTemasi.hata,
                       ),
                     ],
                   ),
@@ -1272,11 +1282,9 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.02),
+                    color: UygulamaTemasi.arkaPlan,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.04),
-                    ),
+                    border: Border.all(color: UygulamaTemasi.arkaPlan),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1284,7 +1292,7 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
                       const Text(
                         'Detaylı Besin Değerleri',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: UygulamaTemasi.ikincilMetin,
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1339,26 +1347,24 @@ class _BesinDetayGorunumuDurumu extends ConsumerState<_BesinDetayGorunumu> {
             child: ElevatedButton(
               onPressed: _currentGram > 0 ? _kaydet : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF97316),
-                disabledBackgroundColor: Colors.white.withValues(alpha: 0.1),
+                backgroundColor: UygulamaTemasi.anaRenk,
+                foregroundColor: UygulamaTemasi.anaUstune,
+                disabledBackgroundColor: UygulamaTemasi.cizgi,
+                disabledForegroundColor: UygulamaTemasi.ikincilMetin,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_circle_outline, color: Colors.white, size: 24),
+                  Icon(Icons.add_circle_outline, size: 24),
                   SizedBox(width: 8),
                   Text(
                     'Öğüne Ekle',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -1390,7 +1396,7 @@ class _MakroOgesi extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: UygulamaTemasi.ikincilMetin,
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
@@ -1429,7 +1435,7 @@ class _AdimButonu extends StatelessWidget {
   Widget build(BuildContext context) {
     final aktif = onTap != null;
     return Material(
-      color: Colors.white.withValues(alpha: aktif ? 0.06 : 0.02),
+      color: aktif ? UygulamaTemasi.yuzey : UygulamaTemasi.arkaPlan,
       shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
@@ -1439,9 +1445,7 @@ class _AdimButonu extends StatelessWidget {
           height: 48,
           child: Icon(
             ikon,
-            color: aktif
-                ? const Color(0xFFF97316)
-                : Colors.white.withValues(alpha: 0.2),
+            color: aktif ? UygulamaTemasi.anaRenk : UygulamaTemasi.cizgi,
             size: 24,
           ),
         ),
@@ -1472,20 +1476,20 @@ class _MiktarChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: secili
-              ? const Color(0xFFF97316).withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.04),
+              ? UygulamaTemasi.anaRenk.withValues(alpha: 0.18)
+              : UygulamaTemasi.arkaPlan,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: secili
-                ? const Color(0xFFF97316)
-                : Colors.white.withValues(alpha: 0.08),
+            color: secili ? UygulamaTemasi.anaRenk : UygulamaTemasi.cizgi,
             width: secili ? 1.4 : 1,
           ),
         ),
         child: Text(
           etiket,
           style: TextStyle(
-            color: secili ? const Color(0xFFF97316) : Colors.white70,
+            color: secili
+                ? UygulamaTemasi.anaRenk
+                : UygulamaTemasi.ikincilMetin,
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
@@ -1516,7 +1520,7 @@ class _MikroOgesi extends StatelessWidget {
         Text(
           '$label: ',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
+            color: UygulamaTemasi.ikincilMetin,
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -1524,7 +1528,7 @@ class _MikroOgesi extends StatelessWidget {
         Text(
           '${value.toStringAsFixed(1)}$unit',
           style: const TextStyle(
-            color: Colors.white,
+            color: UygulamaTemasi.anaMetin,
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
@@ -1548,13 +1552,13 @@ class _VeritabaniHazirlaniyor extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Color(0xFFF97316)),
+            const CircularProgressIndicator(color: UygulamaTemasi.anaRenk),
             const SizedBox(height: 18),
             const Text(
               'Besin veritabanı hazırlanıyor…',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
+                color: UygulamaTemasi.anaMetin,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -1565,7 +1569,7 @@ class _VeritabaniHazirlaniyor extends StatelessWidget {
               'Sonrasında arama internetsiz de çalışır.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
+                color: UygulamaTemasi.ikincilMetin,
                 fontSize: 12,
               ),
             ),
@@ -1595,14 +1599,14 @@ class _VeritabaniIndirilemedi extends StatelessWidget {
             Icon(
               Icons.cloud_off_rounded,
               size: 44,
-              color: Colors.white.withValues(alpha: 0.35),
+              color: UygulamaTemasi.ikincilMetin,
             ),
             const SizedBox(height: 16),
             const Text(
               'Besin veritabanı indirilemedi',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
+                color: UygulamaTemasi.anaMetin,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -1612,7 +1616,7 @@ class _VeritabaniIndirilemedi extends StatelessWidget {
               'İnternet bağlantını kontrol edip tekrar dene.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
+                color: UygulamaTemasi.ikincilMetin,
                 fontSize: 13,
               ),
             ),
@@ -1622,8 +1626,8 @@ class _VeritabaniIndirilemedi extends StatelessWidget {
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Tekrar dene'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF97316),
-                foregroundColor: Colors.white,
+                backgroundColor: UygulamaTemasi.anaRenk,
+                foregroundColor: UygulamaTemasi.anaUstune,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),

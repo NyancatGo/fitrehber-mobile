@@ -6,10 +6,9 @@
 // karbonhidrat / yağ için ince ilerleme barları.
 // ---------------------------------------------------------------------------
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/uygulama_temasi.dart';
 import '../../../shared/models/beslenme_model.dart';
 import '../../../shared/utils/beslenme_hesaplayici.dart';
 
@@ -30,90 +29,81 @@ class GunlukOzetPaneli extends StatelessWidget {
     final fark = hedefler.kaloriHedef - veri.kaloriKcal;
     final asimVar = fark < 0;
     final gosterilenDeger = asimVar ? -fark : fark;
-    const asimRengi = Color(0xFFEF4444);
-    final oran = hedefler.kaloriHedef > 0
-        ? veri.kaloriKcal / hedefler.kaloriHedef
+    const asimRengi = UygulamaTemasi.hata;
+    final kaloriOran = hedefler.kaloriHedef > 0
+        ? (veri.kaloriKcal / hedefler.kaloriHedef).clamp(0.0, 1.0)
         : 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [const Color(0xFF1E2030), const Color(0xFF171923)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: UygulamaTemasi.yuzey,
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         children: [
-          // --- Kalori Özeti ---
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mini ilerleme halkası
-              SizedBox(
-                width: 72,
-                height: 72,
-                child: CustomPaint(
-                  painter: _MiniHalkaPainter(
-                    yuzde: oran.clamp(0.0, 1.0),
-                    asimVar: asimVar,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${(oran * 100).clamp(0, 999).toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: asimVar ? asimRengi : Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              // Kalori detayları
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '$gosterilenDeger',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        color: asimVar ? asimRengi : Colors.white,
-                        height: 1.1,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '$gosterilenDeger',
+                          style: UygulamaTemasi.baslik(
+                            fontSize: 36,
+                            height: 1.0,
+                            color: asimVar
+                                ? asimRengi
+                                : UygulamaTemasi.anaMetin,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'kcal',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: asimVar
+                                ? asimRengi
+                                : UygulamaTemasi.ikincilMetin,
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       asimVar ? 'Kalori Aşıldı' : 'Kalan Kalori',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: asimVar
-                            ? asimRengi.withValues(alpha: 0.8)
-                            : Colors.white.withValues(alpha: 0.5),
+                            ? asimRengi
+                            : UygulamaTemasi.ikincilMetin,
                       ),
                     ),
                   ],
                 ),
               ),
-              // Alınan / Hedef
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   _KaloriMetrik(
                     ikon: Icons.local_fire_department_rounded,
-                    renk: const Color(0xFFF97316),
+                    renk: UygulamaTemasi.anaRenk,
                     deger: '${veri.kaloriKcal}',
                     etiket: 'Alınan',
                   ),
                   const SizedBox(height: 8),
                   _KaloriMetrik(
                     ikon: Icons.flag_rounded,
-                    renk: const Color(0xFF22C55E),
+                    renk: UygulamaTemasi.ikincilMetin,
                     deger: '${hedefler.kaloriHedef}',
                     etiket: 'Hedef',
                   ),
@@ -121,7 +111,26 @@ class GunlukOzetPaneli extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: kaloriOran),
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              builder: (context, oran, _) {
+                return LinearProgressIndicator(
+                  minHeight: 7,
+                  value: oran,
+                  backgroundColor: UygulamaTemasi.cizgi,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    asimVar ? asimRengi : UygulamaTemasi.anaRenk,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
           // --- Makro Barları (ince) ---
           Row(
             children: [
@@ -129,21 +138,21 @@ class GunlukOzetPaneli extends StatelessWidget {
                 etiket: 'Protein',
                 deger: veri.proteinG,
                 hedef: hedefler.proteinHedefG,
-                renk: const Color(0xFF3B82F6),
+                renk: UygulamaTemasi.anaRenk,
               ),
               const SizedBox(width: 10),
               _MiniMakroBar(
                 etiket: 'Karb',
                 deger: veri.karbonhidratG,
                 hedef: hedefler.karbonhidratHedefG,
-                renk: const Color(0xFFF5A623),
+                renk: const Color(0xFFC9844A),
               ),
               const SizedBox(width: 10),
               _MiniMakroBar(
                 etiket: 'Yağ',
                 deger: veri.yagG,
                 hedef: hedefler.yagHedefG,
-                renk: const Color(0xFFEF4444),
+                renk: UygulamaTemasi.ikincilMetin,
               ),
             ],
           ),
@@ -177,8 +186,8 @@ class _KaloriMetrik extends StatelessWidget {
           deger,
           style: const TextStyle(
             fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            color: UygulamaTemasi.anaMetin,
           ),
         ),
         const SizedBox(width: 3),
@@ -187,7 +196,7 @@ class _KaloriMetrik extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: Colors.white.withValues(alpha: 0.4),
+            color: UygulamaTemasi.ikincilMetin,
           ),
         ),
       ],
@@ -213,7 +222,7 @@ class _MiniMakroBar extends StatelessWidget {
     final asimVar = hedef > 0 && deger > hedef;
     final yuzde = hedef > 0 ? (deger / hedef).clamp(0.0, 1.0) : 0.0;
     // Makro hedefi asilinca bar ve sayac kirmiziya doner.
-    const asimRengi = Color(0xFFEF4444);
+    const asimRengi = UygulamaTemasi.hata;
     final barRenk = asimVar ? asimRengi : renk;
 
     return Expanded(
@@ -228,7 +237,7 @@ class _MiniMakroBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: UygulamaTemasi.ikincilMetin,
                 ),
               ),
               Text(
@@ -238,7 +247,7 @@ class _MiniMakroBar extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   color: asimVar
                       ? asimRengi.withValues(alpha: 0.9)
-                      : Colors.white.withValues(alpha: 0.4),
+                      : UygulamaTemasi.ikincilMetin,
                 ),
               ),
             ],
@@ -248,10 +257,7 @@ class _MiniMakroBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(3),
             child: Stack(
               children: [
-                Container(
-                  height: 6,
-                  color: Colors.white.withValues(alpha: 0.07),
-                ),
+                Container(height: 6, color: UygulamaTemasi.cizgi),
                 FractionallySizedBox(
                   widthFactor: yuzde,
                   child: Container(height: 6, color: barRenk),
@@ -263,53 +269,4 @@ class _MiniMakroBar extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MiniHalkaPainter extends CustomPainter {
-  final double yuzde;
-  final bool asimVar;
-
-  const _MiniHalkaPainter({required this.yuzde, this.asimVar = false});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final merkez = Offset(size.width / 2, size.height / 2);
-    final yaricap = (size.width - 8) / 2;
-    final rect = Rect.fromCircle(center: merkez, radius: yaricap);
-
-    // Arka plan halkası — aşımda kırmızımsı zemin, kullanıcı tam doluyu hisseder.
-    final bgPaint = Paint()
-      ..color = asimVar
-          ? const Color(0xFFEF4444).withValues(alpha: 0.18)
-          : Colors.white.withValues(alpha: 0.06)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round;
-    canvas.drawCircle(merkez, yaricap, bgPaint);
-
-    // İlerleme halkası — aşımda tam kırmızı, normalde turuncu→kırmızı gradient.
-    if (yuzde > 0) {
-      final fgPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
-        ..strokeCap = StrokeCap.round;
-
-      if (asimVar) {
-        fgPaint.color = const Color(0xFFEF4444);
-      } else {
-        fgPaint.shader = SweepGradient(
-          startAngle: -math.pi / 2,
-          endAngle: 3 * math.pi / 2,
-          colors: const [Color(0xFFF97316), Color(0xFFEF4444)],
-          tileMode: TileMode.clamp,
-        ).createShader(rect);
-      }
-
-      canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * yuzde, false, fgPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_MiniHalkaPainter old) =>
-      old.yuzde != yuzde || old.asimVar != asimVar;
 }

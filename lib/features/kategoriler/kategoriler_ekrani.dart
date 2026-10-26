@@ -16,9 +16,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/api_sabitleri.dart';
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/api_servisi.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/kategori_model.dart';
+import '../../shared/oturum_denetleyici.dart';
 import '../../shared/yerel_veritabani_servisi.dart';
 import '../../shared/widgets/icerik_kart_parcalari.dart';
 
@@ -31,7 +33,7 @@ class KategorilerEkrani extends ConsumerStatefulWidget {
 }
 
 class _KategorilerEkraniState extends ConsumerState<KategorilerEkrani> {
-  final ApiServisi _api = ApiServisi();
+  ApiServisi get _api => ref.read(apiServisiProvider);
 
   /// Filtre şeridinde gösterilen kategoriler.
   List<KategoriModel> _kategoriler = [];
@@ -153,20 +155,18 @@ class _KategorilerEkraniState extends ConsumerState<KategorilerEkrani> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: secili
-                ? const Color(0xFFF5A623)
-                : const Color(0xFF1E293B),
+            color: secili ? UygulamaTemasi.anaRenk : UygulamaTemasi.yuzey,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: secili
-                  ? const Color(0xFFF5A623)
-                  : const Color(0xFF334155),
+              color: secili ? UygulamaTemasi.anaRenk : UygulamaTemasi.cizgi,
             ),
           ),
           child: Text(
             isim,
             style: TextStyle(
-              color: secili ? Colors.black : Colors.white,
+              color: secili
+                  ? UygulamaTemasi.anaUstune
+                  : UygulamaTemasi.anaMetin,
               fontSize: 13,
               fontWeight: secili ? FontWeight.w600 : FontWeight.w400,
             ),
@@ -191,13 +191,13 @@ class _KategorilerEkraniState extends ConsumerState<KategorilerEkrani> {
               const Icon(
                 Icons.cloud_off,
                 size: 48,
-                color: Color(0xFF64748B),
+                color: UygulamaTemasi.ikincilMetin,
               ),
               const SizedBox(height: 12),
               Text(
                 _hata!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF94A3B8)),
+                style: const TextStyle(color: UygulamaTemasi.ikincilMetin),
               ),
               const SizedBox(height: 16),
               FilledButton(
@@ -213,7 +213,7 @@ class _KategorilerEkraniState extends ConsumerState<KategorilerEkrani> {
       return const Center(
         child: Text(
           'Bu kategoride henüz içerik yok.',
-          style: TextStyle(color: Color(0xFF94A3B8)),
+          style: TextStyle(color: UygulamaTemasi.ikincilMetin),
         ),
       );
     }
@@ -228,45 +228,47 @@ class _KategorilerEkraniState extends ConsumerState<KategorilerEkrani> {
   Widget _icerikKarti(IcerikModel icerik) {
     return Card(
       key: ValueKey('kategori-icerik-${icerik.id}'),
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
         onTap: () => context.push('/makale/${icerik.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (icerik.resimUrl != null && icerik.resimUrl!.isNotEmpty)
-                IcerikKapakResmi(url: icerik.resimUrl!),
-              IcerikEtiket(
-                text: icerik.kategoriAdi,
-                color: const Color(0xFFF5A623),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                icerik.baslik,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (icerik.ozet.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  icerik.ozet,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 13,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (icerik.resimUrl != null && icerik.resimUrl!.isNotEmpty)
+              IcerikKapakResmi(url: icerik.resimUrl!),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IcerikEtiket(
+                    text: icerik.kategoriAdi,
+                    color: UygulamaTemasi.ikincilMetin,
+                    cizgili: true,
                   ),
-                ),
-              ],
-            ],
-          ),
+                  const SizedBox(height: 8),
+                  Text(
+                    icerik.baslik,
+                    style: UygulamaTemasi.baslik(fontSize: 18, height: 1.25),
+                  ),
+                  if (icerik.ozet.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      icerik.ozet,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: UygulamaTemasi.ikincilMetin,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

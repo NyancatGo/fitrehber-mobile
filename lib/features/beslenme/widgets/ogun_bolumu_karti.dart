@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/uygulama_temasi.dart';
 import '../../../shared/models/beslenme_model.dart';
 import '../providers/beslenme_provider.dart';
 import 'besin_arama_paneli.dart';
@@ -32,52 +33,92 @@ class OgunBolumuKarti extends ConsumerWidget {
       0,
       (toplam, kayit) => toplam + kayit.kalori,
     );
+    final toplamProtein = kayitlar.fold<double>(
+      0,
+      (toplam, kayit) => toplam + kayit.protein,
+    );
+    final toplamKarb = kayitlar.fold<double>(
+      0,
+      (toplam, kayit) => toplam + kayit.karbonhidrat,
+    );
+    final toplamYag = kayitlar.fold<double>(
+      0,
+      (toplam, kayit) => toplam + kayit.yag,
+    );
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        color: UygulamaTemasi.yuzey,
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // --- Başlık ---
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: _ogunRengi(ogunTipi).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(11),
                   ),
                   child: Icon(
                     _ogunIkonu(ogunTipi),
                     color: _ogunRengi(ogunTipi),
-                    size: 18,
+                    size: 19,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    _ogunBasligi(ogunTipi),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _ogunBasligi(ogunTipi),
+                        style: UygulamaTemasi.baslik(
+                          fontSize: 18,
+                          height: 1.15,
+                        ),
+                      ),
+                      if (kayitlar.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'P ${toplamProtein.toStringAsFixed(0)}g • '
+                          'K ${toplamKarb.toStringAsFixed(0)}g • '
+                          'Y ${toplamYag.toStringAsFixed(0)}g',
+                          style: const TextStyle(
+                            color: UygulamaTemasi.ikincilMetin,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                Text(
-                  '$toplamKalori kcal',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: UygulamaTemasi.arkaPlan,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: UygulamaTemasi.cizgi),
+                  ),
+                  child: Text(
+                    '$toplamKalori kcal',
+                    style: const TextStyle(
+                      color: UygulamaTemasi.ikincilMetin,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -86,10 +127,17 @@ class OgunBolumuKarti extends ConsumerWidget {
 
           // --- Kayıtlar ---
           if (kayitlar.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ...kayitlar.map(
-              (kayit) => _BesinKayitSatiri(kayit: kayit, isLoading: isLoading),
-            ),
+            const Divider(height: 1, color: UygulamaTemasi.cizgi),
+            for (var i = 0; i < kayitlar.length; i++) ...[
+              if (i > 0)
+                const Divider(
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: UygulamaTemasi.cizgi,
+                ),
+              _BesinKayitSatiri(kayit: kayitlar[i], isLoading: isLoading),
+            ],
           ],
 
           // --- "+ Ekle" Butonu ---
@@ -103,27 +151,26 @@ class OgunBolumuKarti extends ConsumerWidget {
             ),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                ),
+              height: 44,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: UygulamaTemasi.cizgi)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.add_rounded,
-                    color: const Color(0xFFF97316),
+                    color: UygulamaTemasi.anaRenk,
                     size: 18,
                   ),
                   const SizedBox(width: 6),
-                  Text(
+                  const Text(
                     'Ekle',
                     style: TextStyle(
-                      color: const Color(0xFFF97316),
+                      color: UygulamaTemasi.anaRenk,
                       fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -146,25 +193,19 @@ class _BesinKayitSatiri extends ConsumerWidget {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2937),
-        title: const Text('Kaydı sil?', style: TextStyle(color: Colors.white)),
-        content: Text(
-          '"${kayit.besinIsim}" kaydı silinsin mi?',
-          style: const TextStyle(color: Colors.white70),
-        ),
+        backgroundColor: UygulamaTemasi.yuzey,
+        title: const Text('Kaydı sil?'),
+        content: Text('"${kayit.besinIsim}" kaydı silinsin mi?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Vazgeç',
-              style: TextStyle(color: Colors.white60),
-            ),
+            child: const Text('Vazgeç'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
               'Sil',
-              style: TextStyle(color: Color(0xFFEF4444)),
+              style: TextStyle(color: UygulamaTemasi.hata),
             ),
           ),
         ],
@@ -181,8 +222,8 @@ class _BesinKayitSatiri extends ConsumerWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.redAccent.withValues(alpha: 0.2),
-        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
+        color: UygulamaTemasi.hata.withValues(alpha: 0.14),
+        child: const Icon(Icons.delete_outline, color: UygulamaTemasi.hata),
       ),
       confirmDismiss: (_) async {
         if (isLoading) return false;
@@ -208,9 +249,9 @@ class _BesinKayitSatiri extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: UygulamaTemasi.anaMetin,
                         fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -222,7 +263,7 @@ class _BesinKayitSatiri extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.38),
+                        color: UygulamaTemasi.ikincilMetin,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -234,7 +275,7 @@ class _BesinKayitSatiri extends ConsumerWidget {
               Text(
                 '${kayit.kalori}',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: UygulamaTemasi.anaMetin,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
@@ -242,7 +283,7 @@ class _BesinKayitSatiri extends ConsumerWidget {
               Text(
                 ' kcal',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.35),
+                  color: UygulamaTemasi.ikincilMetin,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
@@ -250,7 +291,7 @@ class _BesinKayitSatiri extends ConsumerWidget {
               const SizedBox(width: 6),
               Icon(
                 Icons.chevron_right,
-                color: Colors.white.withValues(alpha: 0.25),
+                color: UygulamaTemasi.ikincilMetin,
                 size: 18,
               ),
             ],
@@ -294,18 +335,7 @@ IconData _ogunIkonu(String ogunTipi) {
 }
 
 Color _ogunRengi(String ogunTipi) {
-  switch (ogunTipi) {
-    case 'sabah':
-      return const Color(0xFFF97316);
-    case 'ogle':
-      return const Color(0xFF3B82F6);
-    case 'aksam':
-      return const Color(0xFF8B5CF6);
-    case 'atistirmalik':
-      return const Color(0xFF22C55E);
-    default:
-      return const Color(0xFFF97316);
-  }
+  return UygulamaTemasi.anaRenk;
 }
 
 String _formatMiktar(double value) {

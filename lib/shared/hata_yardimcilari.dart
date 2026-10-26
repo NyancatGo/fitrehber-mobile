@@ -5,10 +5,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
+import 'api_hatasi.dart';
 import 'google_oauth_akisi.dart';
 
 /// Yakalanan bir hatayı kullanıcı dostu, Türkçe bir mesaja dönüştürür.
 String kullaniciDostuHata(Object hata) {
+  // API katmanının tipli hatası: mesaj zaten Türkçe ve anlaşılırdır.
+  if (hata is ApiHatasi) {
+    return hata.mesaj;
+  }
+
   if (hata is GoogleOAuthHatasi) {
     return hata.message;
   }

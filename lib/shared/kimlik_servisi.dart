@@ -17,17 +17,25 @@ import 'models/kullanici_model.dart';
 
 /// Giriş, kayıt ve oturum yönetimi işlemlerini yürüten servis.
 class KimlikServisi {
-  final Dio _dio = Dio(
-    BaseOptions(
-      validateStatus: (status) => true,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    ),
-  );
+  /// Uygulama genelinde paylaşılan varsayılan kimlik servisi örneği.
+  static final KimlikServisi instance = KimlikServisi();
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  KimlikServisi({Dio? dio, FlutterSecureStorage? storage})
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              validateStatus: (status) => true,
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+            ),
+          ),
+      _storage = storage ?? const FlutterSecureStorage();
+
+  final Dio _dio;
+  final FlutterSecureStorage _storage;
 
   /// Kullanıcı adı ve parola ile giriş yapar.
   ///
@@ -193,9 +201,7 @@ class KimlikServisi {
   Future<void> sureYukle() async {
     try {
       final ham = await _storage.read(key: _accessExpiryKey);
-      _accessBitisMs = (ham == null || ham.isEmpty)
-          ? null
-          : int.tryParse(ham);
+      _accessBitisMs = (ham == null || ham.isEmpty) ? null : int.tryParse(ham);
     } catch (_) {
       _accessBitisMs = null;
     }
@@ -223,14 +229,35 @@ class KimlikServisi {
     return token != null;
   }
 
+  /// Güvenli depoda önbelleğe alınmış oturum sahibinin kimliğini okur.
+  ///
+  /// Çevrimdışı açılışta profil sunucudan alınamadığında, kullanıcıya bağlı
+  /// yerel verilerin (çevrimdışı kuyruk, sohbet geçmişi) doğru hesaba
+  /// eşlenebilmesi için kullanılır. Kayıt yoksa/okunamazsa `null` döner.
+  Future<int?> onbellektekiKullaniciIdOku() async {
+    try {
+      final raw = await _storage.read(key: 'current_user');
+      if (raw == null || raw.trim().isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return null;
+      final id = decoded['id'];
+      final sayi = id is num ? id.toInt() : int.tryParse(id?.toString() ?? '');
+      return (sayi != null && sayi > 0) ? sayi : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Oturumu kapatır: tüm token'ları ve kullanıcı verisini güvenli depodan siler.
   Future<void> cikisYap() async {
+    _accessBitisMs = null;
     await _storage.deleteAll();
   }
 
   // Access token kısa, refresh token daha uzun ömürlüdür. Aynı anda birden çok
   // istek 401 alırsa tek refresh çağrısı yapılır; hepsi aynı Future'ı bekler.
-  Future<bool>? _refreshInFlight;
+  // Statik tutulur ki farklı servis örnekleri bile aynı single-flight kilidini paylaşsın.
+  static Future<bool>? _refreshInFlight;
 
   /// Erişim token'ını yeniler. Aynı anda birden fazla çağrı gelse bile
   /// tek bir yenileme isteği yapılır (single-flight); hepsi aynı sonucu bekler.

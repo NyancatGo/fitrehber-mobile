@@ -153,7 +153,7 @@ class _ProfilDuzenlemePaneliDurumu
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.22),
+                  color: UygulamaTemasi.cizgi,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
@@ -245,9 +245,7 @@ class _ProfilDuzenlemePaneliDurumu
               ),
             ),
             const SizedBox(height: 12),
-            _DogumTarihiSecimSatiri(
-              birthDate: widget.profile.birthDate,
-            ),
+            _DogumTarihiSecimSatiri(birthDate: widget.profile.birthDate),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _saving ? null : _save,
@@ -287,9 +285,9 @@ class _ProfilFotografiSecici extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        color: UygulamaTemasi.arkaPlan,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Row(
         children: [
@@ -297,11 +295,9 @@ class _ProfilFotografiSecici extends StatelessWidget {
             width: 76,
             height: 76,
             padding: const EdgeInsets.all(3),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-              ),
+              border: Border.all(color: UygulamaTemasi.anaRenk, width: 1.5),
             ),
             child: ClipOval(child: _preview()),
           ),
@@ -320,7 +316,7 @@ class _ProfilFotografiSecici extends StatelessWidget {
                       ? 'Galeriden veya kameradan yeni gorsel sec.'
                       : 'Yeni fotograf kaydetmeye hazir.',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.58),
+                    color: UygulamaTemasi.ikincilMetin,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),

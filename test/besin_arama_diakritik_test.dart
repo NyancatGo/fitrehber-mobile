@@ -52,9 +52,7 @@ void main() {
   });
 
   test('ASCII sorgu, alias YOKSA da Türkçe karakterli besini bulur', () async {
-    await cacheKur([
-      _food(id: 2, isim: 'Mercimek Çorbası', aliases: const []),
-    ]);
+    await cacheKur([_food(id: 2, isim: 'Mercimek Çorbası', aliases: const [])]);
 
     // Kritik test: alias yoksa bile eşleşmeli. Katlama kaldırılırsa burası
     // kırmızı yanar — ve prod'da "corba" arayan kullanıcı sonuç göremez.
@@ -66,9 +64,7 @@ void main() {
   });
 
   test('Türkçe karakterli sorgu her hâlükârda eşleşir', () async {
-    await cacheKur([
-      _food(id: 3, isim: 'Mercimek Çorbası', aliases: const []),
-    ]);
+    await cacheKur([_food(id: 3, isim: 'Mercimek Çorbası', aliases: const [])]);
 
     expect(YerelBesinVeritabani.instance.ara('mercimek çorbası'), isNotEmpty);
     expect(YerelBesinVeritabani.instance.ara('Mercimek'), isNotEmpty);

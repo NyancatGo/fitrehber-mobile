@@ -1,79 +1,73 @@
 // ---------------------------------------------------------------------------
 // ANA EKRAN (KABUK / SHELL)
 // ---------------------------------------------------------------------------
-// Uygulamanın iskeletidir: alttaki gezinme çubuğu (Bottom Navigation Bar) ile
-// beş ana bölümü (Ana Sayfa, Forum, AI Asistan, Beslenme, Profil) barındırır.
-// Kullanıcı bir sekmeye dokununca o sekmenin ekranı gösterilir.
+// Alt gezinme çubuğunu tutar. Sekmelerin kendisi router'daki
+// StatefulShellRoute dallarıdır; bu kabuk yalnız gövdeyi ve çubuğu çizer.
+// Dal bir kez açıldıktan sonra IndexedStack içinde kalır, bu yüzden sekme
+// değişince kaydırma, liste ve yarım kalan giriş silinmez.
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/widgets/asistan_ikonu.dart';
-import '../asistan/asistan_ekrani.dart';
-import '../forum/forum_ekrani.dart';
-import '../beslenme/beslenme_ekrani.dart';
-import '../profil/profil_ekrani.dart';
-import 'ana_sayfa_icerigi.dart';
 
-/// Alt gezinme çubuğuyla ana bölümleri yöneten kabuk ekranı.
-class AnaSayfaEkrani extends StatefulWidget {
-  const AnaSayfaEkrani({super.key});
+/// Alt gezinme çubuğuyla beş ana dalı gösteren kabuk.
+class AnaSayfaEkrani extends StatelessWidget {
+  const AnaSayfaEkrani({super.key, required this.navigationShell});
 
-  @override
-  State<AnaSayfaEkrani> createState() => _AnaSayfaEkraniDurumu();
-}
+  /// Aktif dalın gövdesi. İndeks ve geçiş kararı bu nesnededir.
+  final StatefulNavigationShell navigationShell;
 
-class _AnaSayfaEkraniDurumu extends State<AnaSayfaEkrani> {
-  // Aktif sekme indeksi
-  int _secilenIndeks = 0;
-
-  // Her sekmeye karşılık gelen ekranlar
-  final List<Widget> _ekranlar = const [
-    AnaSayfaIcerigi(),
-    ForumEkrani(),
-    AsistanEkrani(),
-    BeslenmeEkrani(),
-    ProfilEkrani(),
-  ];
+  /// Aynı sekmeye tekrar basınca o dalın köküne dön (ör. forum listesi).
+  /// Başka sekmeye basınca dalın kaldığı yer açılır.
+  void _sekmeSec(int indeks) {
+    navigationShell.goBranch(
+      indeks,
+      initialLocation: indeks == navigationShell.currentIndex,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Aktif sekmenin ekranını göster
-      body: _ekranlar[_secilenIndeks],
-
-      // Alt navigasyon çubuğu
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _secilenIndeks,
-        onDestinationSelected: (indeks) {
-          setState(() => _secilenIndeks = indeks);
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Ana Sayfa',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum),
-            label: 'Forum',
-          ),
-          NavigationDestination(
-            icon: AsistanIkonu(isActive: false),
-            selectedIcon: AsistanIkonu(isActive: true),
-            label: 'AI Asistan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.restaurant_menu_outlined),
-            selectedIcon: Icon(Icons.restaurant_menu),
-            label: 'Beslenme',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profil',
-          ),
-        ],
+      body: navigationShell,
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: UygulamaTemasi.cizgi)),
+        ),
+        child: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: _sekmeSec,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Ana Sayfa',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.forum_outlined),
+              selectedIcon: Icon(Icons.forum),
+              label: 'Forum',
+            ),
+            NavigationDestination(
+              icon: AsistanIkonu(isActive: false),
+              selectedIcon: AsistanIkonu(isActive: true),
+              label: 'AI Asistan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.restaurant_menu_outlined),
+              selectedIcon: Icon(Icons.restaurant_menu),
+              label: 'Beslenme',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profil',
+            ),
+          ],
+        ),
       ),
     );
   }

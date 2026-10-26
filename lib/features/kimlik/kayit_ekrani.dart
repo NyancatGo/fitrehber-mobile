@@ -13,7 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/hata_yardimcilari.dart';
+import 'kimlik_markasi.dart';
 import '../../shared/oturum_denetleyici.dart';
 import '../../shared/widgets/oturum_yukleme.dart';
 
@@ -110,167 +112,188 @@ class _KayitEkraniDurumu extends ConsumerState<KayitEkrani> {
       body: Stack(
         children: [
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 48),
-                    const Icon(
-                      Icons.fitness_center,
-                      size: 64,
-                      color: Color(0xFFF5A623),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'FitRehber',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Text(
-                      'Yeni hesap oluştur',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                    const SizedBox(height: 40),
-                    if (_hata != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3),
-                          ),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 8),
+                        const KimlikMarkasi(),
+                        const SizedBox(height: 16),
+                        Text(
+                          'FitRehber',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineMedium,
                         ),
-                        child: Text(
-                          _hata!,
-                          style: const TextStyle(color: Colors.red),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Yeni hesap oluştur',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                      ),
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Kullanıcı Adı',
-                        prefixIcon: Icon(Icons.person_outline),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) => v == null || v.isEmpty
-                          ? 'Kullanıcı adı gerekli'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-posta',
-                        prefixIcon: Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'E-posta gerekli';
-                        if (!v.contains('@')) {
-                          return 'Geçerli bir e-posta girin';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _sifreGizli,
-                      decoration: InputDecoration(
-                        labelText: 'Şifre',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _sifreGizli
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () =>
-                              setState(() => _sifreGizli = !_sifreGizli),
-                        ),
-                      ),
-                      // WEB tarafindaki Django MinimumLengthValidator 8
-                      // karakter zorunlu kilar; istemci dogrulamasi da ayni
-                      // esikte olmali — aksi halde sunucu reddedince UX bozulur.
-                      validator: (v) => v == null || v.length < 8
-                          ? 'Şifre en az 8 karakter olmalı'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordConfirmController,
-                      obscureText: _sifreTekrarGizli,
-                      decoration: InputDecoration(
-                        labelText: 'Şifre Tekrar',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _sifreTekrarGizli
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () => setState(
-                            () => _sifreTekrarGizli = !_sifreTekrarGizli,
-                          ),
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Şifreni tekrar gir';
-                        }
-                        if (v != _passwordController.text) {
-                          return 'Şifreler eşleşmiyor';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _kayitOl,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF5A623),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'Kayıt Ol',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
+                        const SizedBox(height: 24),
+                        if (_hata != null)
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: UygulamaTemasi.hata.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: UygulamaTemasi.hata.withValues(
+                                  alpha: 0.35,
+                                ),
                               ),
                             ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('Zaten hesabın var mı?'),
-                        TextButton(
-                          onPressed: () => context.go('/giris'),
-                          child: const Text(
-                            'Giriş Yap',
-                            style: TextStyle(color: Color(0xFFF5A623)),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: UygulamaTemasi.hata,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _hata!,
+                                    style: const TextStyle(
+                                      color: UygulamaTemasi.hata,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        TextFormField(
+                          controller: _usernameController,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
+                            labelText: 'Kullanıcı Adı',
+                            prefixIcon: Icon(Icons.person_outline),
+                          ),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Kullanıcı adı gerekli'
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
+                            labelText: 'E-posta',
+                            prefixIcon: Icon(Icons.email_outlined),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'E-posta gerekli';
+                            }
+                            if (!v.contains('@')) {
+                              return 'Geçerli bir e-posta girin';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _sifreGizli,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: 'Şifre',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _sifreGizli
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _sifreGizli = !_sifreGizli),
+                            ),
+                          ),
+                          // WEB tarafindaki Django MinimumLengthValidator 8
+                          // karakter zorunlu kilar; istemci dogrulamasi da ayni
+                          // esikte olmali — aksi halde sunucu reddedince UX bozulur.
+                          validator: (v) => v == null || v.length < 8
+                              ? 'Şifre en az 8 karakter olmalı'
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordConfirmController,
+                          obscureText: _sifreTekrarGizli,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            if (!_isLoading) _kayitOl();
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Şifre Tekrar',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _sifreTekrarGizli
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () => setState(
+                                () => _sifreTekrarGizli = !_sifreTekrarGizli,
+                              ),
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Şifreni tekrar gir';
+                            }
+                            if (v != _passwordController.text) {
+                              return 'Şifreler eşleşmiyor';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _isLoading ? null : _kayitOl,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: UygulamaTemasi.anaUstune,
+                                  ),
+                                )
+                              : const Text('Kayıt ol'),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Zaten hesabın var mı?',
+                              style: TextStyle(
+                                color: UygulamaTemasi.ikincilMetin,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => context.go('/giris'),
+                              child: const Text('Giriş yap'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/api_sabitleri.dart';
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/api_servisi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/icerik_model.dart';
@@ -28,7 +29,7 @@ class ForumEkrani extends ConsumerStatefulWidget {
 }
 
 class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
-  final ApiServisi _api = ApiServisi();
+  ApiServisi get _api => ref.read(apiServisiProvider);
   final ScrollController _scrollController = ScrollController();
   final SayfalamaTetikleyici _sayfalamaTetikleyici = SayfalamaTetikleyici();
 
@@ -221,9 +222,7 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
             child: const Text('Vazgec'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: UygulamaTemasi.hata),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Sil'),
           ),
@@ -256,7 +255,16 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
     final currentUserId = profile?.id;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Forum')),
+      appBar: AppBar(
+        title: const Text('Forum'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Ara',
+            onPressed: () => context.push('/arama'),
+          ),
+        ],
+      ),
       floatingActionButton: _SoruSorFab(onTap: _soruSor),
       body: Column(
         children: [
@@ -274,17 +282,22 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
   Widget _kategoriCubugu() {
     return Semantics(
       label: 'Toplam forum sorusu sayısı $_totalCount',
-      child: SizedBox(
-        height: 56,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          children: [
-            _kategoriButon(null, 'Tumu'),
-            ..._kategoriler.map((kategori) {
-              return _kategoriButon(kategori.id, kategori.isim);
-            }),
-          ],
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: UygulamaTemasi.cizgi)),
+        ),
+        child: SizedBox(
+          height: 54,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              _kategoriButon(null, 'Tümü'),
+              ..._kategoriler.map((kategori) {
+                return _kategoriButon(kategori.id, kategori.isim);
+              }),
+            ],
+          ),
         ),
       ),
     );
@@ -293,44 +306,16 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
   Widget _kategoriButon(int? id, String isim) {
     final secili = _secilenKategoriId == id;
 
-    return Padding(
+    return SecimYongasi(
       key: ValueKey('kategori-${id ?? 'tumu'}'),
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: () => _kategoriSec(id),
-        borderRadius: BorderRadius.circular(999),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: secili
-                ? const LinearGradient(
-                    colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-                  )
-                : null,
-            color: secili ? null : Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: secili
-                  ? Colors.transparent
-                  : Colors.white.withValues(alpha: 0.08),
-            ),
-          ),
-          child: Text(
-            isim,
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: secili ? Colors.white : Colors.white70,
-            ),
-          ),
-        ),
-      ),
+      etiket: isim,
+      secili: secili,
+      onTap: () => _kategoriSec(id),
     );
   }
 
   Widget _forumAlani(bool canModerate, int? currentUserId) {
-    if (_yukleniyor) return const IcerikShimmerListe(itemHeight: 118);
+    if (_yukleniyor) return const IcerikShimmerListe(itemHeight: 148);
     if (_hata != null) {
       return HataGorunumu(mesaj: _hata!, onRetry: () => _verileriYukle());
     }
@@ -340,8 +325,12 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: const [
-            SizedBox(height: 120),
-            Center(child: Text('Henuz forum sorusu yok.')),
+            SizedBox(height: 80),
+            BosDurumGorunumu(
+              ikon: Icons.forum_outlined,
+              mesaj: 'Henuz forum sorusu yok.',
+              altMesaj: 'İlk soruyu sorarak toplulukta tartışma başlatabilirsin.',
+            ),
           ],
         ),
       );
@@ -368,7 +357,9 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
               ),
             );
           }
-          return _soruKarti(_sorular[index], canModerate, currentUserId);
+          return RepaintBoundary(
+            child: _soruKarti(_sorular[index], canModerate, currentUserId),
+          );
         },
       ),
     );
@@ -379,155 +370,154 @@ class _ForumEkraniDurumu extends ConsumerState<ForumEkrani> {
 
     return Card(
       key: ValueKey('soru-${soru.id}'),
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
         onTap: () => context.push('/makale/${soru.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (soru.resimUrl != null && soru.resimUrl!.isNotEmpty)
-                IcerikKapakResmi(url: soru.resimUrl!),
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (soru.resimUrl != null && soru.resimUrl!.isNotEmpty)
+              IcerikKapakResmi(url: soru.resimUrl!),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const IcerikEtiket(
-                    text: 'Soru',
-                    color: Color(0xFF22D3EE),
-                    alpha: 0.16,
-                  ),
-                  const SizedBox(width: 8),
-                  IcerikEtiket(
-                    text: soru.kategoriAdi,
-                    color: const Color(0xFFF5A623),
-                    alpha: 0.16,
-                  ),
-                  const Spacer(),
-                  if (canDelete)
-                    PopupMenuButton<String>(
-                      tooltip: 'Moderasyon',
-                      onSelected: (value) {
-                        if (value == 'delete') _soruSil(soru);
-                      },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete_outline,
-                                color: Color(0xFFEF4444),
+                  Row(
+                    children: [
+                      const IcerikEtiket(
+                        text: 'Soru',
+                        color: UygulamaTemasi.anaRenk,
+                        dolu: true,
+                      ),
+                      const SizedBox(width: 8),
+                      IcerikEtiket(
+                        text: soru.kategoriAdi,
+                        color: UygulamaTemasi.ikincilMetin,
+                        cizgili: true,
+                      ),
+                      const Spacer(),
+                      if (canDelete)
+                        PopupMenuButton<String>(
+                          tooltip: 'Moderasyon',
+                          onSelected: (value) {
+                            if (value == 'delete') _soruSil(soru);
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    color: UygulamaTemasi.hata,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Sil'),
+                                ],
                               ),
-                              SizedBox(width: 8),
-                              Text('Sil'),
-                            ],
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    soru.baslik,
+                    style: UygulamaTemasi.baslik(fontSize: 18, height: 1.25),
+                  ),
+                  if (soru.ozet.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      soru.ozet,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: UygulamaTemasi.ikincilMetin,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.person_outline,
+                        size: 14,
+                        color: UygulamaTemasi.ikincilMetin,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: soru.yazarId == null
+                              ? null
+                              : () => context.push('/profil/${soru.yazarId}'),
+                          child: Text(
+                            soru.yazarAdi,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: UygulamaTemasi.ikincilMetin,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                soru.baslik,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              if (soru.ozet.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  soru.ozet,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: Colors.white.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.person_outline,
-                    size: 14,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: GestureDetector(
-                      onTap: soru.yazarId == null
-                          ? null
-                          : () => context.push('/profil/${soru.yazarId}'),
-                      child: Text(
-                        soru.yazarAdi,
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        soru.tarihFormatli,
                         style: const TextStyle(
-                          color: Color(0xFF22D3EE),
+                          color: UygulamaTemasi.ikincilMetin,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.chat_bubble_outline,
+                        size: 14,
+                        color: UygulamaTemasi.ikincilMetin,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${soru.yorumSayisi} cevap',
+                        style: const TextStyle(
+                          color: UygulamaTemasi.ikincilMetin,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Icon(
-                    Icons.chat_bubble_outline,
-                    size: 14,
-                    color: Color(0xFF22D3EE),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${soru.yorumSayisi} cevap',
-                    style: const TextStyle(
-                      color: Color(0xFF22D3EE),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    soru.tarihFormatli,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  HizliAksiyonButonu(
-                    tooltip: 'Begen',
-                    icon: soru.begendim
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    label: '${soru.begeniSayisi}',
-                    color: soru.begendim
-                        ? const Color(0xFFEF4444)
-                        : Colors.white70,
-                    onTap: () => _hizliBegen(soru),
-                  ),
-                  const SizedBox(width: 8),
-                  HizliAksiyonButonu(
-                    tooltip: 'Kaydet',
-                    icon: soru.kaydedildi
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    label: '',
-                    color: soru.kaydedildi
-                        ? const Color(0xFFF5A623)
-                        : Colors.white70,
-                    onTap: () => _hizliKaydet(soru),
+                      const Spacer(),
+                      HizliAksiyonButonu(
+                        tooltip: 'Begen',
+                        icon: soru.begendim
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        label: '${soru.begeniSayisi}',
+                        color: soru.begendim
+                            ? UygulamaTemasi.hata
+                            : UygulamaTemasi.ikincilMetin,
+                        onTap: () => _hizliBegen(soru),
+                      ),
+                      const SizedBox(width: 8),
+                      HizliAksiyonButonu(
+                        tooltip: 'Kaydet',
+                        icon: soru.kaydedildi
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                        label: '',
+                        color: soru.kaydedildi
+                            ? UygulamaTemasi.anaRenk
+                            : UygulamaTemasi.ikincilMetin,
+                        onTap: () => _hizliKaydet(soru),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -541,26 +531,20 @@ class _SoruSorFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 58,
-      height: 58,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF22D3EE).withValues(alpha: 0.30),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+    return Tooltip(
+      message: 'Soru sor',
+      child: Material(
+        color: UygulamaTemasi.anaRenk,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: const SizedBox(
+            width: 56,
+            height: 56,
+            child: Icon(Icons.edit_outlined, color: UygulamaTemasi.anaUstune),
           ),
-        ],
-      ),
-      child: IconButton(
-        tooltip: 'Soru Sor',
-        onPressed: onTap,
-        icon: const Icon(Icons.edit_note_outlined, color: Colors.white),
+        ),
       ),
     );
   }

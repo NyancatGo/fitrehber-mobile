@@ -14,23 +14,21 @@ class _RozetKutusu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = achievement.isUnlocked
-        ? const Color(0xFFFFD166)
-        : Colors.white.withValues(alpha: 0.38);
+        ? UygulamaTemasi.anaRenk
+        : UygulamaTemasi.ikincilMetin;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: Ink(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(
-            alpha: achievement.isUnlocked ? 0.07 : 0.035,
-          ),
-          borderRadius: BorderRadius.circular(8),
+          color: UygulamaTemasi.yuzey,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: achievement.isUnlocked
-                ? const Color(0xFFFFD166).withValues(alpha: 0.32)
-                : Colors.white.withValues(alpha: 0.05),
+                ? UygulamaTemasi.anaRenk
+                : UygulamaTemasi.cizgi,
           ),
         ),
         child: Column(
@@ -44,8 +42,8 @@ class _RozetKutusu extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: achievement.isUnlocked
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.58),
+                    ? UygulamaTemasi.anaMetin
+                    : UygulamaTemasi.ikincilMetin,
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
@@ -56,7 +54,7 @@ class _RozetKutusu extends StatelessWidget {
               child: LinearProgressIndicator(
                 minHeight: 5,
                 value: achievement.progress / 100,
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                backgroundColor: UygulamaTemasi.cizgi,
                 valueColor: AlwaysStoppedAnimation(accent),
               ),
             ),
@@ -76,8 +74,8 @@ void _showAchievementSheet(BuildContext context, RozetModel achievement) {
     ),
     builder: (context) {
       final accent = achievement.isUnlocked
-          ? const Color(0xFFFFD166)
-          : Colors.white.withValues(alpha: 0.52);
+          ? UygulamaTemasi.anaRenk
+          : UygulamaTemasi.ikincilMetin;
 
       return Padding(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
@@ -90,7 +88,7 @@ void _showAchievementSheet(BuildContext context, RozetModel achievement) {
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.22),
+                  color: UygulamaTemasi.cizgi,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
@@ -125,7 +123,7 @@ void _showAchievementSheet(BuildContext context, RozetModel achievement) {
                       Text(
                         achievement.description,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.58),
+                          color: UygulamaTemasi.ikincilMetin,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -152,7 +150,7 @@ void _showAchievementSheet(BuildContext context, RozetModel achievement) {
                         Text(
                           '${metric.current} / ${metric.target}',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.58),
+                            color: UygulamaTemasi.ikincilMetin,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -164,7 +162,7 @@ void _showAchievementSheet(BuildContext context, RozetModel achievement) {
                       child: LinearProgressIndicator(
                         minHeight: 8,
                         value: metric.progress / 100,
-                        backgroundColor: Colors.white.withValues(alpha: 0.08),
+                        backgroundColor: UygulamaTemasi.cizgi,
                         valueColor: AlwaysStoppedAnimation(accent),
                       ),
                     ),

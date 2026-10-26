@@ -16,7 +16,7 @@ class _KucukSecimButonu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? const Color(0xFFEF4444) : const Color(0xFF22D3EE);
+    final color = danger ? UygulamaTemasi.hata : UygulamaTemasi.anaRenk;
 
     return InkWell(
       onTap: onTap,
@@ -77,9 +77,7 @@ class _SayiAlani extends StatelessWidget {
 class _DogumTarihiSecimSatiri extends StatelessWidget {
   final DateTime? birthDate;
 
-  const _DogumTarihiSecimSatiri({
-    required this.birthDate,
-  });
+  const _DogumTarihiSecimSatiri({required this.birthDate});
 
   @override
   Widget build(BuildContext context) {
@@ -98,8 +96,8 @@ class _DogumTarihiSecimSatiri extends StatelessWidget {
             hasValue ? _tarihFormatla(birthDate) : 'Henüz eklenmedi',
             style: TextStyle(
               color: hasValue
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.52),
+                  ? UygulamaTemasi.anaMetin
+                  : UygulamaTemasi.ikincilMetin,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -107,7 +105,7 @@ class _DogumTarihiSecimSatiri extends StatelessWidget {
           Text(
             'İlk kurulum bilgisidir; değişiklik gerekiyorsa yönetimden güncellenir.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.48),
+              color: UygulamaTemasi.ikincilMetin,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),

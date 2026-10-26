@@ -12,8 +12,8 @@ class _AktiviteHaritasiBolumu extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: UygulamaTemasi.yuzey,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,9 +38,7 @@ class _AktiviteHaritasiBolumu extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: _aktiviteSeviyeRengi(day.minutes),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
+                    border: Border.all(color: UygulamaTemasi.cizgi),
                   ),
                 ),
               );

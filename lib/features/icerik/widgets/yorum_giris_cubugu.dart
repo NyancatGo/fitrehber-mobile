@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/uygulama_temasi.dart';
+
 /// Yorum/yanıt yazma çubuğu.
 /// Metin değiştikçe yalnızca gönder butonu yeniden derlenir; gradient,
 /// gölge ve yanıt banner'ı her tuşta gereksiz yere rebuild olmaz.
@@ -32,14 +34,12 @@ class YorumGirisCubugu extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Material(
-          color: const Color(0xFF0F1420),
-          elevation: 18,
+          color: UygulamaTemasi.yuzey,
+          elevation: 0,
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
             decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-              ),
+              border: Border(top: BorderSide(color: UygulamaTemasi.cizgi)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -56,21 +56,17 @@ class YorumGirisCubugu extends StatelessWidget {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF22D3EE,
-                            ).withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: const Color(
-                                0xFF22D3EE,
-                              ).withValues(alpha: 0.24),
+                            color: UygulamaTemasi.anaRenk.withValues(
+                              alpha: 0.08,
                             ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: UygulamaTemasi.cizgi),
                           ),
                           child: Row(
                             children: [
                               const Icon(
                                 Icons.reply_rounded,
-                                color: Color(0xFF22D3EE),
+                                color: UygulamaTemasi.anaRenk,
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
@@ -80,7 +76,7 @@ class YorumGirisCubugu extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    color: Color(0xFFBFF6FF),
+                                    color: UygulamaTemasi.anaMetin,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
                                   ),
@@ -111,14 +107,29 @@ class YorumGirisCubugu extends StatelessWidget {
                               ? 'Yorum yaz...'
                               : 'Yanıtını yaz...',
                           filled: true,
-                          fillColor: Colors.white.withValues(alpha: 0.06),
+                          fillColor: UygulamaTemasi.arkaPlan,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 12,
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                              color: UygulamaTemasi.cizgi,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                              color: UygulamaTemasi.cizgi,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                              color: UygulamaTemasi.anaRenk,
+                              width: 1.4,
+                            ),
                           ),
                         ),
                       ),
@@ -165,21 +176,8 @@ class _GonderButonu extends StatelessWidget {
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        gradient: canSend
-            ? const LinearGradient(
-                colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-              )
-            : null,
-        color: canSend ? null : Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: canSend
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF22D3EE).withValues(alpha: 0.24),
-                  blurRadius: 14,
-                ),
-              ]
-            : null,
+        color: canSend ? UygulamaTemasi.anaRenk : UygulamaTemasi.cizgi,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: IconButton(
         tooltip: 'Gonder',
@@ -190,10 +188,15 @@ class _GonderButonu extends StatelessWidget {
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: UygulamaTemasi.anaUstune,
                 ),
               )
-            : const Icon(Icons.send_rounded),
+            : Icon(
+                Icons.send_rounded,
+                color: canSend
+                    ? UygulamaTemasi.anaUstune
+                    : UygulamaTemasi.ikincilMetin,
+              ),
       ),
     );
   }

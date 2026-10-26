@@ -11,11 +11,7 @@
 // için, her alan birden fazla olası anahtar denenerek okunur (bkz. `read`).
 // ---------------------------------------------------------------------------
 
-/// Web sitesinin kök adresi — göreli medya yollarını tam URL'e çevirmede kullanılır.
-const _siteBaseUrl = 'https://fitrehber.com.tr';
-
-/// Medya dosyalarının (avatar, görsel vb.) bulunduğu kök adres.
-const _mediaBaseUrl = '$_siteBaseUrl/media/';
+import '../../core/constants/api_sabitleri.dart';
 
 /// Bir kullanıcının tüm profil bilgilerini temsil eden ana veri modeli.
 class ProfilModel {
@@ -504,15 +500,5 @@ bool _asBool(Object? value) {
   return normalized == 'true' || normalized == '1' || normalized == 'yes';
 }
 
-String? _normalizeMediaUrl(Object? value) {
-  final raw = _asString(value);
-  if (raw.isEmpty) return null;
-
-  final uri = Uri.tryParse(raw);
-  if (uri != null && uri.hasScheme) return raw;
-  if (raw.startsWith('//')) return 'https:$raw';
-  if (raw.startsWith('/media/')) return '$_siteBaseUrl$raw';
-  if (raw.startsWith('media/')) return '$_siteBaseUrl/$raw';
-
-  return '$_mediaBaseUrl${raw.replaceFirst(RegExp(r'^/+'), '')}';
-}
+String? _normalizeMediaUrl(Object? value) =>
+    ApiSabitleri.mediaUrlNormalize(value);

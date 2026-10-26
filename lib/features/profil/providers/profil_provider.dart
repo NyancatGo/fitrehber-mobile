@@ -10,9 +10,12 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/api_servisi.dart';
 import '../../../shared/models/profil_model.dart';
+import '../../../shared/oturum_denetleyici.dart';
 
 /// Profil işlemleri için kullanılan API servisini sağlar.
-final profilApiProvider = Provider<ApiServisi>((ref) => ApiServisi());
+final profilApiProvider = Provider<ApiServisi>(
+  (ref) => ref.watch(apiServisiProvider),
+);
 
 /// Başka bir kullanıcının profilini id ile yükler (salt-okunur görünüm).
 final idIleProfilProvider = FutureProvider.autoDispose.family<ProfilModel, int>(

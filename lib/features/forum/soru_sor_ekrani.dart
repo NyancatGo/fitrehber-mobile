@@ -9,23 +9,26 @@ import 'dart:typed_data';
 
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/api_servisi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/kategori_model.dart';
+import '../../shared/oturum_denetleyici.dart';
 
 /// Foruma yeni soru/içerik gönderme ekranı.
-class SoruSorEkrani extends StatefulWidget {
+class SoruSorEkrani extends ConsumerStatefulWidget {
   const SoruSorEkrani({super.key});
 
   @override
-  State<SoruSorEkrani> createState() => _SoruSorEkraniDurumu();
+  ConsumerState<SoruSorEkrani> createState() => _SoruSorEkraniDurumu();
 }
 
-class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
-  final ApiServisi _api = ApiServisi();
+class _SoruSorEkraniDurumu extends ConsumerState<SoruSorEkrani> {
+  ApiServisi get _api => ref.read(apiServisiProvider);
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _baslikController = TextEditingController();
   final TextEditingController _yaziController = TextEditingController();
@@ -168,16 +171,17 @@ class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        const Text(
+        Text(
           'Topluluga sor',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          style: UygulamaTemasi.baslik(fontSize: 26, height: 1.1),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'Baslik, kategori ve detaylari ekle; yanitlar detay sayfasinda akacak.',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.58),
-            fontWeight: FontWeight.w600,
+            color: UygulamaTemasi.ikincilMetin,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
           ),
         ),
         const SizedBox(height: 22),
@@ -204,44 +208,19 @@ class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
         const SizedBox(height: 22),
         SizedBox(
           height: 52,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-              ),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF22D3EE).withValues(alpha: 0.22),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: _gonderiliyor ? null : _gonder,
-              icon: _gonderiliyor
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.send_rounded),
-              label: const Text(
-                'Soruyu Paylas',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
+          child: FilledButton.icon(
+            onPressed: _gonderiliyor ? null : _gonder,
+            icon: _gonderiliyor
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: UygulamaTemasi.anaUstune,
+                    ),
+                  )
+                : const Icon(Icons.send_rounded),
+            label: const Text('Soruyu Paylas'),
           ),
         ),
       ],
@@ -273,26 +252,23 @@ class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: selected
-                        ? const LinearGradient(
-                            colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-                          )
-                        : null,
                     color: selected
-                        ? null
-                        : Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(8),
+                        ? UygulamaTemasi.anaRenk
+                        : UygulamaTemasi.yuzey,
+                    borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: selected
-                          ? Colors.transparent
-                          : Colors.white.withValues(alpha: 0.08),
+                          ? UygulamaTemasi.anaRenk
+                          : UygulamaTemasi.cizgi,
                     ),
                   ),
                   child: Text(
                     kategori.isim,
                     style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: selected ? Colors.white : Colors.white70,
+                      fontWeight: FontWeight.w600,
+                      color: selected
+                          ? UygulamaTemasi.anaUstune
+                          : UygulamaTemasi.anaMetin,
                     ),
                   ),
                 ),
@@ -312,7 +288,7 @@ class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
         dashPattern: const [8, 5],
         strokeWidth: 1.6,
         radius: const Radius.circular(8),
-        color: const Color(0xFF22D3EE).withValues(alpha: 0.58),
+        color: UygulamaTemasi.cizgi,
         padding: EdgeInsets.zero,
       ),
       child: InkWell(
@@ -332,7 +308,7 @@ class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
                 Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color: UygulamaTemasi.arkaPlan,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -340,7 +316,7 @@ class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
                     children: [
                       const Icon(
                         Icons.add_photo_alternate_outlined,
-                        color: Color(0xFF22D3EE),
+                        color: UygulamaTemasi.anaRenk,
                         size: 34,
                       ),
                       const SizedBox(height: 10),
@@ -352,7 +328,7 @@ class _SoruSorEkraniDurumu extends State<SoruSorEkrani> {
                       Text(
                         'Galeri veya kamera',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.52),
+                          color: UygulamaTemasi.ikincilMetin,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -423,13 +399,7 @@ class _NeonTextField extends StatelessWidget {
         hintText: hint,
         prefixIcon: Icon(icon),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF22D3EE), width: 2),
-        ),
+        fillColor: UygulamaTemasi.yuzey,
       ),
     );
   }

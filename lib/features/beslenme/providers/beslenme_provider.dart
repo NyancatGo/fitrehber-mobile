@@ -13,6 +13,7 @@ import '../../../shared/api_servisi.dart';
 import '../../../shared/models/beslenme_model.dart';
 import '../../../shared/oturum_denetleyici.dart';
 import '../../../shared/services/besin_senkron_servisi.dart';
+import '../../../shared/services/beslenme_yerel_depo.dart';
 import '../../../shared/utils/beslenme_hesaplayici.dart';
 
 /// Beslenme ekranının anlık durumunu temsil eden değişmez veri sınıfı.
@@ -32,12 +33,20 @@ class BeslenmeDurumu {
   /// Kullanıcının profiline göre hesaplanan günlük kalori/makro/su hedefleri.
   final BeslenmeHedefleri hedefler;
 
+  /// Şu an görüntülenen veri çevrimdışı yerel önbellekten mi geliyor?
+  final bool cevrimdisiMi;
+
+  /// Çevrimdışı yazma kuyruğunda (outbox) sunucuya gönderilmeyi bekleyen işlem sayısı.
+  final int bekleyenIslemSayisi;
+
   BeslenmeDurumu({
     this.isLoading = false,
     this.hata,
     this.veri,
     required this.seciliTarih,
     this.hedefler = BeslenmeHedefleri.defaults,
+    this.cevrimdisiMi = false,
+    this.bekleyenIslemSayisi = 0,
   });
 
   BeslenmeDurumu copyWith({
@@ -46,6 +55,8 @@ class BeslenmeDurumu {
     GunlukBeslenmeModel? veri,
     String? seciliTarih,
     BeslenmeHedefleri? hedefler,
+    bool? cevrimdisiMi,
+    int? bekleyenIslemSayisi,
     bool clearHata = false,
     bool clearVeri = false,
   }) {
@@ -55,26 +66,51 @@ class BeslenmeDurumu {
       veri: clearVeri ? null : (veri ?? this.veri),
       seciliTarih: seciliTarih ?? this.seciliTarih,
       hedefler: hedefler ?? this.hedefler,
+      cevrimdisiMi: cevrimdisiMi ?? this.cevrimdisiMi,
+      bekleyenIslemSayisi: bekleyenIslemSayisi ?? this.bekleyenIslemSayisi,
     );
   }
 }
 
 /// Beslenme verisinin yüklenmesini ve değiştirilmesini yöneten kontrolcü.
+///
+/// Her denetleyici örneği TEK bir kullanıcıya bağlıdır ([_kullaniciId]
+/// oluşturulurken sabitlenir). Oturumdaki kullanıcı değiştiğinde provider
+/// yeniden oluşturulur; böylece bir kullanıcının bellek içi durumu, yerel
+/// önbelleği veya çevrimdışı kuyruğu başka bir hesaba asla taşınmaz.
 class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
-  final ApiServisi _api = ApiServisi();
-  final Ref _ref;
+  final ApiServisi _api;
+  final BeslenmeYerelDepo _depo;
+  final Ref? _ref;
 
-  BeslenmeDenetleyici(this._ref)
-    : super(BeslenmeDurumu(seciliTarih: _bugunStr())) {
-    _hesaplaHedefler();
-    load(_bugunStr());
-    // Besin veritabanını arka planda sunucuyla senkronla (6 saatte bir, ağ
-    // hatasında sessiz). Böylece offline arama tazelenir ve eklenen besinler
-    // gerçek besin_id taşır (web ile tutarlı). Fire-and-forget.
-    BesinSenkronServisi.instance.senkronEt();
+  /// Bu denetleyicinin ait olduğu kullanıcı (geçersizse `null`: yerel
+  /// önbellek ve çevrimdışı kuyruk devre dışı kalır).
+  final int? _kullaniciId;
+
+  BeslenmeDenetleyici(
+    Ref? ref, {
+    ApiServisi? api,
+    BeslenmeYerelDepo? depo,
+    int? kullaniciId,
+    bool baslangicYukle = true,
+  }) : _ref = ref,
+       _api = api ?? (ref != null ? ref.read(apiServisiProvider) : ApiServisi.instance),
+       _depo = depo ?? BeslenmeYerelDepo.instance,
+       _kullaniciId = _gecerliKullaniciId(
+         kullaniciId ?? ref?.read(oturumDenetleyiciProvider).profile?.id,
+       ),
+       super(BeslenmeDurumu(seciliTarih: _bugunStr())) {
+    if (baslangicYukle && _kullaniciId != null) {
+      _hesaplaHedefler();
+      load(_bugunStr());
+      // Besin veritabanını arka planda sunucuyla senkronla (6 saatte bir, ağ
+      // hatasında sessiz). Böylece offline arama tazelenir ve eklenen besinler
+      // gerçek besin_id taşır (web ile tutarlı). Fire-and-forget.
+      BesinSenkronServisi.instance.senkronEt();
+    }
     // Profil hedef hesabının girdisidir; boy/kilo/hedef/su değişirse ekran
     // yeniden açılmadan hedefler güncellenir.
-    _ref.listen<OturumDurumu>(oturumDenetleyiciProvider, (prev, next) {
+    _ref?.listen<OturumDurumu>(oturumDenetleyiciProvider, (prev, next) {
       final p = prev?.profile;
       final n = next.profile;
       final degisti =
@@ -90,15 +126,81 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
 
   /// Profil verilerinden dinamik hedefleri hesaplar.
   void _hesaplaHedefler() {
-    final session = _ref.read(oturumDenetleyiciProvider);
+    final ref = _ref;
+    if (ref == null) return;
+    final session = ref.read(oturumDenetleyiciProvider);
     final profil = session.profile;
     final hedefler = BeslenmeHesaplayici.calculate(profil);
     state = state.copyWith(hedefler: hedefler);
   }
 
-  /// Verilen tarihin beslenme verisini sunucudan yükler.
+  static int? _gecerliKullaniciId(int? id) =>
+      (id != null && id > 0) ? id : null;
+
+  /// Bu denetleyicinin sahibi hâlâ oturumdaki kullanıcı mı?
+  ///
+  /// Çıkış/hesap değişimi ile provider'ın yeniden oluşturulması arasındaki
+  /// kısa pencerede bile eski kullanıcının kuyruğunun yeni token'la
+  /// gönderilmesini engeller.
+  bool _sahipHalaAktifMi() {
+    if (!mounted || _kullaniciId == null) return false;
+    final ref = _ref;
+    if (ref == null) return true;
+    try {
+      return ref.read(oturumDenetleyiciProvider).profile?.id == _kullaniciId;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Kullanıcının outbox kuyruğunu (sahiplik denetimiyle) boşaltmayı dener.
+  Future<void> _kuyruguBosalt() async {
+    final uid = _kullaniciId;
+    if (uid == null) return;
+    await _depo.kuyruguBosalt(uid, _api, devamEtsinMi: _sahipHalaAktifMi);
+  }
+
+  Future<int> _bekleyenSayisi() async {
+    final uid = _kullaniciId;
+    if (uid == null) return 0;
+    return _depo.bekleyenSayisi(uid);
+  }
+
+  Future<GunlukBeslenmeModel?> _yereldenOku(String tarih) async {
+    final uid = _kullaniciId;
+    if (uid == null) return null;
+    return _depo.gunOku(uid, tarih);
+  }
+
+  Future<void> _yereleYaz(GunlukBeslenmeModel model) async {
+    final uid = _kullaniciId;
+    if (uid == null) return;
+    await _depo.gunKaydet(uid, model);
+  }
+
+  /// Çevrimdışı kuyruğa alma mümkünse (geçerli kullanıcı + ağ hatası) `true`.
+  bool _kuyrugaAlinabilirMi(Object e) =>
+      _kullaniciId != null && BeslenmeYerelDepo.agHatasiMi(e);
+
+  /// Bekleyen çevrimdışı işlemleri sunucuya iletmeyi dener (ör. AI asistanı
+  /// güncel veriyi okumadan önce). Hata fırlatmaz; kalan işlem sayısını döner.
+  Future<int> bekleyenleriSenkronla() async {
+    try {
+      await _kuyruguBosalt();
+    } catch (e) {
+      debugPrint('[BeslenmeDenetleyici.bekleyenleriSenkronla] $e');
+    }
+    final kalan = await _bekleyenSayisi();
+    if (mounted && kalan != state.bekleyenIslemSayisi) {
+      state = state.copyWith(bekleyenIslemSayisi: kalan);
+    }
+    return kalan;
+  }
+
+  /// Verilen tarihin beslenme verisini sunucudan (veya çevrimdışı önbellekten) yükler.
   Future<void> load(String tarih) async {
     final normalTarih = normalizeBeslenmeTarih(tarih);
+    final tarihDegisti = state.seciliTarih != normalTarih;
     state = state.copyWith(
       isLoading: true,
       seciliTarih: normalTarih,
@@ -108,40 +210,95 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     // Her yükleme sırasında hedefleri de güncelle (profil değişmiş olabilir).
     _hesaplaHedefler();
 
+    // 1) Yerel önbellekte bu günün verisi varsa hemen göster (hızlı açılış + offline).
+    final yerelVeri = await _yereldenOku(normalTarih);
+    if (mounted && yerelVeri != null && (state.veri == null || tarihDegisti)) {
+      state = state.copyWith(veri: yerelVeri);
+    }
+
     try {
+      // 2) Önce bekleyen çevrimdışı yazma kuyruğu (outbox) varsa boşaltmayı dene.
+      await _kuyruguBosalt();
+      final kalanSayisi = await _bekleyenSayisi();
+
+      // 3) Sunucudan güncel veriyi çek ve yerel önbelleği güncelle.
       final veri = await _api.beslenmeSuyuGetir(normalTarih);
-      state = state.copyWith(isLoading: false, veri: veri);
+      await _yereleYaz(veri);
+      if (mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          veri: veri,
+          cevrimdisiMi: false,
+          bekleyenIslemSayisi: kalanSayisi,
+        );
+      }
     } catch (e) {
       debugPrint('[BeslenmeDenetleyici.load] $e');
-      // Veri yoksa UI'ı boş modelle ayakta tut, ama hatayı kullanıcıya göster.
-      state = state.copyWith(
-        isLoading: false,
-        veri: GunlukBeslenmeModel(tarih: normalTarih),
-        hata: _mesaj(e),
-      );
+      final bekleyen = await _bekleyenSayisi();
+      final yedek = await _yereldenOku(normalTarih);
+      final agHatasi = BeslenmeYerelDepo.agHatasiMi(e);
+      if (!mounted) return;
+      if (agHatasi) {
+        state = state.copyWith(
+          isLoading: false,
+          veri: yedek ?? state.veri ?? GunlukBeslenmeModel(tarih: normalTarih),
+          cevrimdisiMi: true,
+          bekleyenIslemSayisi: bekleyen,
+          clearHata: yedek != null || state.veri != null,
+          hata: (yedek == null && state.veri == null) ? _mesaj(e) : null,
+        );
+      } else {
+        // Veri yoksa UI'ı boş modelle ayakta tut, ama hatayı kullanıcıya göster.
+        state = state.copyWith(
+          isLoading: false,
+          veri: yedek ?? GunlukBeslenmeModel(tarih: normalTarih),
+          bekleyenIslemSayisi: bekleyen,
+          hata: _mesaj(e),
+        );
+      }
     }
   }
 
   /// Seçili güne [ml] kadar su ekler. Başarılıysa `true` döner.
   Future<bool> suEkle(int ml) async {
-    final onceki = state.veri;
+    final onceki = state.veri ?? GunlukBeslenmeModel(tarih: state.seciliTarih);
     final tarih = state.seciliTarih;
-    if (onceki != null) {
-      // Optimistic update: kullanıcı su barını hemen görür. Sunucu yanıtı
-      // geldikten sonra kanonik değerle düzeltilir.
-      final yeni = (onceki.suMl + ml).clamp(0, 100000);
-      state = state.copyWith(veri: onceki.copyWith(suMl: yeni));
-    }
+    final yeniSu = (onceki.suMl + ml).clamp(0, 100000);
+    final iyimserModel = onceki.copyWith(suMl: yeniSu);
+
+    // Optimistic update: kullanıcı su barını hemen görür.
+    state = state.copyWith(veri: iyimserModel, clearHata: true);
+
     try {
-      // API zaten güncel günlük modeli döndürür; ekstra GET atmak hem yavaş hem
-      // gereksizdir, çünkü su ekleme profil hedeflerini değiştirmez.
+      await _kuyruguBosalt();
       final guncel = await _api.suEkle(tarih: tarih, miktarMl: ml);
+      await _yereleYaz(guncel);
+      final bekleyen = await _bekleyenSayisi();
       if (mounted) {
-        state = state.copyWith(veri: guncel);
+        state = state.copyWith(
+          veri: guncel,
+          cevrimdisiMi: false,
+          bekleyenIslemSayisi: bekleyen,
+        );
       }
       return true;
     } catch (e) {
       debugPrint('[BeslenmeDenetleyici.suEkle] $e');
+      if (_kuyrugaAlinabilirMi(e)) {
+        await _depo.suEkleKuyrugaAl(_kullaniciId!, tarih: tarih, miktarMl: ml);
+        await _yereleYaz(iyimserModel);
+        final bekleyen = await _bekleyenSayisi();
+        if (mounted) {
+          state = state.copyWith(
+            isLoading: false,
+            veri: iyimserModel,
+            cevrimdisiMi: true,
+            bekleyenIslemSayisi: bekleyen,
+            clearHata: true,
+          );
+        }
+        return true;
+      }
       if (mounted) {
         state = state.copyWith(isLoading: false, veri: onceki, hata: _mesaj(e));
       }
@@ -218,6 +375,7 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     final tarih = state.seciliTarih;
     state = state.copyWith(isLoading: true, clearHata: true);
     try {
+      await _kuyruguBosalt();
       await _api.ogunEkle(
         tarih: tarih,
         ogunTipi: ogunTipi,
@@ -234,6 +392,56 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
       return true;
     } catch (e) {
       debugPrint('[BeslenmeDenetleyici.ogunEkle] $e');
+      if (_kuyrugaAlinabilirMi(e)) {
+        final geciciId = await _depo.ogunEkleKuyrugaAl(
+          _kullaniciId!,
+          tarih: tarih,
+          ogunTipi: ogunTipi,
+          besinId: besinId,
+          besinIsim: besinIsim,
+          miktar: miktar,
+          kalori: kalori,
+          protein: protein,
+          karbonhidrat: karbonhidrat,
+          yag: yag,
+          porsiyonId: porsiyonId,
+        );
+        final yeniKayit = OgunKaydiModel(
+          id: geciciId,
+          tarih: tarih,
+          ogunTipi: ogunTipi,
+          besinId: besinId,
+          besinIsim: (besinIsim != null && besinIsim.trim().isNotEmpty)
+              ? besinIsim.trim()
+              : 'Besin #${besinId ?? 0}',
+          miktar: miktar,
+          miktarBirimi: porsiyonId != null ? 'porsiyon' : 'g',
+          kalori: kalori,
+          protein: protein,
+          karbonhidrat: karbonhidrat,
+          yag: yag,
+          porsiyon: porsiyonId != null
+              ? BesinPorsiyonModel(
+                  id: porsiyonId,
+                  isim: 'Porsiyon',
+                  gramEsdegeri: 0,
+                )
+              : null,
+        );
+        final yeniModel = _yerelOgunEkle(tarih, ogunTipi, yeniKayit);
+        await _yereleYaz(yeniModel);
+        final bekleyen = await _bekleyenSayisi();
+        if (mounted) {
+          state = state.copyWith(
+            isLoading: false,
+            veri: yeniModel,
+            cevrimdisiMi: true,
+            bekleyenIslemSayisi: bekleyen,
+            clearHata: true,
+          );
+        }
+        return true;
+      }
       if (mounted) {
         state = state.copyWith(isLoading: false, hata: _mesaj(e));
       }
@@ -259,9 +467,54 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
     }
 
     final tarih = state.seciliTarih;
+    final oran = eski.miktar > 0 ? (yeniMiktar / eski.miktar) : 1.0;
+    final yeniKalori = (eski.kalori * oran).round();
+    final yeniProtein = double.parse((eski.protein * oran).toStringAsFixed(1));
+    final yeniKarbonhidrat = double.parse(
+      (eski.karbonhidrat * oran).toStringAsFixed(1),
+    );
+    final yeniYag = double.parse((eski.yag * oran).toStringAsFixed(1));
+
+    // Henüz sunucuya gitmemiş (çevrimdışı eklenmiş) kayıt güncelleniyorsa:
+    if (eski.id < 0) {
+      final uid = _kullaniciId;
+      if (uid == null) return false;
+      await _depo.ogunGuncelleKuyrugaAl(
+        uid,
+        id: eski.id,
+        tarih: tarih,
+        miktar: yeniMiktar,
+        kalori: yeniKalori,
+        protein: yeniProtein,
+        karbonhidrat: yeniKarbonhidrat,
+        yag: yeniYag,
+        porsiyonId: porsiyonId,
+      );
+      final guncelKayit = eski.copyWith(
+        miktar: yeniMiktar,
+        kalori: yeniKalori,
+        protein: yeniProtein,
+        karbonhidrat: yeniKarbonhidrat,
+        yag: yeniYag,
+      );
+      final yeniModel = _yerelOgunGuncelle(tarih, guncelKayit);
+      await _yereleYaz(yeniModel);
+      final bekleyen = await _bekleyenSayisi();
+      if (mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          veri: yeniModel,
+          bekleyenIslemSayisi: bekleyen,
+          clearHata: true,
+        );
+      }
+      return true;
+    }
+
     state = state.copyWith(isLoading: true, clearHata: true);
 
     try {
+      await _kuyruguBosalt();
       await _api.ogunGuncelle(
         id: eski.id,
         miktar: yeniMiktar,
@@ -272,6 +525,39 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
       return true;
     } catch (e) {
       debugPrint('[ogunGuncelle] PATCH başarısız: $e');
+      if (_kuyrugaAlinabilirMi(e)) {
+        await _depo.ogunGuncelleKuyrugaAl(
+          _kullaniciId!,
+          id: eski.id,
+          tarih: tarih,
+          miktar: yeniMiktar,
+          kalori: yeniKalori,
+          protein: yeniProtein,
+          karbonhidrat: yeniKarbonhidrat,
+          yag: yeniYag,
+          porsiyonId: porsiyonId,
+        );
+        final guncelKayit = eski.copyWith(
+          miktar: yeniMiktar,
+          kalori: yeniKalori,
+          protein: yeniProtein,
+          karbonhidrat: yeniKarbonhidrat,
+          yag: yeniYag,
+        );
+        final yeniModel = _yerelOgunGuncelle(tarih, guncelKayit);
+        await _yereleYaz(yeniModel);
+        final bekleyen = await _bekleyenSayisi();
+        if (mounted) {
+          state = state.copyWith(
+            isLoading: false,
+            veri: yeniModel,
+            cevrimdisiMi: true,
+            bekleyenIslemSayisi: bekleyen,
+            clearHata: true,
+          );
+        }
+        return true;
+      }
       if (mounted) {
         state = state.copyWith(isLoading: false, hata: _mesaj(e));
       }
@@ -282,18 +568,91 @@ class BeslenmeDenetleyici extends StateNotifier<BeslenmeDurumu> {
   /// Kimliği verilen öğün kaydını siler.
   Future<bool> ogunSil(int id) async {
     final tarih = state.seciliTarih;
+    if (id < 0) {
+      final uid = _kullaniciId;
+      if (uid == null) return false;
+      await _depo.ogunSilKuyrugaAl(uid, id: id, tarih: tarih);
+      final yeniModel = _yerelOgunSil(tarih, id);
+      await _yereleYaz(yeniModel);
+      final bekleyen = await _bekleyenSayisi();
+      if (mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          veri: yeniModel,
+          bekleyenIslemSayisi: bekleyen,
+          clearHata: true,
+        );
+      }
+      return true;
+    }
+
     state = state.copyWith(isLoading: true, clearHata: true);
     try {
+      await _kuyruguBosalt();
       await _api.ogunSil(id);
       await load(tarih);
       return true;
     } catch (e) {
       debugPrint('[BeslenmeDenetleyici.ogunSil] $e');
+      if (_kuyrugaAlinabilirMi(e)) {
+        await _depo.ogunSilKuyrugaAl(_kullaniciId!, id: id, tarih: tarih);
+        final yeniModel = _yerelOgunSil(tarih, id);
+        await _yereleYaz(yeniModel);
+        final bekleyen = await _bekleyenSayisi();
+        if (mounted) {
+          state = state.copyWith(
+            isLoading: false,
+            veri: yeniModel,
+            cevrimdisiMi: true,
+            bekleyenIslemSayisi: bekleyen,
+            clearHata: true,
+          );
+        }
+        return true;
+      }
       if (mounted) {
         state = state.copyWith(isLoading: false, hata: _mesaj(e));
       }
       return false;
     }
+  }
+
+  GunlukBeslenmeModel _yerelOgunEkle(
+    String tarih,
+    String ogunTipi,
+    OgunKaydiModel yeniKayit,
+  ) {
+    final mevcut = state.veri ?? GunlukBeslenmeModel(tarih: tarih);
+    final kopyaOgunler = <String, List<OgunKaydiModel>>{
+      for (final entry in mevcut.ogunler.entries)
+        entry.key: List<OgunKaydiModel>.from(entry.value),
+    };
+    kopyaOgunler.putIfAbsent(ogunTipi, () => <OgunKaydiModel>[]).add(yeniKayit);
+    return mevcut.copyWith(ogunler: kopyaOgunler).toplamlarlaYenile();
+  }
+
+  GunlukBeslenmeModel _yerelOgunGuncelle(
+    String tarih,
+    OgunKaydiModel guncelKayit,
+  ) {
+    final mevcut = state.veri ?? GunlukBeslenmeModel(tarih: tarih);
+    final kopyaOgunler = <String, List<OgunKaydiModel>>{
+      for (final entry in mevcut.ogunler.entries)
+        entry.key: [
+          for (final item in entry.value)
+            if (item.id == guncelKayit.id) guncelKayit else item,
+        ],
+    };
+    return mevcut.copyWith(ogunler: kopyaOgunler).toplamlarlaYenile();
+  }
+
+  GunlukBeslenmeModel _yerelOgunSil(String tarih, int id) {
+    final mevcut = state.veri ?? GunlukBeslenmeModel(tarih: tarih);
+    final kopyaOgunler = <String, List<OgunKaydiModel>>{
+      for (final entry in mevcut.ogunler.entries)
+        entry.key: entry.value.where((item) => item.id != id).toList(),
+    };
+    return mevcut.copyWith(ogunler: kopyaOgunler).toplamlarlaYenile();
   }
 
   /// Bir önceki günün öğünlerini seçili güne kopyalar. Başarılıysa true,
@@ -352,7 +711,18 @@ String normalizeBeslenmeTarih(String tarih) {
   }
 }
 
+/// Beslenme ekranının durumunu sağlayan provider.
+///
+/// Oturumdaki kullanıcı kimliğini İZLER (`select`): çıkış yapıldığında
+/// (id -> null) veya başka bir hesapla giriş yapıldığında (id A -> B)
+/// denetleyici otomatik olarak atılır ve sıfırdan oluşturulur. Böylece
+/// önceki kullanıcının bellek içi beslenme verisi yeni oturuma taşınmaz;
+/// bu, çıkışın hangi yoldan (profil ekranı, zorunlu oturum sonlandırma vb.)
+/// yapıldığından bağımsız olarak garanti edilir.
 final beslenmeProvider =
     StateNotifierProvider<BeslenmeDenetleyici, BeslenmeDurumu>((ref) {
-      return BeslenmeDenetleyici(ref);
+      final kullaniciId = ref.watch(
+        oturumDenetleyiciProvider.select((s) => s.profile?.id),
+      );
+      return BeslenmeDenetleyici(ref, kullaniciId: kullaniciId);
     });

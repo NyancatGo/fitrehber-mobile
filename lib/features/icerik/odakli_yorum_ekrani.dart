@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/api_servisi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/icerik_model.dart';
@@ -38,7 +39,7 @@ class OdakliYorumEkrani extends ConsumerStatefulWidget {
 }
 
 class _OdakliYorumEkraniDurumu extends ConsumerState<OdakliYorumEkrani> {
-  final ApiServisi _api = ApiServisi();
+  ApiServisi get _api => ref.read(apiServisiProvider);
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
 
@@ -259,7 +260,7 @@ class _OdakliYorumEkraniDurumu extends ConsumerState<OdakliYorumEkrani> {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
+                backgroundColor: UygulamaTemasi.hata,
               ),
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Sil'),
@@ -453,11 +454,9 @@ class _OdakliYorumEkraniDurumu extends ConsumerState<OdakliYorumEkrani> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF22D3EE).withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFF22D3EE).withValues(alpha: 0.22),
-        ),
+        color: UygulamaTemasi.anaRenk.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,7 +466,7 @@ class _OdakliYorumEkraniDurumu extends ConsumerState<OdakliYorumEkrani> {
             children: [
               const Icon(
                 Icons.center_focus_strong_rounded,
-                color: Color(0xFF22D3EE),
+                color: UygulamaTemasi.anaRenk,
                 size: 22,
               ),
               const SizedBox(width: 10),
@@ -488,7 +487,7 @@ class _OdakliYorumEkraniDurumu extends ConsumerState<OdakliYorumEkrani> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.62),
+                        color: UygulamaTemasi.ikincilMetin,
                         fontSize: 12,
                         height: 1.35,
                         fontWeight: FontWeight.w600,

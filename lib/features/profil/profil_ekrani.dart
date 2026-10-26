@@ -155,21 +155,17 @@ class _ProfilBasligi extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(24, topPadding + 18, 24, 28),
+      padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 20),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF121722), Color(0xFF203147), Color(0xFF5A3813)],
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+        color: UygulamaTemasi.arkaPlan,
+        border: Border(bottom: BorderSide(color: UygulamaTemasi.cizgi)),
       ),
       child: Column(
         children: [
           Row(
             children: [
               if (!isOwnProfile)
-                IconButton.filledTonal(
+                IconButton(
                   tooltip: 'Geri',
                   onPressed: () => context.pop(),
                   icon: const Icon(Icons.arrow_back),
@@ -177,10 +173,7 @@ class _ProfilBasligi extends ConsumerWidget {
               if (!isOwnProfile) const SizedBox(width: 8),
               Text(
                 isOwnProfile ? 'Profil' : 'Kullanıcı Profili',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: UygulamaTemasi.baslik(fontSize: 22, height: 1.15),
               ),
               const Spacer(),
               if (isOwnProfile)
@@ -191,28 +184,24 @@ class _ProfilBasligi extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _ProfilAvatar(profile: profile),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Text(
             profile.displayName,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 26,
-              height: 1.1,
-              fontWeight: FontWeight.w900,
-            ),
+            style: UygulamaTemasi.baslik(fontSize: 22, height: 1.15),
           ),
           const SizedBox(height: 8),
           if (profile.username.isNotEmpty)
             Text(
               '@${profile.username}',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.72),
+              style: const TextStyle(
+                color: UygulamaTemasi.ikincilMetin,
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           const SizedBox(height: 14),
@@ -231,21 +220,12 @@ class _ProfilAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 124,
-      height: 124,
+      width: 88,
+      height: 88,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD166), Color(0xFFF5A623), Color(0xFF22D3EE)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: UygulamaTemasi.anaRenk.withValues(alpha: 0.32),
-            blurRadius: 28,
-            spreadRadius: 2,
-          ),
-        ],
+        border: Border.all(color: UygulamaTemasi.anaRenk, width: 1.5),
       ),
       child: ClipOval(
         child: profile.avatarUrl == null
@@ -271,15 +251,11 @@ class _AvatarFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF111827),
+      color: UygulamaTemasi.yuzey,
       alignment: Alignment.center,
       child: Text(
         initials,
-        style: const TextStyle(
-          fontSize: 38,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0,
-        ),
+        style: UygulamaTemasi.baslik(fontSize: 28, height: 1),
       ),
     );
   }
@@ -297,15 +273,15 @@ class _UyelikRozeti extends StatelessWidget {
     final IconData icon;
 
     if (profile.isSuperuser) {
-      color = const Color(0xFFFFD166);
+      color = UygulamaTemasi.anaRenk;
       label = 'Admin';
       icon = Icons.shield_outlined;
     } else if (profile.isStaff) {
-      color = const Color(0xFF60A5FA);
+      color = UygulamaTemasi.anaRenk;
       label = 'Yetkili';
       icon = Icons.verified_user_outlined;
     } else {
-      color = const Color(0xFF94A3B8);
+      color = UygulamaTemasi.ikincilMetin;
       label = 'Standart Üye';
       icon = Icons.person_outline;
     }
@@ -313,9 +289,9 @@ class _UyelikRozeti extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.22),
+        color: UygulamaTemasi.yuzey,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.42)),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -371,38 +347,50 @@ class _BiyometrikKartlar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _MetrikKarti(
-            icon: Icons.height,
-            label: 'Boy',
-            value: _sayiFormatla(profile.height, suffix: 'cm'),
-            caption: profile.height == null ? 'Eklenmedi' : 'Biyometri',
-            accent: const Color(0xFF22D3EE),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: UygulamaTemasi.yuzey,
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _MetrikKarti(
+                label: 'Boy',
+                value: _sayiFormatla(profile.height, suffix: 'cm'),
+                caption: profile.height == null ? 'Eklenmedi' : 'Biyometri',
+              ),
+            ),
+            const VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: UygulamaTemasi.cizgi,
+            ),
+            Expanded(
+              child: _MetrikKarti(
+                label: 'Kilo',
+                value: _sayiFormatla(profile.weight, suffix: 'kg'),
+                caption: profile.weight == null ? 'Eklenmedi' : 'Güncel',
+              ),
+            ),
+            const VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: UygulamaTemasi.cizgi,
+            ),
+            Expanded(
+              child: _MetrikKarti(
+                label: 'BMI',
+                value: _sayiFormatla(profile.bmi, fractionDigits: 1),
+                caption: profile.bmiCategory,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _MetrikKarti(
-            icon: Icons.monitor_weight_outlined,
-            label: 'Kilo',
-            value: _sayiFormatla(profile.weight, suffix: 'kg'),
-            caption: profile.weight == null ? 'Eklenmedi' : 'Güncel',
-            accent: const Color(0xFFF5A623),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _MetrikKarti(
-            icon: Icons.speed_outlined,
-            label: 'BMI',
-            value: _sayiFormatla(profile.bmi, fractionDigits: 1),
-            caption: profile.bmiCategory,
-            accent: const Color(0xFF34D399),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -448,8 +436,8 @@ class _HedefIlerlemeKarti extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: UygulamaTemasi.yuzey,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,12 +449,12 @@ class _HedefIlerlemeKarti extends StatelessWidget {
                 height: 42,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF97316).withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(8),
+                  color: UygulamaTemasi.anaRenk.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.flag_outlined,
-                  color: Color(0xFFF97316),
+                  color: UygulamaTemasi.anaRenk,
                 ),
               ),
               const SizedBox(width: 12),
@@ -489,7 +477,7 @@ class _HedefIlerlemeKarti extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.58),
+                        color: UygulamaTemasi.ikincilMetin,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -508,8 +496,10 @@ class _HedefIlerlemeKarti extends StatelessWidget {
                   child: LinearProgressIndicator(
                     minHeight: 10,
                     value: progress,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                    valueColor: const AlwaysStoppedAnimation(Color(0xFF34D399)),
+                    backgroundColor: UygulamaTemasi.cizgi,
+                    valueColor: const AlwaysStoppedAnimation(
+                      UygulamaTemasi.anaRenk,
+                    ),
                   ),
                 ),
               ),
@@ -518,7 +508,7 @@ class _HedefIlerlemeKarti extends StatelessWidget {
                 Text(
                   '%$progressPercent',
                   style: const TextStyle(
-                    color: Color(0xFF34D399),
+                    color: UygulamaTemasi.anaRenk,
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
@@ -534,7 +524,7 @@ class _HedefIlerlemeKarti extends StatelessWidget {
                 _HedefUcu(
                   label: 'Başlangıç',
                   value: _sayiFormatla(start, suffix: 'kg', fractionDigits: 1),
-                  color: Colors.white.withValues(alpha: 0.55),
+                  color: UygulamaTemasi.ikincilMetin,
                 ),
                 Expanded(
                   child: Center(
@@ -545,7 +535,7 @@ class _HedefIlerlemeKarti extends StatelessWidget {
                         suffix: 'kg',
                         fractionDigits: 1,
                       ),
-                      color: Colors.white,
+                      color: UygulamaTemasi.anaMetin,
                       bold: true,
                     ),
                   ),
@@ -553,7 +543,7 @@ class _HedefIlerlemeKarti extends StatelessWidget {
                 _HedefUcu(
                   label: 'Hedef',
                   value: _sayiFormatla(target, suffix: 'kg', fractionDigits: 1),
-                  color: const Color(0xFF34D399),
+                  color: UygulamaTemasi.anaRenk,
                   alignEnd: true,
                 ),
               ],
@@ -604,7 +594,7 @@ class _HedefUcu extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
+            color: UygulamaTemasi.ikincilMetin,
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
@@ -634,8 +624,8 @@ class _RozetlerBolumu extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: UygulamaTemasi.yuzey,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -683,8 +673,8 @@ class _SonAktivitelerBolumu extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: UygulamaTemasi.yuzey,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -721,7 +711,7 @@ class _ZamanCizelgesiSatiri extends StatelessWidget {
       onTap: activity.icerikId == null
           ? null
           : () => context.go('/makale/${activity.icerikId}'),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
@@ -733,7 +723,7 @@ class _ZamanCizelgesiSatiri extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 _aktiviteTuruIkonu(activity.tur),
@@ -762,7 +752,7 @@ class _ZamanCizelgesiSatiri extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.56),
+                        color: UygulamaTemasi.ikincilMetin,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -771,7 +761,7 @@ class _ZamanCizelgesiSatiri extends StatelessWidget {
                   Text(
                     _goreliAktiviteTarihi(activity.tarih),
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.42),
+                      color: UygulamaTemasi.ikincilMetin,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -799,25 +789,25 @@ class _BilgiBolumu extends StatelessWidget {
           icon: Icons.notes_outlined,
           title: 'Hakkımda',
           value: profile.bio.isEmpty ? 'Henüz eklenmedi' : profile.bio,
-          accent: const Color(0xFF60A5FA),
+          accent: UygulamaTemasi.anaRenk,
         ),
         _BilgiSatiri(
           icon: Icons.mail_outline,
           title: 'E-posta',
           value: profile.email.isEmpty ? 'Henüz eklenmedi' : profile.email,
-          accent: const Color(0xFFF5A623),
+          accent: UygulamaTemasi.anaRenk,
         ),
         _BilgiSatiri(
           icon: Icons.cake_outlined,
           title: 'Doğum Tarihi',
           value: _tarihFormatla(profile.birthDate),
-          accent: const Color(0xFFF472B6),
+          accent: UygulamaTemasi.anaRenk,
         ),
         _BilgiSatiri(
           icon: Icons.calendar_month_outlined,
           title: 'Katılım Tarihi',
           value: _tarihFormatla(profile.joinDate),
-          accent: const Color(0xFF34D399),
+          accent: UygulamaTemasi.anaRenk,
         ),
       ],
     );
@@ -842,13 +832,13 @@ class _AksiyonBolumu extends ConsumerWidget {
         _AksiyonSatiri(
           icon: Icons.notifications_outlined,
           title: 'Bildirim Ayarları',
-          color: const Color(0xFF60A5FA),
+          color: UygulamaTemasi.anaRenk,
           onTap: () => _showNotificationSheet(context),
         ),
         _AksiyonSatiri(
           icon: Icons.logout,
           title: 'Çıkış Yap',
-          color: const Color(0xFFEF4444),
+          color: UygulamaTemasi.hata,
           onTap: () => _confirmLogout(context, ref),
         ),
       ],
@@ -869,9 +859,7 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
             child: const Text('Vazgeç'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: UygulamaTemasi.hata),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Çıkış Yap'),
           ),

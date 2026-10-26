@@ -7,6 +7,8 @@
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/uygulama_temasi.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
@@ -42,18 +44,18 @@ class IcerikGovdeCizici extends StatelessWidget {
 }
 
 class _IcerikRenkleri {
-  static const text = Color(0xFFE5E7EB);
-  static const textStrong = Color(0xFFF8FAFC);
-  static const muted = Color(0xFFA1A8B3);
-  static const line = Color(0xFF2F3A4E);
-  static const surface = Color(0xFF111827);
-  static const surfaceSoft = Color(0xFF151D2B);
-  static const surfaceElevated = Color(0xFF1A2333);
-  static const primary = Color(0xFF3B82F6);
-  static const primarySoft = Color(0xFF142C4B);
-  static const link = Color(0xFFF5A623);
-  static const warn = Color(0xFFF59E0B);
-  static const warnSoft = Color(0xFF332414);
+  static const text = UygulamaTemasi.anaMetin;
+  static const textStrong = UygulamaTemasi.anaMetin;
+  static const muted = UygulamaTemasi.ikincilMetin;
+  static const line = UygulamaTemasi.cizgi;
+  static const surface = UygulamaTemasi.yuzey;
+  static const surfaceSoft = UygulamaTemasi.arkaPlan;
+  static const surfaceElevated = UygulamaTemasi.yuzey;
+  static const primary = UygulamaTemasi.anaRenk;
+  static const primarySoft = Color(0xFF241810);
+  static const link = UygulamaTemasi.anaRenk;
+  static const warn = UygulamaTemasi.hata;
+  static const warnSoft = Color(0xFF2C1C18);
 }
 
 class _IcerikCizici {
@@ -252,20 +254,9 @@ class _IcerikCizici {
       margin: EdgeInsets.symmetric(vertical: isCompact ? 18 : 26),
       padding: EdgeInsets.all(isCompact ? 18 : 26),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF061126), Color(0xFF0F1F45)],
-        ),
+        color: UygulamaTemasi.yuzey,
         borderRadius: BorderRadius.circular(isCompact ? 16 : 22),
-        border: Border.all(color: const Color(0xFF1F3E72)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: _childrenColumn(element, tight: true),
     );
@@ -609,16 +600,9 @@ class _IcerikCizici {
     return Container(
       padding: EdgeInsets.all(isCompact ? 6 : 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFECE8DE),
+        color: UygulamaTemasi.yuzey,
         borderRadius: BorderRadius.circular(insideFigure ? 16 : 12),
-        border: Border.all(color: const Color(0xFFE5DED1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.20),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: image,
     );
@@ -635,7 +619,7 @@ class _IcerikCizici {
       width: double.infinity,
       height: double.infinity,
       alignment: Alignment.center,
-      color: const Color(0xFFECE8DE),
+      color: UygulamaTemasi.yuzey,
       child: SizedBox(
         width: 34,
         height: 34,
@@ -779,18 +763,14 @@ class _IcerikCizici {
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF2563EB), Color(0xFF60A5FA)],
-        ),
+        color: UygulamaTemasi.anaRenk,
       ),
       child: Text(
         text,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
-          color: Colors.white,
+          color: UygulamaTemasi.anaUstune,
           fontSize: 13,
           fontWeight: FontWeight.w900,
           height: 1,

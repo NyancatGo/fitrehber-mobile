@@ -47,10 +47,7 @@ void main() {
 
   group('ApiSabitleri kimlik doğrulama uç noktaları', () {
     test('girisYap adresi /auth/login/ olmalı (Türkçeleşmemeli)', () {
-      expect(
-        ApiSabitleri.girisYap,
-        '${ApiSabitleri.baseUrl}/auth/login/',
-      );
+      expect(ApiSabitleri.girisYap, '${ApiSabitleri.baseUrl}/auth/login/');
     });
 
     test('kayitOl adresi /mobile/auth/register/ olmalı (Türkçeleşmemeli)', () {
@@ -168,6 +165,33 @@ void main() {
       expect(
         ApiSabitleri.sonBesinler,
         '${ApiSabitleri.baseUrl}/beslenme/son-besinler/',
+      );
+    });
+  });
+
+  group('ApiSabitleri medya URL normalizasyonu', () {
+    test('mediaUrlNormalize webUrl tabanını kullanarak göreli yolları çözer', () {
+      expect(ApiSabitleri.mediaUrlNormalize(null), isNull);
+      expect(ApiSabitleri.mediaUrlNormalize('   '), isNull);
+      expect(
+        ApiSabitleri.mediaUrlNormalize('/media/profil_fotograflari/a.webp'),
+        '${ApiSabitleri.webUrl}/media/profil_fotograflari/a.webp',
+      );
+      expect(
+        ApiSabitleri.mediaUrlNormalize('media/icerik_resimleri/b.webp'),
+        '${ApiSabitleri.webUrl}/media/icerik_resimleri/b.webp',
+      );
+      expect(
+        ApiSabitleri.mediaUrlNormalize('profil_fotograflari/c.webp'),
+        '${ApiSabitleri.webUrl}/media/profil_fotograflari/c.webp',
+      );
+      expect(
+        ApiSabitleri.mediaUrlNormalize('//cdn.example.com/img.png'),
+        'https://cdn.example.com/img.png',
+      );
+      expect(
+        ApiSabitleri.mediaUrlNormalize('https://cdn.example.com/img.png'),
+        'https://cdn.example.com/img.png',
       );
     });
   });

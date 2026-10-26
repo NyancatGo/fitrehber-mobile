@@ -11,12 +11,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/api_servisi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/models/icerik_model.dart';
 import '../../shared/models/profil_model.dart';
 import '../../shared/models/yorum_model.dart';
 import '../../shared/oturum_denetleyici.dart';
+import '../../shared/widgets/icerik_kart_parcalari.dart';
 import 'widgets/icerik_blok_cizici.dart';
 import 'widgets/icerik_govde_cizici.dart';
 import 'widgets/yorum_giris_cubugu.dart';
@@ -34,7 +36,7 @@ class IcerikEkrani extends ConsumerStatefulWidget {
 }
 
 class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
-  final ApiServisi _api = ApiServisi();
+  ApiServisi get _api => ref.read(apiServisiProvider);
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
 
@@ -301,7 +303,7 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
+                backgroundColor: UygulamaTemasi.hata,
               ),
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Sil'),
@@ -380,7 +382,7 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
               onPressed: _icerikAksiyonuBekliyor ? null : _icerikBegen,
               icon: Icon(
                 _icerik!.begendim ? Icons.favorite : Icons.favorite_border,
-                color: _icerik!.begendim ? const Color(0xFFEF4444) : null,
+                color: _icerik!.begendim ? UygulamaTemasi.hata : null,
               ),
             ),
             IconButton(
@@ -390,7 +392,7 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
                 _icerik!.kaydedildi
                     ? Icons.bookmark_rounded
                     : Icons.bookmark_border_rounded,
-                color: _icerik!.kaydedildi ? const Color(0xFFF5A623) : null,
+                color: _icerik!.kaydedildi ? UygulamaTemasi.anaRenk : null,
               ),
             ),
             if (canDeleteContent)
@@ -404,7 +406,7 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline, color: Color(0xFFEF4444)),
+                        Icon(Icons.delete_outline, color: UygulamaTemasi.hata),
                         SizedBox(width: 8),
                         Text('Sil'),
                       ],
@@ -444,42 +446,35 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_hata != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 12),
-            Text(_hata!),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _icerikYukle,
-              child: const Text('Tekrar Dene'),
-            ),
-          ],
-        ),
-      );
+      return HataGorunumu(mesaj: _hata!, onRetry: _icerikYukle);
     }
     if (_icerik == null) return const SizedBox();
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: _ortala(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _makaleGovdesi(),
-                const Divider(height: 40),
-                _yorumBasligi(),
-                const SizedBox(height: 16),
-              ],
+    return RefreshIndicator(
+      color: UygulamaTemasi.anaRenk,
+      backgroundColor: UygulamaTemasi.yuzey,
+      onRefresh: _icerikYukle,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          SliverToBoxAdapter(
+            child: _ortala(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _makaleGovdesi(),
+                  const Divider(height: 40),
+                  _yorumBasligi(),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
-        ),
-        ..._yorumSliverlari(canModerate, currentUserId),
-      ],
+          ..._yorumSliverlari(canModerate, currentUserId),
+        ],
+      ),
     );
   }
 
@@ -487,46 +482,56 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _etiket(_icerik!.kategoriAdi, const Color(0xFFF5A623)),
-        const SizedBox(height: 16),
+        _etiket(_icerik!.kategoriAdi, UygulamaTemasi.anaRenk),
+        const SizedBox(height: 14),
         Text(
           _icerik!.baslik,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: UygulamaTemasi.baslik(fontSize: 23, height: 1.25),
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          children: [
-            InkWell(
-              onTap: () => _yazarProfiliAc(_icerik!.yazarId),
-              borderRadius: BorderRadius.circular(6),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.person_outline,
-                      size: 16,
-                      color: Color(0xFF22D3EE),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _icerik!.yazarAdi,
-                      style: const TextStyle(
-                        color: Color(0xFF22D3EE),
-                        fontWeight: FontWeight.w600,
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: UygulamaTemasi.yuzey,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: UygulamaTemasi.cizgi),
+          ),
+          child: Wrap(
+            spacing: 14,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              InkWell(
+                onTap: () => _yazarProfiliAc(_icerik!.yazarId),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.person_outline,
+                        size: 16,
+                        color: UygulamaTemasi.anaRenk,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        _icerik!.yazarAdi,
+                        style: const TextStyle(
+                          color: UygulamaTemasi.anaRenk,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _meta(Icons.calendar_today_outlined, _icerik!.tarihFormatli),
-            _meta(Icons.favorite_border, '${_icerik!.begeniSayisi}'),
-            _meta(Icons.chat_bubble_outline, '${_icerik!.yorumSayisi}'),
-          ],
+              _meta(Icons.calendar_today_outlined, _icerik!.tarihFormatli),
+              _meta(Icons.favorite_border, '${_icerik!.begeniSayisi}'),
+              _meta(Icons.chat_bubble_outline, '${_icerik!.yorumSayisi}'),
+            ],
+          ),
         ),
         if (_icerik!.resimUrl != null && _icerik!.resimUrl!.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -572,7 +577,7 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
         Icon(
           _forumMu ? Icons.question_answer_outlined : Icons.chat_bubble_outline,
           size: 20,
-          color: const Color(0xFF22D3EE),
+          color: UygulamaTemasi.anaRenk,
         ),
         const SizedBox(width: 8),
         Text(
@@ -602,19 +607,36 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
         SliverToBoxAdapter(
           child: _ortala(
             padding: altPadding,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _yorumHata!,
-                    style: const TextStyle(color: Colors.grey),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: UygulamaTemasi.yuzey,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: UygulamaTemasi.cizgi),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: UygulamaTemasi.hata,
+                    size: 18,
                   ),
-                ),
-                TextButton(
-                  onPressed: _yorumlariYukle,
-                  child: const Text('Tekrar Dene'),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _yorumHata!,
+                      style: const TextStyle(
+                        color: UygulamaTemasi.ikincilMetin,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _yorumlariYukle,
+                    child: const Text('Tekrar Dene'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -626,13 +648,24 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
         SliverToBoxAdapter(
           child: _ortala(
             padding: altPadding,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              decoration: BoxDecoration(
+                color: UygulamaTemasi.yuzey,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: UygulamaTemasi.cizgi),
+              ),
               child: Text(
                 _forumMu
                     ? 'Henuz cevap yok. Ilk cevabi sen ver!'
                     : 'Henuz yorum yok.',
-                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: UygulamaTemasi.ikincilMetin,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -647,25 +680,27 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
           itemCount: _yorumlar.length,
           itemBuilder: (context, index) {
             final yorum = _yorumlar[index];
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 820),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: YorumKarti(
-                    key: ValueKey('yorum-${yorum.id}'),
-                    yorum: yorum,
-                    depth: 0,
-                    opAuthorName: _icerik?.yazarAdi,
-                    canModerate: canModerate,
-                    currentUserId: currentUserId,
-                    expandedIds: _acikYorumlar,
-                    onReply: _yanitla,
-                    onLike: _yorumBegen,
-                    onDelete: _yorumSil,
-                    onToggleCollapse: _yanitGorunumunuDegistir,
-                    onAuthorTap: _yazarProfiliAc,
-                    onContinueThread: _yorumDevaminiAc,
+            return RepaintBoundary(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: YorumKarti(
+                      key: ValueKey('yorum-${yorum.id}'),
+                      yorum: yorum,
+                      depth: 0,
+                      opAuthorName: _icerik?.yazarAdi,
+                      canModerate: canModerate,
+                      currentUserId: currentUserId,
+                      expandedIds: _acikYorumlar,
+                      onReply: _yanitla,
+                      onLike: _yorumBegen,
+                      onDelete: _yorumSil,
+                      onToggleCollapse: _yanitGorunumunuDegistir,
+                      onAuthorTap: _yazarProfiliAc,
+                      onContinueThread: _yorumDevaminiAc,
+                    ),
                   ),
                 ),
               ),
@@ -680,26 +715,34 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: Colors.grey),
+        Icon(icon, size: 15, color: UygulamaTemasi.ikincilMetin),
         const SizedBox(width: 4),
-        Text(value, style: const TextStyle(color: Colors.grey)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: UygulamaTemasi.ikincilMetin,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
 
   Widget _etiket(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(
         text,
         style: TextStyle(
           color: color,
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -709,16 +752,20 @@ class _IcerikEkraniDurumu extends ConsumerState<IcerikEkrani> {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
         child: CachedNetworkImage(
           imageUrl: url,
+          memCacheWidth: 1200,
+          fadeInDuration: const Duration(milliseconds: 180),
           fit: BoxFit.cover,
-          placeholder: (context, url) =>
-              Container(color: const Color(0xFF1A1D27)),
+          placeholder: (context, url) => Container(color: UygulamaTemasi.yuzey),
           errorWidget: (context, url, error) => Container(
-            color: const Color(0xFF1A1D27),
+            color: UygulamaTemasi.yuzey,
             alignment: Alignment.center,
-            child: const Icon(Icons.image_not_supported_outlined),
+            child: const Icon(
+              Icons.image_not_supported_outlined,
+              color: UygulamaTemasi.ikincilMetin,
+            ),
           ),
         ),
       ),

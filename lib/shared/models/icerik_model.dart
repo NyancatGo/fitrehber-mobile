@@ -3,26 +3,15 @@
 
 import 'package:html/parser.dart' as html_parser;
 
+import '../../core/constants/api_sabitleri.dart';
 import 'icerik_blok_model.dart';
 
-const _siteBaseUrl = 'https://fitrehber.com.tr';
-const _mediaBaseUrl = '$_siteBaseUrl/media/';
 const _mediaPrefixes = ['ckeditor_resimleri/', 'icerik_resimleri/'];
 
 String _asString(Object? value) => value?.toString() ?? '';
 
-String? _normalizeMediaUrl(Object? value) {
-  final raw = _asString(value).trim();
-  if (raw.isEmpty) return null;
-
-  final uri = Uri.tryParse(raw);
-  if (uri != null && uri.hasScheme) return raw;
-  if (raw.startsWith('//')) return 'https:$raw';
-  if (raw.startsWith('/media/')) return '$_siteBaseUrl$raw';
-  if (raw.startsWith('media/')) return '$_siteBaseUrl/$raw';
-
-  return '$_mediaBaseUrl${raw.replaceFirst(RegExp(r'^/+'), '')}';
-}
+String? _normalizeMediaUrl(Object? value) =>
+    ApiSabitleri.mediaUrlNormalize(value);
 
 String _normalizeContentUrl(String value) {
   final raw = value.trim();

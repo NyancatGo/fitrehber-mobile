@@ -136,6 +136,35 @@ void main() {
       expect(cached, hasLength(1));
       expect(cached.single['isim'], 'Yeni Semali Sut');
       expect(prefs.getInt('besin_cache_schema_version'), 4);
+      expect(service.sonSenkronEksikMi, isFalse);
+    },
+  );
+
+  test(
+    'sayfa sinirina ulasildiginda hasMore true ise senkron eksik isaretlenir ve lastSync ilerletilmez',
+    () async {
+      final service = BesinSenkronServisi.test(
+        maxSayfa: 2,
+        sayfaGetir: ({String? since, int offset = 0, int limit = 1000}) async {
+          return {
+            'foods': [_serverFood(id: offset + 1, isim: 'Besin ${offset + 1}')],
+            'serverTime': '2026-06-17T15:00:00Z',
+            'hasMore': true,
+            'count': 5,
+          };
+        },
+      );
+
+      final hazir = await service.senkronEt(zorla: true);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(hazir, isTrue);
+      expect(service.sonSenkronEksikMi, isTrue);
+      expect(service.sonSunucuToplamSayi, 5);
+      // İndirilen 2 kayıt yine de yerel aramaya açılır:
+      expect(YerelBesinVeritabani.instance.toplamSayi, 2);
+      // Ancak lastSync ilerletilmez ki kalan 3 kayıt kalıcı olarak atlanmasın:
+      expect(prefs.getString(YerelBesinVeritabani.lastSyncKey), isNull);
     },
   );
 }

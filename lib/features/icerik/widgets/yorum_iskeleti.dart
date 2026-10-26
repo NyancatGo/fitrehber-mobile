@@ -13,8 +13,8 @@ class YorumIskeletListesi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1A1D27),
-      highlightColor: const Color(0xFF2A2D37),
+      baseColor: UygulamaTemasi.cizgi,
+      highlightColor: UygulamaTemasi.yuzey,
       child: Column(
         children: List.generate(adet, (index) => const _YorumIskeletKarti()),
       ),

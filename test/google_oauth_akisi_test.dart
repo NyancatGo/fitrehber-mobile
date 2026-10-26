@@ -15,10 +15,7 @@ void main() {
       expect(istek.authorizationUrl.scheme, 'https');
       // OAuth başlangıcı WEB hostunda olmalı. Host, ortam degiskeniyle
       // degisebilecegi icin sabit kodlanmaz.
-      expect(
-        istek.authorizationUrl.host,
-        Uri.parse(ApiSabitleri.webUrl).host,
-      );
+      expect(istek.authorizationUrl.host, Uri.parse(ApiSabitleri.webUrl).host);
       expect(istek.authorizationUrl.path, '/accounts/mobile-google/start/');
       expect(
         istek.authorizationUrl.queryParameters['state'],

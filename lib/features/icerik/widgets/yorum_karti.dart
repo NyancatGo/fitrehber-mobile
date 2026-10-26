@@ -15,11 +15,11 @@ import 'baglantili_metin.dart';
 
 // Seviye bazlı thread çizgi renkleri (her iç içe seviye farklı renk alır).
 const List<Color> _threadColors = [
-  Color(0xFF22D3EE), // cyan
-  Color(0xFF6366F1), // indigo
-  Color(0xFFF5A623), // amber
-  Color(0xFF34D399), // yeşil
-  Color(0xFFF472B6), // pembe
+  UygulamaTemasi.anaRenk,
+  Color(0xFFC9844A),
+  UygulamaTemasi.ikincilMetin,
+  UygulamaTemasi.hata,
+  Color(0xFFD7B48A),
 ];
 
 Color threadRengi(int depth) => _threadColors[depth % _threadColors.length];
@@ -40,6 +40,7 @@ class YorumKarti extends StatefulWidget {
   final ValueChanged<int> onToggleCollapse;
   final ValueChanged<int?> onAuthorTap;
   final ValueChanged<YorumModel>? onContinueThread;
+  final ApiServisi? apiServisi;
 
   const YorumKarti({
     super.key,
@@ -56,6 +57,7 @@ class YorumKarti extends StatefulWidget {
     required this.onToggleCollapse,
     required this.onAuthorTap,
     this.onContinueThread,
+    this.apiServisi,
   });
 
   @override
@@ -90,7 +92,7 @@ class _YorumKartiDurumu extends State<YorumKarti> {
     if (widget.depth >= widget.maxInlineDepth) return;
     setState(() => _isLoadingReplies = true);
     try {
-      final apiServisi = ApiServisi();
+      final apiServisi = widget.apiServisi ?? ApiServisi.instance;
       final yanitlar = await apiServisi.yanitlariGetir(widget.yorum.id);
       if (!mounted) return;
       setState(() {
@@ -247,7 +249,7 @@ class _YorumKartiDurumu extends State<YorumKarti> {
         widget.canModerate || widget.currentUserId == widget.yorum.yazarId;
     final bg = _isOp
         ? UygulamaTemasi.anaRenk.withValues(alpha: 0.07)
-        : Colors.white.withValues(alpha: 0.035);
+        : UygulamaTemasi.yuzey;
 
     return Container(
       decoration: BoxDecoration(
@@ -256,7 +258,7 @@ class _YorumKartiDurumu extends State<YorumKarti> {
         border: Border.all(
           color: _isOp
               ? UygulamaTemasi.anaRenk.withValues(alpha: 0.30)
-              : Colors.white.withValues(alpha: 0.07),
+              : UygulamaTemasi.cizgi,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -279,9 +281,9 @@ class _YorumKartiDurumu extends State<YorumKarti> {
                         fontSize: 14,
                         height: 1.45,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white,
+                        color: UygulamaTemasi.anaMetin,
                       ),
-                      linkColor: const Color(0xFF22D3EE),
+                      linkColor: UygulamaTemasi.anaRenk,
                     ),
                     const SizedBox(height: 10),
                     _aksiyonlar(),
@@ -339,7 +341,7 @@ class _YorumKartiDurumu extends State<YorumKarti> {
               Text(
                 widget.yorum.tarihGoreli,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.44),
+                  color: UygulamaTemasi.ikincilMetin,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -357,7 +359,7 @@ class _YorumKartiDurumu extends State<YorumKarti> {
               icon: Icon(
                 Icons.more_horiz,
                 size: 20,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: UygulamaTemasi.ikincilMetin,
               ),
               onSelected: (value) {
                 if (value == 'delete') widget.onDelete(widget.yorum);
@@ -367,7 +369,7 @@ class _YorumKartiDurumu extends State<YorumKarti> {
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline, color: Color(0xFFEF4444)),
+                      Icon(Icons.delete_outline, color: UygulamaTemasi.hata),
                       SizedBox(width: 8),
                       Text('Sil'),
                     ],
@@ -385,12 +387,12 @@ class _YorumKartiDurumu extends State<YorumKarti> {
         ? '?'
         : widget.yorum.yazarAdi.trim().substring(0, 1).toUpperCase();
     final fallback = Container(
-      color: const Color(0xFF22D3EE).withValues(alpha: 0.14),
+      color: UygulamaTemasi.anaRenk.withValues(alpha: 0.14),
       alignment: Alignment.center,
       child: Text(
         initial,
         style: const TextStyle(
-          color: Color(0xFFBFF6FF),
+          color: UygulamaTemasi.anaRenk,
           fontSize: 15,
           fontWeight: FontWeight.w900,
         ),
@@ -443,15 +445,15 @@ class _YorumKartiDurumu extends State<YorumKarti> {
           icon: widget.yorum.begendim ? Icons.favorite : Icons.favorite_border,
           label: '${widget.yorum.begeniSayisi}',
           color: widget.yorum.begendim
-              ? const Color(0xFFEF4444)
-              : Colors.white.withValues(alpha: 0.56),
+              ? UygulamaTemasi.hata
+              : UygulamaTemasi.ikincilMetin,
           onTap: () => widget.onLike(widget.yorum),
         ),
         const SizedBox(width: 6),
         _aksiyon(
           icon: Icons.mode_comment_outlined,
           label: 'Yanıtla',
-          color: const Color(0xFF22D3EE),
+          color: UygulamaTemasi.anaRenk,
           onTap: () => widget.onReply(widget.yorum),
         ),
       ],

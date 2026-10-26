@@ -26,12 +26,12 @@ class _ProfilHataGorunumu extends ConsumerWidget {
                 height: 74,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withValues(alpha: 0.13),
+                  color: UygulamaTemasi.hata.withValues(alpha: 0.13),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.cloud_off_outlined,
-                  color: Color(0xFFEF4444),
+                  color: UygulamaTemasi.hata,
                   size: 36,
                 ),
               ),
@@ -45,7 +45,7 @@ class _ProfilHataGorunumu extends ConsumerWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
+                style: const TextStyle(color: UygulamaTemasi.ikincilMetin),
               ),
               const SizedBox(height: 20),
               FilledButton.icon(

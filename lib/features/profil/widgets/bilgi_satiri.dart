@@ -21,8 +21,8 @@ class _BilgiSatiri extends StatelessWidget {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: UygulamaTemasi.yuzey,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Row(
         children: [
@@ -32,7 +32,7 @@ class _BilgiSatiri extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: accent, size: 21),
           ),
@@ -44,7 +44,7 @@ class _BilgiSatiri extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.56),
+                    color: UygulamaTemasi.ikincilMetin,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -88,8 +88,8 @@ class _AksiyonSatiri extends StatelessWidget {
       child: Material(
         color: UygulamaTemasi.yuzey,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+          side: const BorderSide(color: UygulamaTemasi.cizgi),
         ),
         clipBehavior: Clip.antiAlias,
         child: ListTile(
@@ -104,20 +104,22 @@ class _AksiyonSatiri extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: color, size: 21),
           ),
           title: Text(
             title,
             style: TextStyle(
-              color: color == const Color(0xFFEF4444) ? color : Colors.white,
+              color: color == UygulamaTemasi.hata
+                  ? color
+                  : UygulamaTemasi.anaMetin,
               fontWeight: FontWeight.w900,
             ),
           ),
           trailing: Icon(
             Icons.chevron_right,
-            color: Colors.white.withValues(alpha: 0.38),
+            color: UygulamaTemasi.ikincilMetin,
           ),
         ),
       ),

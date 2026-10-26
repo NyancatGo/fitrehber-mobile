@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/oturum_denetleyici.dart';
 
@@ -103,33 +104,31 @@ class _SifremiUnuttumEkraniDurumu extends ConsumerState<SifremiUnuttumEkrani> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 40),
-        const Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
+        const Icon(
+          Icons.check_circle_outline,
+          size: 56,
+          color: UygulamaTemasi.anaRenk,
+        ),
         const SizedBox(height: 24),
-        const Text(
+        Text(
           'Bağlantı Gönderildi',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: UygulamaTemasi.baslik(fontSize: 26, height: 1.1),
         ),
         const SizedBox(height: 16),
         const Text(
           'Eğer girdiğiniz e-posta adresi sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderildi. Lütfen e-posta kutunuzu kontrol edin.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+          style: TextStyle(
+            fontSize: 16,
+            color: UygulamaTemasi.ikincilMetin,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 48),
         ElevatedButton(
           onPressed: () => context.go('/giris'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF5A623),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Giriş Ekranına Dön',
-            style: TextStyle(fontSize: 16, color: Colors.white),
-          ),
+          child: const Text('Giriş Ekranına Dön'),
         ),
       ],
     );
@@ -142,19 +141,21 @@ class _SifremiUnuttumEkraniDurumu extends ConsumerState<SifremiUnuttumEkrani> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 20),
-          const Icon(Icons.lock_reset, size: 64, color: Color(0xFFF5A623)),
-          const SizedBox(height: 24),
-          const Text(
+          const SizedBox(height: 12),
+          Text(
             'Şifreni mi unuttun?',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: UygulamaTemasi.baslik(fontSize: 26, height: 1.1),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const Text(
             'Hesabına bağlı e-posta adresini gir. Sana şifreni sıfırlayabileceğin bir bağlantı göndereceğiz.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 16, height: 1.5),
+            style: TextStyle(
+              color: UygulamaTemasi.ikincilMetin,
+              fontSize: 16,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 32),
           if (_hata != null)
@@ -162,11 +163,16 @@ class _SifremiUnuttumEkraniDurumu extends ConsumerState<SifremiUnuttumEkrani> {
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                color: UygulamaTemasi.hata.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: UygulamaTemasi.hata.withValues(alpha: 0.35),
+                ),
               ),
-              child: Text(_hata!, style: const TextStyle(color: Colors.red)),
+              child: Text(
+                _hata!,
+                style: const TextStyle(color: UygulamaTemasi.hata),
+              ),
             ),
           TextFormField(
             controller: _emailController,
@@ -185,26 +191,16 @@ class _SifremiUnuttumEkraniDurumu extends ConsumerState<SifremiUnuttumEkrani> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: _isLoading ? null : _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF5A623),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
             child: _isLoading
                 ? const SizedBox(
-                    height: 24,
-                    width: 24,
+                    height: 22,
+                    width: 22,
                     child: CircularProgressIndicator(
-                      color: Colors.white,
+                      color: UygulamaTemasi.anaUstune,
                       strokeWidth: 2,
                     ),
                   )
-                : const Text(
-                    'Sıfırlama Bağlantısı Gönder',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                : const Text('Sıfırlama Bağlantısı Gönder'),
           ),
         ],
       ),

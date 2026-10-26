@@ -33,6 +33,16 @@ class BesinPorsiyonModel {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'isim': isim,
+      'gram_esdegeri': gramEsdegeri,
+      'varsayilan': varsayilan,
+      'sira': sira,
+    };
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -216,6 +226,54 @@ class OgunKaydiModel {
           : null,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'tarih': tarih,
+      'ogun_tipi': ogunTipi,
+      if (besinId != null) 'besin_id': besinId,
+      'besin_isim': besinIsim,
+      'miktar': miktar,
+      'miktar_birimi': miktarBirimi,
+      'kalori': kalori,
+      'protein': protein,
+      'karbonhidrat': karbonhidrat,
+      'yag': yag,
+      if (porsiyon != null) 'porsiyon': porsiyon!.toJson(),
+    };
+  }
+
+  OgunKaydiModel copyWith({
+    int? id,
+    String? tarih,
+    String? ogunTipi,
+    int? besinId,
+    String? besinIsim,
+    double? miktar,
+    String? miktarBirimi,
+    int? kalori,
+    double? protein,
+    double? karbonhidrat,
+    double? yag,
+    BesinPorsiyonModel? porsiyon,
+    bool clearPorsiyon = false,
+  }) {
+    return OgunKaydiModel(
+      id: id ?? this.id,
+      tarih: tarih ?? this.tarih,
+      ogunTipi: ogunTipi ?? this.ogunTipi,
+      besinId: besinId ?? this.besinId,
+      besinIsim: besinIsim ?? this.besinIsim,
+      miktar: miktar ?? this.miktar,
+      miktarBirimi: miktarBirimi ?? this.miktarBirimi,
+      kalori: kalori ?? this.kalori,
+      protein: protein ?? this.protein,
+      karbonhidrat: karbonhidrat ?? this.karbonhidrat,
+      yag: yag ?? this.yag,
+      porsiyon: clearPorsiyon ? null : (porsiyon ?? this.porsiyon),
+    );
+  }
 }
 
 /// Bir günün tüm beslenme özetini temsil eder: toplam kalori/makrolar,
@@ -337,6 +395,44 @@ class GunlukBeslenmeModel {
       yagG: yagG ?? this.yagG,
       ogunler: ogunler ?? this.ogunler,
     );
+  }
+
+  /// Öğün listelerindeki kayıtları toplayarak günlük kalori ve makro
+  /// toplamlarını yeniden hesaplar (çevrimdışı/optimistic güncellemeler için).
+  GunlukBeslenmeModel toplamlarlaYenile() {
+    var topKalori = 0;
+    var topProtein = 0.0;
+    var topKarbonhidrat = 0.0;
+    var topYag = 0.0;
+    for (final liste in ogunler.values) {
+      for (final kayit in liste) {
+        topKalori += kayit.kalori;
+        topProtein += kayit.protein;
+        topKarbonhidrat += kayit.karbonhidrat;
+        topYag += kayit.yag;
+      }
+    }
+    return copyWith(
+      kaloriKcal: topKalori,
+      proteinG: double.parse(topProtein.toStringAsFixed(1)),
+      karbonhidratG: double.parse(topKarbonhidrat.toStringAsFixed(1)),
+      yagG: double.parse(topYag.toStringAsFixed(1)),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'tarih': tarih,
+      'su_ml': suMl,
+      'toplam_kalori': kaloriKcal,
+      'toplam_protein': proteinG,
+      'toplam_karbonhidrat': karbonhidratG,
+      'toplam_yag': yagG,
+      'ogunler': {
+        for (final entry in ogunler.entries)
+          entry.key: entry.value.map((k) => k.toJson()).toList(),
+      },
+    };
   }
 
   // --- İlerleme oranları ---------------------------------------------------

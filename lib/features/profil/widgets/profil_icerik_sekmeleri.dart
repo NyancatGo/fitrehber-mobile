@@ -72,7 +72,7 @@ class _ProfilIcerikSekmeleriDurumu extends ConsumerState<ProfilIcerikSekmeleri>
       decoration: BoxDecoration(
         color: UygulamaTemasi.yuzey,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         children: [
@@ -84,7 +84,7 @@ class _ProfilIcerikSekmeleriDurumu extends ConsumerState<ProfilIcerikSekmeleri>
                 : TabAlignment.fill,
             labelColor: UygulamaTemasi.anaRenk,
             indicatorColor: UygulamaTemasi.anaRenk,
-            unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
+            unselectedLabelColor: UygulamaTemasi.ikincilMetin,
             tabs: tabs,
           ),
           SizedBox(
@@ -305,14 +305,13 @@ class _IcerikSatiri extends StatelessWidget {
                   width: 52,
                   height: 52,
                   fit: BoxFit.cover,
-                  placeholder: (c, u) =>
-                      Container(color: const Color(0xFF2A2D37)),
+                  placeholder: (c, u) => Container(color: UygulamaTemasi.cizgi),
                   errorWidget: (c, u, e) => const Icon(Icons.image),
                 ),
               )
             : Icon(
                 forumMu ? Icons.forum_outlined : Icons.article_outlined,
-                color: const Color(0xFF22D3EE),
+                color: UygulamaTemasi.anaRenk,
               ),
         title: Text(
           icerik.baslik,
@@ -342,7 +341,7 @@ class _BegeniSatiri extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
-        leading: const Icon(Icons.favorite, color: Color(0xFFEF4444)),
+        leading: const Icon(Icons.favorite, color: UygulamaTemasi.hata),
         title: Text(
           yorum.mesaj,
           maxLines: 2,

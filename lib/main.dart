@@ -21,9 +21,12 @@ class FitRehberUygulamasi extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'FitRehber',
-      theme: UygulamaTemasi.koyuTema, // Koyu tema
-      routerConfig: router, // Sayfa yönlendirme
-      debugShowCheckedModeBanner: false, // Debug bandını gizle
+      theme: UygulamaTemasi.koyuTema,
+      routerConfig: router,
+      debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return GenisEkranCercesi(child: child ?? const SizedBox.shrink());
+      },
       // Turkce locale - showDatePicker ve diger material dialoglar icin
       locale: const Locale('tr', 'TR'),
       supportedLocales: const [Locale('tr', 'TR'), Locale('en', 'US')],

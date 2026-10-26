@@ -90,7 +90,8 @@ void main() {
     expect(find.text('@baran'), findsOneWidget);
     expect(find.text('Admin'), findsOneWidget);
     expect(find.text('180 cm'), findsOneWidget);
-    expect(find.text('81 kg'), findsOneWidget);
+    // Kilo hem biyometri şeridinde hem hedef kartının "Mevcut" hücresinde durur.
+    expect(find.text('81 kg'), findsAtLeastNWidgets(1));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
     await tester.pumpAndSettle();

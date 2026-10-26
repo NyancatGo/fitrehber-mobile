@@ -172,17 +172,20 @@ void main() {
     expect(YerelBesinVeritabani.instance.ara('Gecerli'), hasLength(1));
   });
 
-  test('cache yoksa veritabani bos kalir — bundled seed fallback YOK', () async {
-    await YerelBesinVeritabani.instance.hazirla();
+  test(
+    'cache yoksa veritabani bos kalir — bundled seed fallback YOK',
+    () async {
+      await YerelBesinVeritabani.instance.hazirla();
 
-    // Bundled JSON seed kaldirildi: onbellek bosken arama yapilamaz, ekran
-    // ilk senkronu bekler. Eskiden burada asset'ten ~3900 kayit yuklenirdi ve
-    // bu kayitlar besin_id tasimadigi icin custom-food ogun kaydi uretirdi.
-    expect(YerelBesinVeritabani.instance.toplamSayi, 0);
-    expect(YerelBesinVeritabani.instance.hazirMi, isFalse);
-    expect(YerelBesinVeritabani.instance.ara('elma'), isEmpty);
-    expect(YerelBesinVeritabani.instance.tumunuGetir(), isEmpty);
-  });
+      // Bundled JSON seed kaldirildi: onbellek bosken arama yapilamaz, ekran
+      // ilk senkronu bekler. Eskiden burada asset'ten ~3900 kayit yuklenirdi ve
+      // bu kayitlar besin_id tasimadigi icin custom-food ogun kaydi uretirdi.
+      expect(YerelBesinVeritabani.instance.toplamSayi, 0);
+      expect(YerelBesinVeritabani.instance.hazirMi, isFalse);
+      expect(YerelBesinVeritabani.instance.ara('elma'), isEmpty);
+      expect(YerelBesinVeritabani.instance.tumunuGetir(), isEmpty);
+    },
+  );
 
   test('sunucu PKsi olmayan cache kaydi elenir', () async {
     final pksiz = _serverFood(id: 0, kaynakId: 'pksiz', isim: 'PKsiz Besin');

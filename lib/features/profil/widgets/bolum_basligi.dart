@@ -35,7 +35,7 @@ class _BolumBasligi extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 3),
@@ -44,7 +44,7 @@ class _BolumBasligi extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.58),
+                  color: UygulamaTemasi.ikincilMetin,
                   fontWeight: FontWeight.w600,
                 ),
               ),

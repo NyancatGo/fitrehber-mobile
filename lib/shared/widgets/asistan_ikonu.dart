@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/theme/uygulama_temasi.dart';
+
 /// FitRehber AI Asistan ikonu — bottom navigation bar için özel widget.
 ///
 /// İki state:
@@ -92,7 +94,7 @@ class _AsistanIkonuDurumu extends State<AsistanIkonu>
         height: size,
         // currentColor desteği için colorFilter:
         colorFilter: ColorFilter.mode(
-          IconTheme.of(context).color ?? Colors.white70,
+          IconTheme.of(context).color ?? UygulamaTemasi.ikincilMetin,
           BlendMode.srcIn,
         ),
       );
@@ -118,9 +120,9 @@ class _AsistanIkonuDurumu extends State<AsistanIkonu>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(
-                        0xFFFBBF24,
-                      ).withValues(alpha: haloOpacity),
+                      color: UygulamaTemasi.anaRenk.withValues(
+                        alpha: haloOpacity * 0.35,
+                      ),
                       blurRadius: 12,
                       spreadRadius: -2,
                     ),
@@ -132,6 +134,10 @@ class _AsistanIkonuDurumu extends State<AsistanIkonu>
                 'assets/icons/ai_assistant.svg',
                 width: size,
                 height: size,
+                colorFilter: const ColorFilter.mode(
+                  UygulamaTemasi.anaRenk,
+                  BlendMode.srcIn,
+                ),
               ),
             ],
           ),

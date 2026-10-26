@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/api_sabitleri.dart';
+import '../../core/theme/uygulama_temasi.dart';
 import '../../shared/api_servisi.dart';
 import '../../shared/hata_yardimcilari.dart';
 import '../../shared/yerel_veritabani_servisi.dart';
@@ -32,7 +33,7 @@ class AnaSayfaIcerigi extends ConsumerStatefulWidget {
 
 class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
   /// Backend ile konuşan API servisi.
-  final ApiServisi _api = ApiServisi();
+  ApiServisi get _api => ref.read(apiServisiProvider);
 
   /// Liste kaydırma konumunu izleyen denetleyici (sonsuz kaydırma için).
   final ScrollController _scrollController = ScrollController();
@@ -265,9 +266,7 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
             child: const Text('Vazgec'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: UygulamaTemasi.hata),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Sil'),
           ),
@@ -301,13 +300,11 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'FitRehber',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('FitRehber'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
+            tooltip: 'Ara',
             onPressed: () => context.push('/arama'),
           ),
         ],
@@ -315,21 +312,43 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
       body: Column(
         children: [
           if (_cevrimdisi)
-            MaterialBanner(
-              backgroundColor: const Color(0xFFF97316).withValues(alpha: 0.9),
-              content: const Text(
-                'Çevrimdışı modda çalışıyorsunuz. Gösterilen veriler önbellekten.',
-                style: TextStyle(color: Colors.white, fontSize: 13),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => _verileriYukle(kategorileriYenile: true),
-                  child: const Text(
-                    'Tekrar Dene',
-                    style: TextStyle(color: Colors.white),
-                  ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
                 ),
-              ],
+                decoration: BoxDecoration(
+                  color: UygulamaTemasi.yuzey,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: UygulamaTemasi.cizgi),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.cloud_off_outlined,
+                      size: 18,
+                      color: UygulamaTemasi.anaRenk,
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Çevrimdışı modda çalışıyorsunuz. Gösterilen veriler önbellekten.',
+                        style: TextStyle(
+                          color: UygulamaTemasi.anaMetin,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _verileriYukle(kategorileriYenile: true),
+                      child: const Text('Tekrar dene'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           _kategoriCubugu(),
           Expanded(child: _icerikAlani(canModerate, currentUserId)),
@@ -342,15 +361,20 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
   Widget _kategoriCubugu() {
     return Semantics(
       label: 'Toplam içerik sayısı $_totalCount',
-      child: SizedBox(
-        height: 56,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          children: [
-            _kategoriButon(null, 'Tumu'),
-            ..._kategoriler.map((k) => _kategoriButon(k.id, k.isim)),
-          ],
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: UygulamaTemasi.cizgi)),
+        ),
+        child: SizedBox(
+          height: 54,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              _kategoriButon(null, 'Tümü'),
+              ..._kategoriler.map((k) => _kategoriButon(k.id, k.isim)),
+            ],
+          ),
         ),
       ),
     );
@@ -358,39 +382,11 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
 
   Widget _kategoriButon(int? id, String isim) {
     final secili = _secilenKategoriId == id;
-    return Padding(
+    return SecimYongasi(
       key: ValueKey('kategori-${id ?? 'tumu'}'),
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: () => _kategoriSec(id),
-        borderRadius: BorderRadius.circular(999),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: secili
-                ? const LinearGradient(
-                    colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-                  )
-                : null,
-            color: secili ? null : Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: secili
-                  ? Colors.transparent
-                  : Colors.white.withValues(alpha: 0.08),
-            ),
-          ),
-          child: Text(
-            isim,
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: secili ? Colors.white : Colors.white70,
-            ),
-          ),
-        ),
-      ),
+      etiket: isim,
+      secili: secili,
+      onTap: () => _kategoriSec(id),
     );
   }
 
@@ -406,8 +402,13 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: const [
-            SizedBox(height: 120),
-            Center(child: Text('Henuz icerik yok.')),
+            SizedBox(height: 80),
+            BosDurumGorunumu(
+              ikon: Icons.article_outlined,
+              mesaj: 'Henüz içerik yok.',
+              altMesaj:
+                  'Bu kategoride henüz yayınlanmış bir makale bulunmuyor.',
+            ),
           ],
         ),
       );
@@ -437,7 +438,9 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
               ),
             );
           }
-          return _makaleKarti(_icerikler[index], canModerate, currentUserId);
+          return RepaintBoundary(
+            child: _makaleKarti(_icerikler[index], canModerate, currentUserId),
+          );
         },
       ),
     );
@@ -454,133 +457,158 @@ class _AnaSayfaIcerigiDurumu extends ConsumerState<AnaSayfaIcerigi> {
 
     return Card(
       key: ValueKey('icerik-${icerik.id}'),
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
         onTap: () => context.push('/makale/${icerik.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (icerik.resimUrl != null && icerik.resimUrl!.isNotEmpty)
-                IcerikKapakResmi(url: icerik.resimUrl!),
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (icerik.resimUrl != null && icerik.resimUrl!.isNotEmpty)
+              IcerikKapakResmi(url: icerik.resimUrl!),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IcerikEtiket(
-                    text: icerik.kategoriAdi,
-                    color: const Color(0xFFF5A623),
-                  ),
-                  const Spacer(),
-                  if (canDelete)
-                    PopupMenuButton<String>(
-                      tooltip: 'Moderasyon',
-                      onSelected: (value) {
-                        if (value == 'delete') _icerikSil(icerik);
-                      },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete_outline,
-                                color: Color(0xFFEF4444),
+                  Row(
+                    children: [
+                      IcerikEtiket(
+                        text: icerik.kategoriAdi,
+                        color: UygulamaTemasi.ikincilMetin,
+                        cizgili: true,
+                      ),
+                      const Spacer(),
+                      if (canDelete)
+                        PopupMenuButton<String>(
+                          tooltip: 'Moderasyon',
+                          onSelected: (value) {
+                            if (value == 'delete') _icerikSil(icerik);
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    color: UygulamaTemasi.hata,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Sil'),
+                                ],
                               ),
-                              SizedBox(width: 8),
-                              Text('Sil'),
-                            ],
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    icerik.baslik,
+                    style: UygulamaTemasi.baslik(fontSize: 18, height: 1.25),
+                  ),
+                  if (icerik.ozet.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      icerik.ozet,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: UygulamaTemasi.ikincilMetin,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.person_outline,
+                        size: 14,
+                        color: UygulamaTemasi.ikincilMetin,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: icerik.yazarId == null
+                              ? null
+                              : () => context.push('/profil/${icerik.yazarId}'),
+                          child: Text(
+                            icerik.yazarAdi,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: UygulamaTemasi.ikincilMetin,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        '•',
+                        style: TextStyle(
+                          color: UygulamaTemasi.ikincilMetin,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        icerik.tarihFormatli,
+                        style: const TextStyle(
+                          color: UygulamaTemasi.ikincilMetin,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (icerik.yorumSayisi > 0) ...[
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.chat_bubble_outline,
+                          size: 13,
+                          color: UygulamaTemasi.ikincilMetin,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${icerik.yorumSayisi}',
+                          style: const TextStyle(
+                            color: UygulamaTemasi.ikincilMetin,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                icerik.baslik,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (icerik.ozet.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  icerik.ozet,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: Colors.white.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.person_outline,
-                    size: 14,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: GestureDetector(
-                      onTap: icerik.yazarId == null
-                          ? null
-                          : () => context.push('/profil/${icerik.yazarId}'),
-                      child: Text(
-                        icerik.yazarAdi,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF22D3EE),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      const Spacer(),
+                      HizliAksiyonButonu(
+                        tooltip: 'Begen',
+                        icon: icerik.begendim
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        label: '${icerik.begeniSayisi}',
+                        color: icerik.begendim
+                            ? UygulamaTemasi.hata
+                            : UygulamaTemasi.ikincilMetin,
+                        onTap: () => _hizliBegen(icerik),
                       ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    icerik.tarihFormatli,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  HizliAksiyonButonu(
-                    tooltip: 'Begen',
-                    icon: icerik.begendim
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    label: '${icerik.begeniSayisi}',
-                    color: icerik.begendim
-                        ? const Color(0xFFEF4444)
-                        : Colors.white70,
-                    onTap: () => _hizliBegen(icerik),
-                  ),
-                  const SizedBox(width: 8),
-                  HizliAksiyonButonu(
-                    tooltip: 'Kaydet',
-                    icon: icerik.kaydedildi
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    label: '',
-                    color: icerik.kaydedildi
-                        ? const Color(0xFFF5A623)
-                        : Colors.white70,
-                    onTap: () => _hizliKaydet(icerik),
+                      const SizedBox(width: 8),
+                      HizliAksiyonButonu(
+                        tooltip: 'Kaydet',
+                        icon: icerik.kaydedildi
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                        label: '',
+                        color: icerik.kaydedildi
+                            ? UygulamaTemasi.anaRenk
+                            : UygulamaTemasi.ikincilMetin,
+                        onTap: () => _hizliKaydet(icerik),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/uygulama_temasi.dart';
 import '../../../shared/utils/beslenme_hesaplayici.dart';
 
 /// Günlük su tüketimini gösteren ve hızlı ekleme sağlayan bölüm widget'ı.
@@ -33,9 +34,9 @@ class SuTakipBolumu extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        color: UygulamaTemasi.yuzey,
+        borderRadius: BorderRadius.circular(UygulamaTemasi.yaricap),
+        border: Border.all(color: UygulamaTemasi.cizgi),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,32 +48,28 @@ class SuTakipBolumu extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF06B6D4).withValues(alpha: 0.15),
+                  color: UygulamaTemasi.anaRenk.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.water_drop_outlined,
-                  color: Color(0xFF06B6D4),
+                  color: UygulamaTemasi.anaRenk,
                   size: 18,
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Su Tüketimi',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: UygulamaTemasi.baslik(fontSize: 18, height: 1.15),
                 ),
               ),
               Text(
                 '$suMl / ${hedefler.suHedefMl} ml',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.55),
+                  color: UygulamaTemasi.ikincilMetin,
                   fontSize: 13,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -81,25 +78,21 @@ class SuTakipBolumu extends StatelessWidget {
 
           // İlerleme çubuğu
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Stack(
-              children: [
-                Container(
-                  height: 8,
-                  color: Colors.white.withValues(alpha: 0.07),
-                ),
-                FractionallySizedBox(
-                  widthFactor: yuzde,
-                  child: Container(
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
-                      ),
-                    ),
+            borderRadius: BorderRadius.circular(999),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: yuzde),
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              builder: (context, oran, _) {
+                return LinearProgressIndicator(
+                  minHeight: 8,
+                  value: oran,
+                  backgroundColor: UygulamaTemasi.cizgi,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    UygulamaTemasi.anaRenk,
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 14),
@@ -204,26 +197,22 @@ class _SuButonState extends State<_SuButon>
           decoration: BoxDecoration(
             // Pozitif: cyan -> blue gradient (mevcut)
             // Negatif: muted dark / cyan border (yumusak vurgu)
-            gradient: widget.negatif
-                ? null
-                : const LinearGradient(
-                    colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
-                  ),
-            color: widget.negatif ? Colors.white.withValues(alpha: 0.05) : null,
+            color: widget.negatif
+                ? UygulamaTemasi.yuzey
+                : UygulamaTemasi.anaRenk,
             borderRadius: BorderRadius.circular(12),
             border: widget.negatif
-                ? Border.all(
-                    color: const Color(0xFF06B6D4).withValues(alpha: 0.35),
-                    width: 1,
-                  )
+                ? Border.all(color: UygulamaTemasi.cizgi)
                 : null,
           ),
           child: Text(
             etiket,
             style: TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.w900,
-              color: widget.negatif ? const Color(0xFF06B6D4) : Colors.white,
+              fontWeight: FontWeight.w600,
+              color: widget.negatif
+                  ? UygulamaTemasi.anaMetin
+                  : UygulamaTemasi.anaUstune,
             ),
           ),
         ),

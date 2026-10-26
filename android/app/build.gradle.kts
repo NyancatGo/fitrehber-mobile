@@ -52,10 +52,21 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
+            val isReleaseTaskRequested = gradle.startParameter.taskNames.any {
+                it.contains("Release", ignoreCase = true)
+            }
+            val allowDebugSigning =
+                project.findProperty("allowDebugReleaseSigning")?.toString() == "true"
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            } else if (isReleaseTaskRequested && !allowDebugSigning) {
+                throw GradleException(
+                    "Release derlemesi icin android/key.properties bulunamadi! " +
+                    "Play Store paketi yanlislikla debug anahtariyla imzalanmasin diye derleme durduruldu. " +
+                    "(Test amacli gecici izin icin: -PallowDebugReleaseSigning=true)"
+                )
             } else {
-                signingConfigs.getByName("debug")
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }

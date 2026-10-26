@@ -17,12 +17,17 @@ import 'kimlik_servisi.dart';
 import 'google_oauth_akisi.dart';
 import 'models/profil_model.dart';
 import 'services/besin_senkron_servisi.dart';
+import 'services/beslenme_yerel_depo.dart';
 
 /// Kimlik doğrulama servisini sağlayan provider.
-final kimlikServisiProvider = Provider<KimlikServisi>((ref) => KimlikServisi());
+final kimlikServisiProvider = Provider<KimlikServisi>(
+  (ref) => KimlikServisi.instance,
+);
 
 /// API servisini sağlayan provider.
-final apiServisiProvider = Provider<ApiServisi>((ref) => ApiServisi());
+final apiServisiProvider = Provider<ApiServisi>(
+  (ref) => ApiServisi(kimlikServisi: ref.watch(kimlikServisiProvider)),
+);
 
 /// Uygulamanın oturum durumunu tutan ve yöneten ana provider.
 ///
@@ -84,12 +89,15 @@ class OturumDurumu {
 class OturumDenetleyici extends StateNotifier<OturumDurumu> {
   final KimlikServisi _kimlikServisi;
   final ApiServisi _apiServisi;
+  final BeslenmeYerelDepo _beslenmeDepo;
 
   OturumDenetleyici({
     required KimlikServisi kimlikServisi,
     required ApiServisi apiServisi,
+    BeslenmeYerelDepo? beslenmeDepo,
   }) : _kimlikServisi = kimlikServisi,
        _apiServisi = apiServisi,
+       _beslenmeDepo = beslenmeDepo ?? BeslenmeYerelDepo.instance,
        super(const OturumDurumu());
 
   /// Uygulama açılışında önceki oturumu geri yüklemeye çalışır.
@@ -244,9 +252,29 @@ class OturumDenetleyici extends StateNotifier<OturumDurumu> {
   }
 
   /// Oturumu kapatır ve durumu sıfırlar.
+  ///
+  /// `profile` null'a çekildiği anda kullanıcıya bağlı provider'lar
+  /// (`beslenmeProvider`, `asistanProvider`) kullanıcı kimliğini izledikleri
+  /// için otomatik olarak atılır; bellek içi veriler yeni oturuma taşınmaz.
+  /// Ardından çıkan kullanıcının cihazdaki beslenme önbelleği temizlenir.
   Future<void> cikisYap() async {
+    final cikanKullaniciId = state.profile?.id;
     await _kimlikServisi.cikisYap();
     state = const OturumDurumu(isLoading: false);
+    await _yerelKullaniciVerileriniTemizle(cikanKullaniciId);
+  }
+
+  /// Çıkan kullanıcının yerel beslenme önbelleğini temizler (hata fırlatmaz).
+  ///
+  /// Gönderilmemiş çevrimdışı kuyruk kullanıcı anahtarıyla izole olduğu için
+  /// korunur; aynı kullanıcı tekrar giriş yaptığında sunucuya iletilir.
+  Future<void> _yerelKullaniciVerileriniTemizle(int? kullaniciId) async {
+    if (kullaniciId == null || kullaniciId <= 0) return;
+    try {
+      await _beslenmeDepo.kullaniciVerileriniTemizle(kullaniciId);
+    } catch (e) {
+      debugPrint('[OturumDenetleyici] Yerel veri temizliği başarısız: $e');
+    }
   }
 
   /// Profili sunucudan yeniden çeker (ör. profil düzenlendikten sonra).
@@ -271,16 +299,26 @@ class OturumDenetleyici extends StateNotifier<OturumDurumu> {
       // kullanıcıyı zorla çıkarmamak için oturumu ve varsa önbellek profili koruruz.
       final isNetworkError = error is DioException;
       if (isNetworkError || !hatadaCikisYap) {
+        // Önbellek profil yoksa (çevrimdışı soğuk açılış) boş profile en
+        // azından gerçek kullanıcı kimliğini taşı; aksi halde id=0 olur ve
+        // kullanıcıya bağlı yerel veriler (outbox, sohbet) eşlenemez.
+        final yedekProfil =
+            state.profile ??
+            ProfilModel.empty(
+              id: await _kimlikServisi.onbellektekiKullaniciIdOku() ?? 0,
+            );
         state = OturumDurumu(
           isLoading: false,
           oturumVarMi: true,
-          profile: state.profile ?? ProfilModel.empty(),
+          profile: yedekProfil,
           error: error.toString(),
         );
         return;
       }
+      final cikanKullaniciId = state.profile?.id;
       await _kimlikServisi.cikisYap();
       state = OturumDurumu(isLoading: false, error: error.toString());
+      await _yerelKullaniciVerileriniTemizle(cikanKullaniciId);
     }
   }
 }

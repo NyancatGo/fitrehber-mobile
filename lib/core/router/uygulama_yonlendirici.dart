@@ -7,7 +7,7 @@
 // yapılmışken erişilebilir kalır.
 // ---------------------------------------------------------------------------
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -22,6 +22,7 @@ import '../../features/kategoriler/kategoriler_ekrani.dart';
 import '../../features/forum/forum_ekrani.dart';
 import '../../features/forum/soru_sor_ekrani.dart';
 import '../../features/ana_sayfa/ana_sayfa_ekrani.dart';
+import '../../features/ana_sayfa/ana_sayfa_icerigi.dart';
 import '../../features/beslenme/beslenme_ekrani.dart';
 import '../../features/ilk_kurulum/ilk_kurulum_ekrani.dart';
 import '../../features/profil/profil_ekrani.dart';
@@ -43,7 +44,13 @@ final uygulamaYonlendiriciProvider = Provider<GoRouter>((ref) {
   ref.listen(oturumDenetleyiciProvider, (_, _) => yenileyici.value++);
   ref.onDispose(yenileyici.dispose);
 
+  // Kök navigator. Soru sorma, arama, makale ve başkasının profili bu
+  // navigator'a itilir; alt çubuğu kapatır. Sekme dalları kendi
+  // navigator'larında kalır, bu yüzden geri dönünce durum durur.
+  final kokNavigatorAnahtari = GlobalKey<NavigatorState>(debugLabel: 'kok');
+
   return GoRouter(
+    navigatorKey: kokNavigatorAnahtari,
     // İlk açılışta token/profil henüz okunmadığı için yükleme ekranıyla başlanır.
     initialLocation: '/session-loading',
 
@@ -128,38 +135,79 @@ final uygulamaYonlendiriciProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const IlkKurulumEkrani(),
       ),
 
-      // --- Ana uygulama ekranları ---
-      GoRoute(path: '/', builder: (context, state) => const AnaSayfaEkrani()),
+      // Beş ana sekme tek kabuktadır. Dal ilk açılışta kurulur, sonra
+      // IndexedStack'te yaşar. Adres değişince (ör. /forum) kabuk kalır,
+      // yalnız seçili dal değişir.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AnaSayfaEkrani(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const AnaSayfaIcerigi(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/forum',
+                builder: (context, state) => const ForumEkrani(),
+                routes: [
+                  // Soru formu kök navigator'da açılır: alt çubuk kapanır,
+                  // forum listesinin durumu dalda kalır.
+                  GoRoute(
+                    path: 'soru-sor',
+                    parentNavigatorKey: kokNavigatorAnahtari,
+                    builder: (context, state) => const SoruSorEkrani(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/asistan',
+                builder: (context, state) => const AsistanEkrani(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/beslenme',
+                builder: (context, state) => const BeslenmeEkrani(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profil',
+                builder: (context, state) => const ProfilEkrani(),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // Kabuğun üstüne tam sayfa açılan adresler. Alt çubuk görünmez;
+      // geri gelince kabuk kaldığı yerden devam eder.
       GoRoute(
         path: '/kategoriler',
         builder: (context, state) => const KategorilerEkrani(),
       ),
-      GoRoute(path: '/forum', builder: (context, state) => const ForumEkrani()),
-      GoRoute(
-        path: '/forum/soru-sor',
-        builder: (context, state) => const SoruSorEkrani(),
-      ),
-      GoRoute(
-        path: '/asistan',
-        builder: (context, state) => const AsistanEkrani(),
-      ),
-      GoRoute(
-        path: '/beslenme',
-        builder: (context, state) => const BeslenmeEkrani(),
-      ),
-
-      // Oturum sahibinin kendi profili.
-      GoRoute(
-        path: '/profil',
-        builder: (context, state) => const ProfilEkrani(),
-      ),
-      // Başka bir kullanıcının profili (adresteki :id parametresiyle).
+      GoRoute(path: '/arama', builder: (context, state) => const AramaEkrani()),
+      // Başka bir kullanıcının profili. Kendi profil sekmesi `/profil`'dir.
       GoRoute(
         path: '/profil/:id',
         builder: (context, state) =>
             ProfilEkrani(userId: int.parse(state.pathParameters['id']!)),
       ),
-      GoRoute(path: '/arama', builder: (context, state) => const AramaEkrani()),
 
       // Belirli bir yoruma odaklanan ekran (bildirimden/derin bağlantıdan gelinir).
       GoRoute(

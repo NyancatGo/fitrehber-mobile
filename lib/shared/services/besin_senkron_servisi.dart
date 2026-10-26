@@ -31,22 +31,38 @@ typedef BesinSenkronSayfasiGetir =
     });
 
 class BesinSenkronServisi {
-  BesinSenkronServisi._({BesinSenkronSayfasiGetir? sayfaGetir})
-    : _sayfaGetir = sayfaGetir ?? ApiServisi().besinSenkronSayfasi;
+  BesinSenkronServisi._({
+    BesinSenkronSayfasiGetir? sayfaGetir,
+    int maxSayfa = _varsayilanMaxSayfa,
+  }) : _sayfaGetir = sayfaGetir ?? ApiServisi.instance.besinSenkronSayfasi,
+       _maxSayfa = maxSayfa;
 
   @visibleForTesting
-  BesinSenkronServisi.test({required BesinSenkronSayfasiGetir sayfaGetir})
-    : _sayfaGetir = sayfaGetir;
+  BesinSenkronServisi.test({
+    required BesinSenkronSayfasiGetir sayfaGetir,
+    int maxSayfa = _varsayilanMaxSayfa,
+  }) : _sayfaGetir = sayfaGetir,
+       _maxSayfa = maxSayfa;
 
   static final BesinSenkronServisi instance = BesinSenkronServisi._();
 
   final BesinSenkronSayfasiGetir _sayfaGetir;
+  final int _maxSayfa;
   bool _calisiyor = false;
+  bool _sonSenkronEksik = false;
+  int? _sonSunucuToplamSayi;
+
+  /// Son senkron turunda sayfa sınırı veya eksik veri nedeniyle kayıtların
+  /// kırpılıp kırpılmadığını döner.
+  bool get sonSenkronEksikMi => _sonSenkronEksik;
+
+  /// Son senkron turunda sunucunun bildirdiği toplam besin sayısı.
+  int? get sonSunucuToplamSayi => _sonSunucuToplamSayi;
 
   /// Bu süreden daha yeni bir senkron varsa (zorla=false iken) tekrar denenmez.
   static const Duration _minAralik = Duration(hours: 6);
   static const int _sayfaBoyu = 1000;
-  static const int _maxSayfa = 50; // güvenlik: sonsuz döngü koruması
+  static const int _varsayilanMaxSayfa = 50; // güvenlik: sonsuz döngü koruması
   static const String _schemaVersionKey = 'besin_cache_schema_version';
   static const int _schemaVersion = 4;
 
@@ -86,6 +102,8 @@ class BesinSenkronServisi {
       String? serverTime;
       var offset = 0;
       var degisti = false;
+      var sonSayfadaDahaVar = false;
+      int? beklenenToplam;
       for (var sayfa = 0; sayfa < _maxSayfa; sayfa++) {
         final res = await _sayfaGetir(
           since: delta ? lastSync : null,
@@ -96,6 +114,10 @@ class BesinSenkronServisi {
         // ?since= olarak saklarız (sayfalar arası değişiklikler bir sonraki
         // turda yakalanır; id-bazlı upsert tekrarları zararsız kılar).
         serverTime ??= res['serverTime'] as String?;
+        final count = (res['count'] as num?)?.toInt();
+        if (count != null && count >= 0) {
+          beklenenToplam = count;
+        }
         final foods = (res['foods'] as List).cast<Map<String, dynamic>>();
         for (final f in foods) {
           final id = (f['id'] as num?)?.toInt();
@@ -105,7 +127,21 @@ class BesinSenkronServisi {
           }
         }
         offset += foods.length;
-        if (res['hasMore'] != true || foods.isEmpty) break;
+        final hasMore = res['hasMore'] == true;
+        sonSayfadaDahaVar = hasMore && foods.isNotEmpty;
+        if (!hasMore || foods.isEmpty) break;
+      }
+
+      _sonSunucuToplamSayi = beklenenToplam;
+      final sayimEksik =
+          beklenenToplam != null && offset < beklenenToplam && offset > 0;
+      _sonSenkronEksik = sonSayfadaDahaVar || sayimEksik;
+      if (_sonSenkronEksik) {
+        debugPrint(
+          '[BesinSenkron] UYARI: Senkron tam tamamlanamadı '
+          '(indirilen: $offset, sunucu toplamı: ${beklenenToplam ?? "bilinmiyor"}, '
+          'hasMore: $sonSayfadaDahaVar). Sonraki turda kaldığı yerden tekrar denenecek.',
+        );
       }
 
       // Tam senkronda her zaman yaz; delta'da yalnız değişiklik geldiyse.
@@ -114,13 +150,17 @@ class BesinSenkronServisi {
         await prefs.setString(YerelBesinVeritabani.cacheKey, jsonEncode(liste));
         YerelBesinVeritabani.instance.cachetenYukle(liste);
       }
-      if (serverTime != null && serverTime.isNotEmpty) {
-        await prefs.setString(YerelBesinVeritabani.lastSyncKey, serverTime);
+      // Yalnızca senkron eksiksiz tamamlandıysa lastSync ilerletilir;
+      // aksi halde kırpılan kayıtlar kalıcı olarak atlanmış olur.
+      if (!_sonSenkronEksik) {
+        if (serverTime != null && serverTime.isNotEmpty) {
+          await prefs.setString(YerelBesinVeritabani.lastSyncKey, serverTime);
+        }
+        await prefs.setString(
+          YerelBesinVeritabani.lastSyncAtKey,
+          DateTime.now().toIso8601String(),
+        );
       }
-      await prefs.setString(
-        YerelBesinVeritabani.lastSyncAtKey,
-        DateTime.now().toIso8601String(),
-      );
       await prefs.setInt(_schemaVersionKey, _schemaVersion);
       return YerelBesinVeritabani.instance.hazirMi;
     } catch (e) {
