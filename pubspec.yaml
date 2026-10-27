@@ -50,6 +50,13 @@ dependencies:
   shimmer: ^3.0.0
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
+  # Flutter cercevesinin kendi Cupertino widget'lari (CupertinoTextField vb.)
+  # bu font ailesini referans veriyor. Paket kaldirilinca release derlemesi
+  # "Expected to find fonts for ... CupertinoIcons" uyarisi veriyor ve
+  # bir Cupertino ikonu render edildiginde kutu (boş glyph) cikiyor.
+  # Uygulama simdiden Cupertino widget'i kullanmiyor ama 1 MB'lik font
+  # ile bu riski tamamen ortadan kaldiriyoruz.
+  cupertino_icons: ^1.0.8
 
   flutter_secure_storage: ^10.1.0
   flutter_html: ^3.0.0-beta.2
